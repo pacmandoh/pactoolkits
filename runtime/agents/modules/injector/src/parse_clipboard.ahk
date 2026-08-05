@@ -1,35 +1,16 @@
 ; 从目标窗口网格的剪贴板文本解析表头和首条有效药品数据
+; colFields：Array of Map(id, headers[], required, asInt)；bySpec 键为 id
 
-Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridClassNN := "", quiet := false) {
-	if !IsObject(intCols)
-		intCols := []
+Parse_TargetInfo(colFields, ipt, text := "", win := "A", parseGridClassNN := "", quiet := false) {
+	if !IsObject(colFields)
+		colFields := []
 
 	win := Util_NormalizeWin(win)
 	t0 := A_TickCount
 
-	IsOpt(spec) => (SubStr(spec, 1, 1) = "?")
-	Norm(spec) => IsOpt(spec) ? Trim(SubStr(spec, 2)) : spec
-
-	MatchAlias(text, specExpr) {
-		for _, a in StrSplit(specExpr, "||") {
-			if (Trim(text) = Trim(a))
-				return true
-		}
-		return false
-	}
-
-	IsIntSpec(specExpr) {
-		for _, s in intCols {
-			if (Norm(s) = specExpr)
-				return true
-		}
-		return false
-	}
-
 	; 优先使用调用方提供的文本，避免重复复制操作覆盖用户剪贴板
 	copied := false
 	if (Trim(text) = "") {
-		; 解析网格须 FocusGrid（类序 HWND），勿走精确 ClassNN ControlFocus
 		winCls := ""
 		try winCls := WinGetClass(win)
 		if (Trim(parseGridClassNN) != "") {
@@ -91,9 +72,15 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 		)
 	}
 
-	lines := StrSplit(txt, "`n")
+	fields := Parse_NormalizeColFields(colFields)
+	if (fields.Length = 0) {
+		return Map(
+			"ok", false, "level", "Warn", "message", "[解析错误] 列映射为空",
+			"reason", "ColFields empty", "raw", txt, "copied", copied
+		)
+	}
 
-	; 命中结果保留列索引和实际表头，供后续错误信息定位
+	lines := StrSplit(txt, "`n")
 	hit := Map()
 	hdrIdx := 0
 	scannedHdr := 0
@@ -112,22 +99,20 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
 		for j, c in cols {
 			c := Trim(c)
-			for _, rawSpec in colSpecs {
-				spec := Norm(rawSpec)
-				if hit.Has(spec)
+			for _, field in fields {
+				id := field["id"]
+				if hit.Has(id)
 					continue
-				if MatchAlias(c, spec)
-					hit[spec] := Map("idx", j, "hdr", c)
+				if Parse_MatchHeader(c, field["headers"])
+					hit[id] := Map("idx", j, "hdr", c, "asInt", field["asInt"])
 			}
 		}
 
-		; 未使用问号前缀的列为必填列，缺少任一列时继续检查下一候选表头
 		allFound := true
-		for _, rawSpec in colSpecs {
-			if IsOpt(rawSpec)
+		for _, field in fields {
+			if !field["required"]
 				continue
-			spec := Norm(rawSpec)
-			if !hit.Has(spec) {
+			if !hit.Has(field["id"]) {
 				allFound := false
 				break
 			}
@@ -153,16 +138,16 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 	}
 
 	hitCols := []
-	for spec, m in hit
-		hitCols.Push(spec "@" m["idx"] "=" m["hdr"])
+	for id, m in hit
+		hitCols.Push(id "@" m["idx"] "=" m["hdr"])
 	if !quiet
 		Log_Debug("parse.header_ok", "表头命中", Map(
 			"hdrIdx", hdrIdx, "hit", hitCols.Length, "cols", hitCols, "scannedHdr", scannedHdr
 		))
 
-	data := Map()  ; key=实际表头名
-	bySpec := Map() ; key=去掉 ? 后的规范 spec（可含 || 别名）
-	k := hdrIdx + 1 ; 表头后第一行起找首条有效数据
+	data := Map()
+	bySpec := Map()
+	k := hdrIdx + 1
 	skippedShort := 0
 
 	while (k <= lines.Length) {
@@ -187,11 +172,11 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
 		data.Clear(), bySpec.Clear()
 
-		for spec, m in hit {
+		for id, m in hit {
 			hdr := m["hdr"]
 			v := Trim(cols[m["idx"]])
 
-			if IsIntSpec(spec) {
+			if m["asInt"] {
 				if RegExMatch(v, "^\d+$")
 					v := Util_ToInt(v)
 				else
@@ -199,7 +184,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 			}
 
 			data[hdr] := v
-			bySpec[spec] := v
+			bySpec[id] := v
 		}
 
 		break
@@ -236,4 +221,67 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 		"hdrIdx", hdrIdx,
 		"copied", copied
 	)
+}
+
+; 将配置中的列对象规范为 Array of Map(id, headers, required, asInt)
+Parse_NormalizeColFields(raw) {
+	out := []
+	if !(IsObject(raw) && Type(raw) = "Array")
+		return out
+	for _, item in raw {
+		f := Parse_NormalizeOneColField(item)
+		if IsObject(f)
+			out.Push(f)
+	}
+	return out
+}
+
+Parse_NormalizeOneColField(item) {
+	if !IsObject(item)
+		return 0
+	if (Type(item) != "Map")
+		return 0
+
+	id := item.Has("id") ? Trim("" item["id"]) : ""
+	if (id = "")
+		return 0
+
+	headers := []
+	if item.Has("headers") && Type(item["headers"]) = "Array" {
+		for _, h in item["headers"] {
+			t := Trim("" h)
+			if (t != "")
+				headers.Push(t)
+		}
+	}
+	if (headers.Length = 0)
+		return 0
+
+	required := true
+	if item.Has("required")
+		required := !!Util_ToBool(item["required"])
+
+	asInt := false
+	if item.Has("asInt")
+		asInt := !!Util_ToBool(item["asInt"])
+
+	return Map("id", id, "headers", headers, "required", required, "asInt", asInt)
+}
+
+Parse_MatchHeader(text, headers) {
+	t := Trim("" text)
+	for _, h in headers {
+		if (t = Trim("" h))
+			return true
+	}
+	return false
+}
+
+By_Get(by, id, default := "") {
+	if !IsObject(by)
+		return default
+	id := Trim("" id)
+	if (id = "" || !by.Has(id))
+		return default
+	return by[id]
 }

@@ -95,10 +95,7 @@ Util_LoadUnifiedConfig(configPath) {
 	cfg["APP_WIN"] := Util_CfgGetAppWin(agent, "AppWin", &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
-	cfg["COL_SPECS"] := Util_CfgGetStringArray(agent, "ColSpecs", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
-	cfg["INT_COLS"] := Util_CfgGetStringArray(agent, "IntCols", false, &ok, &err)
+	cfg["COL_FIELDS"] := Util_CfgGetColFields(agent, "ColFields", &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 
@@ -112,9 +109,6 @@ Util_LoadUnifiedConfig(configPath) {
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 	cfg["CODE_PICK_POLICY"] := StrUpper(cfg["CODE_PICK_POLICY"])
-	cfg["WAREHOUSE_TASK_IDENTIFIER"] := Util_CfgGetString(agent, "WarehouseTaskIdentifier", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 
 	return Map("ok", true, "cfg", cfg)
 }
@@ -229,22 +223,14 @@ Util_CfgGetOneOf(obj, key, allows, &ok, &err) {
 	return ""
 }
 
+; AppWin：字符串数组 → 成员 Map（供 Has 查询）
 Util_CfgGetAppWin(obj, key, &ok, &err) {
-	raw := Util_CfgGetMap(obj, key, &ok, &err)
+	arr := Util_CfgGetStringArray(obj, key, true, &ok, &err)
 	if !ok
 		return ""
 	set := Map()
-	for exe, enabled in raw {
-		name := Trim("" exe)
-		if (name = "")
-			continue
-		if Util_ToBool(enabled)
-			set[name] := true
-	}
-	if (set.Count = 0) {
-		ok := false, err := "配置项不能为空：" key
-		return ""
-	}
+	for _, name in arr
+		set[name] := true
 	ok := true, err := ""
 	return set
 }
@@ -272,6 +258,35 @@ Util_CfgGetStringArray(obj, key, nonEmpty, &ok, &err) {
 	if (nonEmpty && arr.Length = 0) {
 		ok := false, err := "配置项不能为空：" key
 		return ""
+	}
+	ok := true, err := ""
+	return arr
+}
+
+; ColFields：[{ id, label?, headers[], required?, asInt? }, ...]
+Util_CfgGetColFields(obj, key, &ok, &err) {
+	if !obj.Has(key) {
+		ok := false, err := "缺少配置项：" key
+		return ""
+	}
+	raw := obj[key]
+	if (Type(raw) != "Array") {
+		ok := false, err := "配置项类型错误：" key "（应为数组）"
+		return ""
+	}
+	arr := Parse_NormalizeColFields(raw)
+	if (arr.Length = 0) {
+		ok := false, err := "配置项不能为空：" key
+		return ""
+	}
+	ids := Map()
+	for _, f in arr {
+		id := f["id"]
+		if ids.Has(id) {
+			ok := false, err := "配置项含重复 id：" key " / " id
+			return ""
+		}
+		ids[id] := true
 	}
 	ok := true, err := ""
 	return arr

@@ -5,9 +5,15 @@
 #Include "%A_ScriptDir%\..\src\pg_exec.ahk"
 #Include "%A_ScriptDir%\..\src\db_txn.ahk"
 #Include "%A_ScriptDir%\..\src\util_misc.ahk"
+#Include "%A_ScriptDir%\_env.ahk"
 
 global Cfg := IsSet(Cfg) ? Cfg : Map()
-global Cfg := Util_LoadDotEnv(A_ScriptDir "\..\.env.local")
+loaded := Test_LoadEnvLocal()
+if !loaded["ok"] {
+	MsgBox "[配置错误] 缺少 env`n" loaded["path"] "`n见 modules/injector/.env.example"
+	ExitApp 1
+}
+global Cfg := loaded["cfg"]
 
 global TEST_DRUG := "盐酸氨基葡萄糖胶囊"
 global TEST_SPEC := "0.75g*60粒"
@@ -17,7 +23,8 @@ Main()
 
 Main() {
 	MsgBox "[信息] AHK 版本: " A_AhkVersion "`n"
-		. "[信息] AHK 位数: " (A_PtrSize = 8 ? "64-bit" : "32-bit")
+		. "[信息] AHK 位数: " (A_PtrSize = 8 ? "64-bit" : "32-bit") "`n"
+		. "[信息] env=" Test_EnvLocalPath()
 
 	; 前置条件：通过正式数据库访问路径建立连接
 	ping := Ping_DB()
@@ -92,7 +99,7 @@ Main() {
 
 	; 场景 C：按规格执行拆零预留，仅扣余数并在验证后回滚
 	txnC := Util_TxnId()
-	bySpec := Map("拆零标签||拆零", "是", "数量", "125")
+	bySpec := Map("splitFlag", "是", "qty", "125")
 	rC := Txn_ReservePick(txnC, TEST_CLIENT, TEST_DRUG, TEST_SPEC, 999999, "", "", bySpec)
 	if !IsObject(rC) || !rC.Has("ok") || !rC["ok"] {
 		MsgBox "[预留错误] 测试C Reserve(拆零) 失败`ntxn=" txnC "`n" (rC.Has("err") ? rC["err"] : "")

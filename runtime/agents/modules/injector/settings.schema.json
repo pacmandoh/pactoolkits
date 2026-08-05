@@ -17,12 +17,30 @@
           "label": "PG SSL",
           "description": "Injector 连接数据库时的 SSL 模式",
           "options": [
-            "disable",
-            "allow",
-            "prefer",
-            "require",
-            "verify-ca",
-            "verify-full"
+            {
+              "value": "disable",
+              "label": "禁用"
+            },
+            {
+              "value": "allow",
+              "label": "允许（可明文）"
+            },
+            {
+              "value": "prefer",
+              "label": "优先 SSL"
+            },
+            {
+              "value": "require",
+              "label": "必须 SSL"
+            },
+            {
+              "value": "verify-ca",
+              "label": "校验 CA"
+            },
+            {
+              "value": "verify-full",
+              "label": "完整校验"
+            }
           ]
         },
         {
@@ -40,7 +58,7 @@
       "fields": [
         {
           "key": "AppWin",
-          "type": "stringFlagMap",
+          "type": "stringList",
           "label": "目标进程",
           "description": "Injector 模块可注入的目标可执行文件，每行一个"
         }
@@ -108,18 +126,18 @@
           "description": "是否启用仓库注入任务"
         },
         {
-          "key": "WarehouseTaskIdentifier",
-          "type": "string",
-          "label": "任务标识列",
-          "description": "仓库任务单据标识列名（可用 || 备选）"
-        },
-        {
           "key": "CodePickPolicy",
           "type": "enum",
           "label": "选码策略",
           "options": [
-            "MAX_LEVEL",
-            "MIN_LEVEL"
+            {
+              "value": "MAX_LEVEL",
+              "label": "按最大码"
+            },
+            {
+              "value": "MIN_LEVEL",
+              "label": "按最小码"
+            }
           ]
         },
         {
@@ -131,20 +149,13 @@
       ]
     },
     {
-      "title": "列规格",
+      "title": "数据列解析",
       "fields": [
         {
-          "key": "ColSpecs",
-          "type": "stringList",
-          "label": "ColSpecs",
-          "description": "解析列规格，每行一条"
-        },
-        {
-          "key": "IntCols",
-          "type": "stringList",
-          "label": "IntCols",
-          "description": "按整数解析的列名，每行一条",
-          "allowEmpty": true
+          "key": "ColFields",
+          "type": "colFieldList",
+          "label": "解析列明细",
+          "description": "每行一项：id、headers（/ 分隔别名）、必填、整数；锁定行仅可改 headers"
         }
       ]
     },

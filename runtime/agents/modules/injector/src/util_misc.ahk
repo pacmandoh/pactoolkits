@@ -1,4 +1,4 @@
-; 杂项：ID/SQL/剪贴板/环境信息；dotenv 轻量解析
+; 杂项：ID/SQL/剪贴板/环境信息；dotenv 轻量解析（仅 test_that 读 .env.local，生产走 --config）
 Util_TxnId() {
 	r := Random(10000, 99999)
 	return FormatTime(, "yyyyMMddHHmmss") "_" r
@@ -111,188 +111,28 @@ Util_LoadDotEnv(path) {
 			val := SubStr(val, 2, -1)
 		}
 
-		parsedSet := Util_TryParseSet(val)
-		if IsObject(parsedSet) {
-			env[key] := parsedSet
-		} else {
-			parsedArr := Util_TryParseArray(val)
-			if IsObject(parsedArr)
-				env[key] := parsedArr
-			else
-				env[key] := val
-		}
+		parsed := Util_TryParseJson(val)
+		if IsObject(parsed)
+			env[key] := parsed
+		else
+			env[key] := val
 	}
 
 	return env
 }
 
-Util_TryParseArray(val) {
-	; 无法解析为数组时返回空字符串，由调用方继续尝试其他配置类型
+; 环境变量值里的 JSON 对象/数组 → Map/Array
+Util_TryParseJson(val) {
 	v := Trim(val)
 	if (v = "")
 		return ""
-
-	if !RegExMatch(v, "^\[(.*)\]$", &mm)
+	ch := SubStr(v, 1, 1)
+	if (ch != "{" && ch != "[")
 		return ""
-
-	inner := Trim(mm[1])
-	arr := []
-
-	if (inner = "")
-		return arr
-
-	dq := Chr(34)
-	sq := "'"
-
-	token := ""
-	inQ := ""
-
-	Loop Parse inner {
-		ch := A_LoopField
-		if (inQ = "") {
-			if (ch = dq || ch = sq) {
-				inQ := ch
-				token .= ch
-				continue
-			}
-			if (ch = ",") {
-				item := Util_ArrayItemNormalize(token)
-				if (item != "")
-					arr.Push(item)
-				token := ""
-				continue
-			}
-			token .= ch
-		} else {
-			token .= ch
-			if (ch = inQ)
-				inQ := ""
-		}
-	}
-
-	item := Util_ArrayItemNormalize(token)
-	if (item != "")
-		arr.Push(item)
-
-	return arr
-}
-
-Util_ArrayItemNormalize(token) {
-	item := Trim(token, "`r`t ")
-	if (item = "")
+	try {
+		return JSON.parse(v)
+	} catch {
 		return ""
-
-	dq := Chr(34)
-	sq := "'"
-
-	if ((SubStr(item, 1, 1) = dq && SubStr(item, -1) = dq)
-		|| (SubStr(item, 1, 1) = sq && SubStr(item, -1) = sq)) {
-		item := SubStr(item, 2, -1)
-	}
-
-	return item
-}
-
-; 将类 JSON 对象解析为以键表示成员的 Map，例如 APP_WIN
-; 例：
-;   {"互慧软件.exe":1,"ProjectMain.exe":1}
-;   {'互慧软件.exe':true, 'ProjectMain.exe':true}
-Util_TryParseSet(val) {
-	v := Trim(val)
-	if (v = "")
-		return ""
-
-	if !RegExMatch(v, "^\{(.*)\}$", &m)
-		return ""
-
-	inner := Trim(m[1])
-
-	set := Map()
-	if (inner = "")
-		return set
-
-	dq := Chr(34)  ; "
-	sq := "'"      ; '
-
-	token := ""
-	inQ := ""
-
-	; 仅按顶层逗号分隔，避免拆分引号内的内容
-	Loop Parse inner {
-		ch := A_LoopField
-
-		if (inQ = "") {
-			if (ch = dq || ch = sq) {
-				inQ := ch
-				token .= ch
-				continue
-			}
-
-			if (ch = ",") {
-				Util_SetConsumeToken(set, token)
-				token := ""
-				continue
-			}
-
-			token .= ch
-		} else {
-			token .= ch
-			if (ch = inQ)
-				inQ := ""
-		}
-	}
-
-	Util_SetConsumeToken(set, token)
-
-	return set
-}
-
-; 从形如 "key":1 或 'key':true 的成员中提取键
-Util_SetConsumeToken(set, token) {
-	t := Trim(token, "`r`t ")
-	if (t = "")
-		return
-
-	; 仅识别顶层冒号，避免误用引号内的字符
-	dq := Chr(34)
-	sq := "'"
-
-	inQ := ""
-	colonPos := 0
-
-	Loop Parse t {
-		ch := A_LoopField
-		pos := A_Index
-
-		if (inQ = "") {
-			if (ch = dq || ch = sq) {
-				inQ := ch
-				continue
-			}
-			if (ch = ":") {
-				colonPos := pos
-				break
-			}
-		} else {
-			if (ch = inQ)
-				inQ := ""
-		}
-	}
-
-	if (colonPos = 0)
-		return
-
-	k := Trim(SubStr(t, 1, colonPos - 1), "`r`t ")
-
-	; 为保持与 JSON 键规则一致，忽略未使用引号的键
-	if (StrLen(k) < 2)
-		return
-
-	if ((SubStr(k, 1, 1) = dq && SubStr(k, -1) = dq)
-		|| (SubStr(k, 1, 1) = sq && SubStr(k, -1) = sq)) {
-		k := SubStr(k, 2, -1)
-		if (k != "")
-			set[k] := true
 	}
 }
 

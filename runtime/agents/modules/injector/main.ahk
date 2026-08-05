@@ -63,7 +63,7 @@ Cfg_RequireKeys(Cfg, [
 	"PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL",
 	"OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN",
 	"IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN",
-	"COL_SPECS", "INT_COLS", "CONFIRM_TIMEOUT_MS", "APP_WIN"
+	"COL_FIELDS", "CONFIRM_TIMEOUT_MS", "APP_WIN"
 ], Module_UiTitle("启动自检"))
 
 Ready_Mark()
@@ -246,7 +246,7 @@ Injector_RunSemi(injectMode, clickAnchor := "", hookT0 := 0) {
 	try {
 		msa := Semi_Auto_Fill(
 			Cfg["OPT_WINDOW_CLASS"], Cfg["IPT_WINDOW_CLASS"],
-			Cfg["COL_SPECS"], Cfg["INT_COLS"],
+			Cfg["COL_FIELDS"],
 			Cfg["CONFIRM_TIMEOUT_MS"],
 			Cfg["OPT_PARSE_GRID_CLASSNN"],
 			Cfg["IPT_PARSE_GRID_CLASSNN"], Cfg["IPT_VERIFY_GRID_CLASSNN"],
@@ -330,8 +330,7 @@ Injector_RunWarehouse(clickAnchor, hookT0 := 0) {
 			Cfg["IPT_PARSE_GRID_CLASSNN"],
 			Cfg["IPT_VERIFY_GRID_CLASSNN"],
 			Cfg["IPT_INPUT_CLASSNN"],
-			Cfg["COL_SPECS"],
-			Cfg["INT_COLS"],
+			Cfg["COL_FIELDS"],
 			Cfg["IPT_WINDOW_CLASS"],
 			ctx["win"],
 			clickAnchor

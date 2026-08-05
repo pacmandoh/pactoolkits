@@ -33,10 +33,10 @@ Txn_PlanPick(by, injectMode, isOpt, drugId, spec, alreadyScanned := 0) {
 	if (injectMode != "full")
 		injectMode := "rem"
 
-	splitFlag := by.Has("拆零标签||拆零") ? Trim(by["拆零标签||拆零"]) : ""
-	qtyVal := by.Has("数量") ? by["数量"] : ""
-	unit := by.Has("单位") ? Trim("" by["单位"]) : ""
-	doseUnit := by.Has("用量单位") ? Trim("" by["用量单位"]) : ""
+	splitFlag := Trim("" By_Get(by, "splitFlag"))
+	qtyVal := By_Get(by, "qty")
+	unit := Trim("" By_Get(by, "unit"))
+	doseUnit := Trim("" By_Get(by, "doseUnit"))
 	qtyN := Util_ToInt(qtyVal, 0)
 	scannedN := Util_ToInt(alreadyScanned, 0)
 
