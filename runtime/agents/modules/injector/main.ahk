@@ -144,23 +144,23 @@ global _LAST_RUN := 0
 		return
 	}
 
-	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_WINDOW_CLASS"], Cfg["INT_COLS"], "", ctx["win"], parseGridClassNN)
-	Log_Debug("hot.rbutton.parse", p["ok"] ? "解析成功" : "解析失败", Map(
-		"ok", p["ok"],
-		"level", p.Has("level") ? p["level"] : "",
-		"reason", p.Has("reason") ? p["reason"] : "",
-		"elapsedMs", A_TickCount - t0,
-		"rawLen", p.Has("raw") ? StrLen(p["raw"]) : 0
-	))
-	if (!p["ok"]) {
-		UI_Fail("parse.fail", p["message"], Module_UiTitle())
-		return
+	; 右键：全量注入（整盒+拆零）；仓库模式不在此路径
+	clickAnchor := ""
+	if (ctx["cls"] = Cfg["OPT_WINDOW_CLASS"]) {
+		clickAnchor := UI_CaptureGridClickAnchor(parseGridClassNN, ctrlHwnd)
+		Log_Debug("hot.rbutton.anchor", "点击锚点已采集", Map(
+			"ok", IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"],
+			"restoreOk", IsObject(clickAnchor) && clickAnchor.Has("restoreOk") && clickAnchor["restoreOk"]
+		))
 	}
-	UI_Tip(p["message"])
+
+	Critical
+	KeyWait("RButton")
+	Injector_RunSemi("full", clickAnchor, t0)
 }
 
 ~LButton:: {
-	global _BUSY, _LAST_RUN, Cfg
+	global Cfg
 	hookT0 := A_TickCount
 
 	activeCls := ""
@@ -203,74 +203,65 @@ global _LAST_RUN := 0
 	Critical
 	KeyWait("LButton")
 
+	if warehouseMode {
+		Injector_RunWarehouse(clickAnchor, hookT0)
+		return
+	}
+	; 左键：拆零注入
+	Injector_RunSemi("rem", clickAnchor, hookT0)
+}
+
+; injectMode: "rem" | "full"（非仓库）
+Injector_RunSemi(injectMode, clickAnchor := "", hookT0 := 0) {
+	global _BUSY, _LAST_RUN, Cfg
+	if (hookT0 <= 0)
+		hookT0 := A_TickCount
+
 	if (_BUSY) {
-		Log_Debug("hot.lbutton.busy", "忙碌中忽略", Map("elapsedMs", A_TickCount - hookT0))
+		Log_Debug("hot.semi.busy", "忙碌中忽略", Map("injectMode", injectMode, "elapsedMs", A_TickCount - hookT0))
 		return UI_Tip("忙碌中…已忽略重复触发", 800)
 	}
 
 	now := A_TickCount
 	if (now - _LAST_RUN < 400) {
-		Log_Debug("hot.lbutton.throttle", "触发过快忽略", Map("deltaMs", now - _LAST_RUN))
+		Log_Debug("hot.semi.throttle", "触发过快忽略", Map("deltaMs", now - _LAST_RUN, "injectMode", injectMode))
 		return UI_Tip("触发过快，已忽略", 600)
 	}
-
 	_LAST_RUN := now
-
 	_BUSY := true
 
 	ctx := Util_CaptureWin("A")
-	Log_Debug("hot.lbutton.run", "开始半自动/仓库流程", Map(
-		"warehouse", warehouseMode,
-		"cls", ctx["cls"], "ttl", ctx["ttl"],
+	cls := ctx["cls"]
+	Log_Debug("hot.semi.run", "开始半自动", Map(
+		"injectMode", injectMode, "cls", cls, "ttl", ctx["ttl"],
 		"elapsedMs", A_TickCount - hookT0
 	))
-	if !warehouseMode {
-		try {
-			if (ctx["cls"] = Cfg["OPT_WINDOW_CLASS"]) {
-				Log_Info("opt_hook", "门诊热键触发", Map(
-					"elapsedMs", A_TickCount - hookT0,
-					"activeCls", activeCls,
-					"cls", ctx["cls"],
-					"ttl", ctx["ttl"]
-				))
-			}
-		}
+	if (cls = Cfg["OPT_WINDOW_CLASS"]) {
+		Log_Info("opt_hook", "门诊热键触发", Map(
+			"injectMode", injectMode, "elapsedMs", A_TickCount - hookT0,
+			"cls", cls, "ttl", ctx["ttl"]
+		))
 	}
 
-	cls := ctx["cls"]
-
 	try {
-		if warehouseMode {
-			UI_Tip("[仓库模式] 开始执行注入流程…", 900)
-			msa := Msfx_RunWarehouseTaskFlow(
-				Cfg["CONFIRM_TIMEOUT_MS"],
-				Cfg["IPT_PARSE_GRID_CLASSNN"],
-				Cfg["IPT_VERIFY_GRID_CLASSNN"],
-				Cfg["IPT_INPUT_CLASSNN"],
-				Cfg["COL_SPECS"],
-				Cfg["INT_COLS"],
-				Cfg["IPT_WINDOW_CLASS"],
-				ctx["win"],
-				clickAnchor
-			)
-		} else {
-			msa := Semi_Auto_Fill(
-				Cfg["OPT_WINDOW_CLASS"], Cfg["IPT_WINDOW_CLASS"],
-				Cfg["COL_SPECS"], Cfg["INT_COLS"],
-				Cfg["CONFIRM_TIMEOUT_MS"],
-				Cfg["OPT_PARSE_GRID_CLASSNN"],
-				Cfg["IPT_PARSE_GRID_CLASSNN"], Cfg["IPT_VERIFY_GRID_CLASSNN"],
-				Cfg["OPT_INPUT_CLASSNN"], Cfg["IPT_INPUT_CLASSNN"],
-				ctx["win"],
-				clickAnchor
-			)
-		}
+		msa := Semi_Auto_Fill(
+			Cfg["OPT_WINDOW_CLASS"], Cfg["IPT_WINDOW_CLASS"],
+			Cfg["COL_SPECS"], Cfg["INT_COLS"],
+			Cfg["CONFIRM_TIMEOUT_MS"],
+			Cfg["OPT_PARSE_GRID_CLASSNN"],
+			Cfg["IPT_PARSE_GRID_CLASSNN"], Cfg["IPT_VERIFY_GRID_CLASSNN"],
+			Cfg["OPT_INPUT_CLASSNN"], Cfg["IPT_INPUT_CLASSNN"],
+			ctx["win"],
+			clickAnchor,
+			injectMode
+		)
 
-		Log_Debug("hot.lbutton.result", msa.Has("ok") && msa["ok"] ? "流程结束-成功" : "流程结束-失败/跳过", Map(
+		Log_Debug("hot.semi.result", msa.Has("ok") && msa["ok"] ? "流程结束-成功" : "流程结束-失败/跳过", Map(
 			"ok", msa.Has("ok") ? msa["ok"] : false,
 			"skip", msa.Has("skip") ? msa["skip"] : false,
 			"level", msa.Has("level") ? msa["level"] : "",
 			"message", msa.Has("message") ? msa["message"] : "",
+			"injectMode", injectMode,
 			"elapsedMs", A_TickCount - hookT0
 		))
 
@@ -282,9 +273,8 @@ global _LAST_RUN := 0
 		}
 
 		if (!msa["ok"]) {
-
 			if (msa["level"] = "Warn") {
-				Log_Warn("semi_auto.warn", msa["message"], Map("cls", cls))
+				Log_Warn("semi_auto.warn", msa["message"], Map("cls", cls, "injectMode", injectMode))
 				UI_Tip(msa["message"])
 			}
 			if (msa["level"] = "Error") {
@@ -292,23 +282,17 @@ global _LAST_RUN := 0
 					"semi_auto.fail",
 					msa["message"],
 					Module_UiTitle(),
-					Map("cls", cls, "ttl", ctx["ttl"])
+					Map("cls", cls, "ttl", ctx["ttl"], "injectMode", injectMode)
 				)
 			}
 
-			if (cls = Cfg["IPT_WINDOW_CLASS"]) {
+			if (cls = Cfg["IPT_WINDOW_CLASS"])
 				UI_FocusClassNN(Cfg["IPT_INPUT_CLASSNN"], ctx["win"])
-			}
-			if (cls = Cfg["OPT_WINDOW_CLASS"]) {
+			else if (cls = Cfg["OPT_WINDOW_CLASS"])
 				UI_FocusClassNN(Cfg["OPT_INPUT_CLASSNN"], ctx["win"])
-			}
 			return false
 		}
 
-		if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
-			UI_Tip(msa["message"], 1500)
-
-		; 成功：优先用返回的 focusClassNN，否则按场景回输入框
 		if (msa.Has("focusClassNN") && Trim(msa["focusClassNN"]) != "") {
 			UI_FocusClassNN(msa["focusClassNN"], ctx["win"])
 		} else if (cls = Cfg["IPT_WINDOW_CLASS"]) {
@@ -316,6 +300,67 @@ global _LAST_RUN := 0
 		} else if (cls = Cfg["OPT_WINDOW_CLASS"]) {
 			UI_FocusClassNN(Cfg["OPT_INPUT_CLASSNN"], ctx["win"])
 		}
+		return true
 	} finally _BUSY := false
 }
+
+Injector_RunWarehouse(clickAnchor, hookT0 := 0) {
+	global _BUSY, _LAST_RUN, Cfg
+	if (hookT0 <= 0)
+		hookT0 := A_TickCount
+
+	if (_BUSY) {
+		Log_Debug("hot.wh.busy", "忙碌中忽略", Map("elapsedMs", A_TickCount - hookT0))
+		return UI_Tip("忙碌中…已忽略重复触发", 800)
+	}
+	now := A_TickCount
+	if (now - _LAST_RUN < 400) {
+		Log_Debug("hot.wh.throttle", "触发过快忽略", Map("deltaMs", now - _LAST_RUN))
+		return UI_Tip("触发过快，已忽略", 600)
+	}
+	_LAST_RUN := now
+	_BUSY := true
+
+	ctx := Util_CaptureWin("A")
+	cls := ctx["cls"]
+	try {
+		UI_Tip("[仓库模式] 开始执行注入流程…", 900)
+		msa := Msfx_RunWarehouseTaskFlow(
+			Cfg["CONFIRM_TIMEOUT_MS"],
+			Cfg["IPT_PARSE_GRID_CLASSNN"],
+			Cfg["IPT_VERIFY_GRID_CLASSNN"],
+			Cfg["IPT_INPUT_CLASSNN"],
+			Cfg["COL_SPECS"],
+			Cfg["INT_COLS"],
+			Cfg["IPT_WINDOW_CLASS"],
+			ctx["win"],
+			clickAnchor
+		)
+
+		Log_Debug("hot.wh.result", msa.Has("ok") && msa["ok"] ? "流程结束-成功" : "流程结束-失败/跳过", Map(
+			"ok", msa.Has("ok") ? msa["ok"] : false,
+			"skip", msa.Has("skip") ? msa["skip"] : false,
+			"message", msa.Has("message") ? msa["message"] : "",
+			"elapsedMs", A_TickCount - hookT0
+		))
+
+		if (msa.Has("skip") && msa["skip"]) {
+			UI_Tip(msa["message"])
+			return true
+		}
+		if (!msa["ok"]) {
+			if (msa["level"] = "Warn") {
+				Log_Warn("warehouse.warn", msa["message"], Map("cls", cls))
+				UI_Tip(msa["message"])
+			}
+			if (msa["level"] = "Error") {
+				UI_Fail("warehouse.fail", msa["message"], Module_UiTitle(), Map("cls", cls, "ttl", ctx["ttl"]))
+			}
+			return false
+		}
+		UI_Tip(msa["message"], 1500)
+		return true
+	} finally _BUSY := false
+}
+
 #HotIf

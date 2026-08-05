@@ -1,139 +1,69 @@
-; 追溯码事务支持预留、提交和回滚；拆零仅扣减余数，完整包装不占用追溯码
+; 追溯码事务支持预留、提交和回滚
+; rem 模式：只扣拆零粒；full 模式：整盒行（remain=qty）+ 拆零粒 同 txn
+; 计划：txn_plan.ahk（用 A_LineFile，测试只 #Include pg_exec 也能解析）
+#Include "%A_LineFile%\..\txn_plan.ahk"
 
 global __PG := Map(
 	"conn", 0,
 	"in_txn", false
 )
 
-; alreadyScanned：门诊「已扫 N 码」
-; 门诊整包装/拆零粒数在半自动解析后分流（单位 vs 用量单位）；此处只算余数与已扫门控：
-;   整盒>0 且 已扫<整盒 → 拒绝（须先扫满整盒再注余数）
-;   已扫=整盒 → 注入余数（含整盒=0 的纯拆零起扫）
-;   已扫≥整盒+1 → 跳过（拆零侧已有码）
-Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cls := "", alreadyScanned := 0) {
-	need := reqQty
+; injectMode: "rem" | "full"；有 bySpec 时走计划，否则 reqQty 为拆零粒直接预留（测试）
+Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cls := "", alreadyScanned := 0, injectMode := "rem") {
+	isOpt := (Trim("" opt) != "" && cls = opt)
+	injectMode := StrLower(Trim("" injectMode))
+	if (injectMode != "full")
+		injectMode := "rem"
+
+	wholeN := 0
+	remNeed := Util_ToInt(reqQty, 0)
+
+	if IsObject(bySpec) {
+		plan := Txn_PlanPick(bySpec, injectMode, isOpt, drugId, spec, alreadyScanned)
+		if !plan["ok"]
+			return plan
+		if (plan.Has("skip") && plan["skip"])
+			return plan
+		wholeN := Util_ToInt(plan["wholePick"], 0)
+		remNeed := Util_ToInt(plan["remNeed"], 0)
+		Log_Debug("txn.reserve.plan", "采用计划", Map(
+			"txn", txnId, "injectMode", injectMode, "wholeN", wholeN, "remNeed", remNeed
+		))
+	}
+
+	if (wholeN <= 0 && remNeed <= 0) {
+		return Map("ok", true, "skip", true, "level", "Info",
+			"message", "[跳过取码] 无需预留", "need", 0, "codes", [], "items", [])
+	}
+
+	return Txn_ReserveAlloc(txnId, clientId, drugId, spec, wholeN, remNeed, cls, isOpt, injectMode)
+}
+
+; wholeN：整盒行数（remain=qty）；remNeed：拆零粒
+; 码选取：门诊全部；住院 full 整盒全部 + 拆零侧仅末码；住院 rem 仅末码
+Txn_ReserveAlloc(txnId, clientId, drugId, spec, wholeN, remNeed, cls, isOpt := false, injectMode := "rem") {
 	codes := []
 	items := []
 	t0 := A_TickCount
-	isOpt := (Trim("" opt) != "" && cls = opt)
+	wholeN := Max(0, Util_ToInt(wholeN, 0))
+	remNeed := Max(0, Util_ToInt(remNeed, 0))
 	Log_Debug("txn.reserve.begin", "预留开始", Map(
-		"txn", txnId, "drugId", drugId, "spec", spec, "reqQty", reqQty, "cls", cls,
-		"alreadyScanned", alreadyScanned, "isOpt", isOpt
+		"txn", txnId, "drugId", drugId, "spec", spec,
+		"wholeN", wholeN, "remNeed", remNeed, "cls", cls,
+		"isOpt", isOpt, "injectMode", injectMode
 	))
 
-	; 仅拆零业务需要预留追溯码，扣减量按单盒数量的余数计算
-	if IsObject(bySpec) {
-		splitFlag := bySpec.Has("拆零标签||拆零") ? Trim(bySpec["拆零标签||拆零"]) : ""
-		qtyVal := bySpec.Has("数量") ? bySpec["数量"] : ""
-		Log_Debug("txn.reserve.split", "拆零字段", Map(
-			"txn", txnId, "split", splitFlag, "qty", qtyVal, "isOpt", isOpt
-		))
-
-		; 非拆零业务不得从追溯池预留记录（住院/仓库「拆零」列）
-		if (splitFlag = "否") {
-			Log_Debug("txn.reserve.skip", "未拆零跳过", Map("txn", txnId))
-			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码] 未拆零药物", "need", 0, "codes", [], "items", [])
-		}
-
-		qtyN := 0
-		if IsInteger(qtyVal)
-			qtyN := qtyVal
-		else if RegExMatch(Trim(qtyVal), "^\d+$")
-			qtyN := Integer(qtyVal)
-
-		if (qtyN <= 0) {
-			Log_Debug("txn.reserve.qty_bad", "数量无效", Map("txn", txnId, "qty", qtyVal))
-			return Map("ok", false, "level", "Warn", "message", "[解析错误] 数量无效：" qtyVal)
-		}
-
-		; 单盒数量以 drug_index.qty 为准，用于计算拆零余数
-		qDbQty := ""
-			. "SELECT qty FROM drug_index "
-			. "WHERE drug_id='" Util_EscapeSQL(drugId) "' "
-			. "  AND spec='" Util_EscapeSQL(spec) "' "
-			. "LIMIT 1;"
-		rr := DB_Query(qDbQty)
-		if !rr["ok"] {
-			Log_Debug("txn.reserve.dbqty_fail", "读单盒数量失败", Map("txn", txnId, "err", rr.Has("err") ? rr["err"] : ""))
-			return Map("ok", false, "level", "Error", "message", "[查询错误]`n读取药品索引中单盒数量失败：`n" rr["err"])
-		}
-		if (rr["rows"].Length = 0) {
-			Log_Debug("txn.reserve.dbqty_miss", "药品索引无此规格", Map("txn", txnId, "drugId", drugId, "spec", spec))
-			return Map(
-				"ok", false, "level", "Warn", "message", "[查询错误]`n药品索引未配置该药品规格（无法计算拆零余数）`n药品=" drugId "`n规格=" spec
-			)
-		}
-
-		dbQty := Util_ToInt(rr["rows"][1][1])
-		if (dbQty <= 0) {
-			Log_Debug("txn.reserve.dbqty_bad", "单盒数量非法", Map("txn", txnId, "dbQty", dbQty))
-			return Map("ok", false, "level", "Error", "message", "[查询错误]`n药品索引中单盒数量非法：" dbQty)
-		}
-
-		rem := Mod(qtyN, dbQty)
-		wholeN := qtyN // dbQty
-		Log_Debug("txn.reserve.rem", "拆零余数", Map(
-			"txn", txnId, "qty", qtyN, "dbQty", dbQty, "rem", rem, "wholeN", wholeN,
-			"cls", cls, "alreadyScanned", alreadyScanned
-		))
-
-		if (rem = 0) {
-			Log_Debug("txn.reserve.skip", "整包装跳过", Map("txn", txnId, "qty", qtyN, "dbQty", dbQty))
-			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码] 整包装（数量为整包整数倍，单盒数量=" dbQty "）"
-				, "need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty)
-		}
-
-		; 门诊拆零：强制先整盒后余数，且拆零侧有码后不重注
-		if isOpt {
-			scannedN := Util_ToInt(alreadyScanned, 0)
-			splitScanned := Max(0, scannedN - wholeN)
-			Log_Debug("txn.reserve.opt_gate", "门诊拆零已扫门控", Map(
-				"txn", txnId, "alreadyScanned", scannedN, "splitScanned", splitScanned,
-				"rem", rem, "wholeN", wholeN
-			))
-
-			; 已扫≥整盒+1：拆零侧至少 1 码 → 跳过，避免重复注余数
-			if (splitScanned >= 1) {
-				Log_Debug("txn.reserve.skip", "拆零已扫足跳过", Map(
-					"txn", txnId, "rem", rem, "wholeN", wholeN, "alreadyScanned", scannedN,
-					"splitScanned", splitScanned
-				))
-				return Map("ok", true, "skip", true, "level", "Info",
-					"message", "[跳过取码] 拆零余数已有已扫记录，无需重复注入",
-					"need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty,
-					"already_scanned", scannedN, "whole_n", wholeN, "rem", rem)
-			}
-
-			; 有整盒时须已扫恰好=整盒数才开口注余数（先整盒后拆零）
-			if (wholeN > 0 && scannedN < wholeN) {
-				Log_Debug("txn.reserve.opt_whole_pending", "整盒未扫满，拒绝注余数", Map(
-					"txn", txnId, "alreadyScanned", scannedN, "wholeN", wholeN, "rem", rem
-				))
-				return Map("ok", false, "level", "Warn",
-					"message", "[取码提示]`n请先手动扫完整盒追溯码，再注入拆零余数`n已扫=" scannedN "`n整盒=" wholeN,
-					"reason", "WHOLE_BOX_PENDING",
-					"need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty,
-					"already_scanned", scannedN, "whole_n", wholeN, "rem", rem)
-			}
-			; scannedN = wholeN（含 wholeN=0 且已扫=0）：允许预留 rem
-		}
-
-		need := rem
-		reqQty := need
-	}
-
-	; 单条 CTE 使用 SKIP LOCKED 并保持索引顺序，降低并发预留冲突
 	rOpen := PG_EnsureOpen()
 	if !rOpen["ok"]
 		return rOpen
 
 	conn := __PG["conn"]
-
 	escTxn := Util_EscapeSQL(txnId)
 	escClient := Util_EscapeSQL(clientId)
 	escDrug := Util_EscapeSQL(drugId)
 	escSpec := Util_EscapeSQL(spec)
 
+	; 两段锁：整盒 remain=qty；拆零 remain>0 排除已锁整盒，优先已拆记录
 	bigSQL := ""
 		. "WITH "
 		. "params AS ("
@@ -142,42 +72,67 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "    '" escClient "'::text AS client_id, "
 		. "    '" escDrug "'::text   AS drug_id, "
 		. "    '" escSpec "'::text   AS spec, "
-		. "    " (need + 0) "::int     AS need"
+		. "    " (wholeN + 0) "::int AS whole_n, "
+		. "    " (remNeed + 0) "::int AS rem_need"
 		. "), "
-		; 可用性统计与候选选择共用一次 trace_pool 扫描
 		. "stats AS ("
 		. "  SELECT "
 		. "    count(*)::int AS cnt_any, "
 		. "    count(*) FILTER (WHERE tp.status=1 AND tp.remain > 0)::int AS cnt_usable, "
+		. "    count(*) FILTER (WHERE tp.status=1 AND tp.remain = tp.qty)::int AS cnt_whole, "
 		. "    COALESCE(sum(tp.remain) FILTER (WHERE tp.status=1 AND tp.remain > 0), 0)::int AS sum_usable_remain "
 		. "  FROM trace_pool tp, params p "
 		. "  WHERE tp.drug_id = p.drug_id "
 		. "    AND tp.spec    = p.spec "
 		. "), "
-		; ORDER BY 必须与 idx_trace_pick_ultra 完全一致，确保查询计划使用该索引
-		. "locked AS MATERIALIZED ("
+		. "whole_locked AS MATERIALIZED ("
 		. "  SELECT tp.id "
 		. "  FROM trace_pool tp, params p "
-		. "  WHERE tp.drug_id = p.drug_id "
+		. "  WHERE p.whole_n > 0 "
+		. "    AND tp.drug_id = p.drug_id "
+		. "    AND tp.spec    = p.spec "
+		. "    AND tp.status  = 1 "
+		. "    AND tp.remain  = tp.qty "
+		. "  ORDER BY "
+		. "    tp.in_date ASC, "
+		. "    COALESCE(tp.last_used, 'epoch'::timestamptz) ASC, "
+		. "    tp.id ASC "
+		. "  FOR UPDATE SKIP LOCKED "
+		. "  LIMIT (SELECT whole_n FROM params)"
+		. "), "
+		. "whole_alloc AS ("
+		. "  SELECT "
+		. "    tp.id, tp.trace_code, tp.remain AS take_qty, "
+		. "    row_number() OVER ("
+		. "      ORDER BY tp.in_date ASC, COALESCE(tp.last_used, 'epoch'::timestamptz) ASC, tp.id ASC"
+		. "    )::int AS seq "
+		. "  FROM trace_pool tp "
+		. "  JOIN whole_locked w ON w.id = tp.id"
+		. "), "
+		. "rem_locked AS MATERIALIZED ("
+		. "  SELECT tp.id "
+		. "  FROM trace_pool tp, params p "
+		. "  WHERE p.rem_need > 0 "
+		. "    AND tp.drug_id = p.drug_id "
 		. "    AND tp.spec    = p.spec "
 		. "    AND tp.status  = 1 "
 		. "    AND tp.remain  > 0 "
+		. "    AND NOT EXISTS (SELECT 1 FROM whole_locked w WHERE w.id = tp.id) "
 		. "  ORDER BY "
 		. "    ((tp.remain < tp.qty) IS TRUE) DESC, "
 		. "    tp.in_date ASC, "
 		. "    COALESCE(tp.last_used, 'epoch'::timestamptz) ASC, "
 		. "    tp.id ASC "
 		. "  FOR UPDATE SKIP LOCKED "
-		. "  LIMIT LEAST(GREATEST((SELECT need FROM params)*2, 50), 5000)"
+		. "  LIMIT LEAST(GREATEST((SELECT rem_need FROM params)*2, 50), 5000)"
 		. "), "
-		; 共用 WINDOW 定义以避免重复排序
-		. "picked AS ("
+		. "rem_picked AS ("
 		. "  SELECT "
 		. "    tp.id, tp.trace_code, tp.remain, tp.qty, "
 		. "    row_number() OVER w AS seq, "
 		. "    sum(tp.remain) OVER w AS cum_remain "
 		. "  FROM trace_pool tp "
-		. "  JOIN locked l ON l.id = tp.id "
+		. "  JOIN rem_locked l ON l.id = tp.id "
 		. "  WINDOW w AS ("
 		. "    ORDER BY "
 		. "      ((tp.remain < tp.qty) IS TRUE) DESC, "
@@ -186,51 +141,73 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "      tp.id ASC"
 		. "  )"
 		. "), "
-		; 当前行扣减量由需求量和累计可用量共同确定
-		. "alloc AS ("
+		. "rem_alloc AS ("
 		. "  SELECT "
 		. "    id, trace_code, seq, remain, "
 		. "    GREATEST("
 		. "      LEAST("
 		. "        remain, "
-		. "        (SELECT need FROM params) - (cum_remain - remain)"
+		. "        (SELECT rem_need FROM params) - (cum_remain - remain)"
 		. "      ), "
 		. "      0"
 		. "    )::int AS take_qty "
-		. "  FROM picked"
+		. "  FROM rem_picked"
 		. "), "
-		. "take_sum AS ("
-		. "  SELECT COALESCE(sum(take_qty),0)::int AS sum_take FROM alloc"
+		. "whole_sum AS ("
+		. "  SELECT COALESCE(count(*),0)::int AS n, COALESCE(sum(take_qty),0)::int AS sum_take FROM whole_alloc"
 		. "), "
-		; 仅在总可用量满足需求时写入，并为不足场景返回可区分的失败原因
+		. "rem_sum AS ("
+		. "  SELECT COALESCE(sum(take_qty),0)::int AS sum_take FROM rem_alloc"
+		. "), "
 		. "guard AS ("
 		. "  SELECT "
-		. "    CASE WHEN ts.sum_take = (SELECT need FROM params) THEN 1 ELSE 0 END AS ok, "
 		. "    CASE "
-		. "      WHEN ts.sum_take = (SELECT need FROM params) THEN 'OK' "
+		. "      WHEN ws.n = (SELECT whole_n FROM params) "
+		. "       AND rs.sum_take = (SELECT rem_need FROM params) THEN 1 "
+		. "      ELSE 0 "
+		. "    END AS ok, "
+		. "    CASE "
+		. "      WHEN ws.n = (SELECT whole_n FROM params) "
+		. "       AND rs.sum_take = (SELECT rem_need FROM params) THEN 'OK' "
 		. "      WHEN s.cnt_any = 0 THEN 'NO_ENTRY' "
-		. "      WHEN s.cnt_usable = 0 THEN 'NO_AVAILABLE' "
-		. "      WHEN s.sum_usable_remain < (SELECT need FROM params) THEN 'INSUFFICIENT_TOTAL' "
+		. "      WHEN (SELECT whole_n FROM params) > 0 AND s.cnt_whole < (SELECT whole_n FROM params) THEN 'NO_AVAILABLE' "
+		. "      WHEN (SELECT rem_need FROM params) > 0 AND s.cnt_usable = 0 THEN 'NO_AVAILABLE' "
+		. "      WHEN (SELECT rem_need FROM params) > 0 "
+		. "       AND (s.sum_usable_remain - COALESCE(ws.sum_take, 0)) < (SELECT rem_need FROM params) "
+		. "        THEN 'INSUFFICIENT_TOTAL' "
 		. "      ELSE 'CONCURRENCY_OR_LIMIT' "
-		. "    END AS reason "
-		. "  FROM stats s, take_sum ts"
+		. "    END AS reason, "
+		. "    (ws.sum_take + rs.sum_take)::int AS req_qty "
+		. "  FROM stats s, whole_sum ws, rem_sum rs"
 		. "), "
-		; 只有完整满足需求时才扣减剩余数量
-		. "upd AS ("
+		. "upd_whole AS ("
 		. "  UPDATE trace_pool tp "
 		. "  SET remain = tp.remain - a.take_qty "
-		. "  FROM alloc a, guard g "
+		. "  FROM whole_alloc a, guard g "
 		. "  WHERE g.ok = 1 "
 		. "    AND tp.id = a.id "
 		. "    AND a.take_qty > 0 "
 		. "  RETURNING a.seq, tp.id AS pool_id, a.trace_code, a.take_qty"
 		. "), "
-		; PENDING 事务仅在预留成功后写入，并通过 upsert 保证幂等
+		. "upd_rem AS ("
+		. "  UPDATE trace_pool tp "
+		. "  SET remain = tp.remain - a.take_qty "
+		. "  FROM rem_alloc a, guard g "
+		. "  WHERE g.ok = 1 "
+		. "    AND tp.id = a.id "
+		. "    AND a.take_qty > 0 "
+		. "  RETURNING a.seq + (SELECT whole_n FROM params), tp.id AS pool_id, a.trace_code, a.take_qty"
+		. "), "
+		. "upd AS ("
+		. "  SELECT * FROM upd_whole "
+		. "  UNION ALL "
+		. "  SELECT * FROM upd_rem"
+		. "), "
 		. "ins_txn AS ("
 		. "  INSERT INTO trace_txn(txn_id, client_id, drug_id, spec, req_qty, status) "
-		. "  SELECT txn_id, client_id, drug_id, spec, need, 'PENDING' "
-		. "  FROM params, guard "
-		. "  WHERE guard.ok = 1 "
+		. "  SELECT p.txn_id, p.client_id, p.drug_id, p.spec, g.req_qty, 'PENDING' "
+		. "  FROM params p, guard g "
+		. "  WHERE g.ok = 1 "
 		. "  ON CONFLICT (txn_id) DO UPDATE "
 		. "    SET client_id    = EXCLUDED.client_id, "
 		. "        drug_id      = EXCLUDED.drug_id, "
@@ -241,7 +218,6 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "  WHERE trace_txn.status = 'PENDING' "
 		. "  RETURNING txn_id"
 		. "), "
-		; 事务明细仅在成功路径重写，避免失败时留下不完整记录
 		. "del_items AS ("
 		. "  DELETE FROM trace_txn_item "
 		. "  WHERE (SELECT ok FROM guard)=1 "
@@ -263,7 +239,6 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "LEFT JOIN upd u ON g.ok=1 "
 		. "ORDER BY u.seq NULLS FIRST;"
 
-	; 使用 ADO 显式事务保证预留数据与事务记录同时提交或回滚
 	try {
 		if !__PG["in_txn"] {
 			conn.BeginTrans()
@@ -276,7 +251,9 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
 			detail := r.Has("message") ? r["message"] : r["err"]
-			Log_Debug("txn.reserve.sql_fail", "预留 SQL 异常", Map("txn", txnId, "need", need, "elapsedMs", A_TickCount - t0))
+			Log_Debug("txn.reserve.sql_fail", "预留 SQL 异常", Map(
+				"txn", txnId, "wholeN", wholeN, "remNeed", remNeed, "elapsedMs", A_TickCount - t0
+			))
 			return Map(
 				"ok", false, "level", r["level"],
 				"message", "[预留错误]`n预留 SQL 执行异常：`n" detail,
@@ -287,20 +264,16 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		if (r["rows"].Length = 0) {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
-			Log_Debug("txn.reserve.no_result", "预留无结果行", Map("txn", txnId, "need", need))
+			Log_Debug("txn.reserve.no_result", "预留无结果行", Map("txn", txnId))
 			return Map("ok", false, "level", "Error", "message", "[预留错误]`n未返回任何结果行", "reason", "NO_RESULT")
 		}
 
-		; 查询列顺序是跨 ADO 读取的固定契约，修改 SQL 时必须同步此处索引
 		status := r["rows"][1][1]
 		reason := r["rows"][1][2]
 
 		if (status = "FAIL") {
-			; 业务失败即使没有写入也显式回滚，保持统一事务语义
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
-
-			; 失败原因区分无索引、无可用码、总量不足以及并发或限制冲突
 			msg := ""
 			switch reason {
 				case "NO_ENTRY":
@@ -314,15 +287,14 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 				default:
 					msg := reason
 			}
-
 			Log_Debug("txn.reserve.guard_fail", "预留 guard 失败", Map(
-				"txn", txnId, "reason", reason, "need", need,
+				"txn", txnId, "reason", reason, "wholeN", wholeN, "remNeed", remNeed,
 				"drugId", drugId, "spec", spec, "elapsedMs", A_TickCount - t0
 			))
 			return Map(
 				"ok", false, "level", "Warn",
-				"message", "[预留错误]`n" msg "`n预留数量=" need "`n规格=" spec "`n药品=" drugId,
-				"reason", reason, "need", need, "codes", [], "items", [],
+				"message", "[预留错误]`n" msg "`n整盒数=" wholeN "`n拆零粒=" remNeed "`n规格=" spec "`n药品=" drugId,
+				"reason", reason, "need", wholeN + remNeed, "codes", [], "items", [],
 				"skip", false)
 		}
 
@@ -336,16 +308,13 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		return Map("ok", false, "level", "Error", "message", "[预留错误]`n`n" e.Message, "reason", "EXCEPTION", "err", e.Message)
 	}
 
-	; 住院与门诊使用不同的返回码集合策略
-	if (cls = "") {
-		; 未传窗口类时取当前活动窗口补全（测试调用）
-		ctx := Util_CaptureWin("A")
-		cls := ctx["cls"]
-	}
-
-	lastCode := ""
+	; 组装贴码列表（items 全量；贴码：门诊全码；住院 full 整盒全+拆零末码；住院 rem/纯拆零末码）
+	lastRemCode := ""
+	lastAnyCode := ""
+	sumTake := 0
 	for _, row in r["rows"] {
-		; 查询列顺序是跨 ADO 读取的固定契约，修改 SQL 时必须同步此处索引
+		; 列：status, reason, seq, pool_id, trace_code, take_qty
+		seq := Util_ToInt(row[3])
 		poolId := Util_ToInt(row[4])
 		code := row[5]
 		take := Util_ToInt(row[6])
@@ -353,30 +322,44 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		if (poolId <= 0 || take <= 0 || code = "")
 			continue
 
-		items.Push(Map("pool_id", poolId, "take", take, "code", code))
+		sumTake += take
+		items.Push(Map("pool_id", poolId, "take", take, "code", code, "seq", seq))
+		lastAnyCode := code
 
-		; 住院流程仅使用最后一个码，门诊流程使用全部预留码
-		if (cls = ipt) {
-			lastCode := code
-		} else {
+		if isOpt {
 			codes.Push(code)
+			continue
+		}
+		if (injectMode = "full" && wholeN > 0) {
+			if (seq > 0 && seq <= wholeN)
+				codes.Push(code)
+			else
+				lastRemCode := code
 		}
 	}
 
-	if (cls = ipt && lastCode != "")
-		codes := [lastCode]
+	if !isOpt {
+		if (injectMode = "full" && wholeN > 0) {
+			if (lastRemCode != "")
+				codes.Push(lastRemCode)
+		} else if (lastAnyCode != "") {
+			codes := [lastAnyCode]
+		}
+	}
 
 	tails := []
 	for _, c in codes
 		tails.Push((StrLen(c) <= 4) ? c : SubStr(c, -3))
 	Log_Debug("txn.reserve.ok", "预留成功", Map(
-		"txn", txnId, "need", reqQty, "codes", codes.Length, "items", items.Length,
-		"cls", cls, "codeTails", tails, "elapsedMs", A_TickCount - t0
+		"txn", txnId, "wholeN", wholeN, "remNeed", remNeed, "sumTake", sumTake,
+		"codes", codes.Length, "items", items.Length, "cls", cls,
+		"isOpt", isOpt, "injectMode", injectMode, "codeTails", tails,
+		"elapsedMs", A_TickCount - t0
 	))
 	return Map(
-		"ok", true, "level", "Info", "message", "[预留成功]`n需扣=" reqQty "，码数=" codes.Length,
+		"ok", true, "level", "Info", "message", "[预留成功]`n整盒=" wholeN "，拆零粒=" remNeed "，码数=" codes.Length,
 		"skip", false, "codes", codes, "items", items,
-		"req_qty_effective", reqQty
+		"req_qty_effective", sumTake, "whole_n", wholeN, "rem_need", remNeed
 	)
 }
 
