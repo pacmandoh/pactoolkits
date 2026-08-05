@@ -141,9 +141,9 @@ public sealed class ModuleSettingsValidatorTests
                     [
                         new ModuleSettingsField
                         {
-                            Key = "IntCols",
+                            Key = "Tags",
                             Type = ModuleSettingsFieldTypes.StringList,
-                            Label = "IntCols",
+                            Label = "标签",
                             AllowEmpty = true,
                         },
                     ],
@@ -153,12 +153,12 @@ public sealed class ModuleSettingsValidatorTests
 
         var empty = ModuleSettingsValidator.Validate(
             schema,
-            new JsonObject { ["IntCols"] = new JsonArray() });
+            new JsonObject { ["Tags"] = new JsonArray() });
         Assert.True(empty.Ok, empty.Message);
 
         var missing = ModuleSettingsValidator.Validate(schema, new JsonObject());
         Assert.False(missing.Ok);
-        Assert.Contains("IntCols", missing.Message, StringComparison.Ordinal);
+        Assert.Contains("标签", missing.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -269,6 +269,144 @@ public sealed class ModuleSettingsValidatorTests
 
         Assert.Null(ModuleSettingsValidator.TryParseSchema(invalidType));
         Assert.Null(ModuleSettingsValidator.TryParseSchema(duplicate));
+    }
+
+    [Fact]
+    public void Accepts_labeled_enum_options_and_still_validates_values()
+    {
+        const string schemaJson = """
+            {
+              "schemaVersion": 1,
+              "sections": [
+                {
+                  "fields": [
+                    {
+                      "key": "CodePickPolicy",
+                      "type": "enum",
+                      "label": "选码策略",
+                      "options": [
+                        { "value": "MAX_LEVEL", "label": "按最大码" },
+                        { "value": "MIN_LEVEL", "label": "按最小码" }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+        var schema = ModuleSettingsValidator.TryParseSchema(schemaJson);
+        Assert.NotNull(schema);
+        Assert.Equal(2, schema.Sections[0].Fields[0].Options!.Count);
+        Assert.Equal("MAX_LEVEL", schema.Sections[0].Fields[0].Options![0].Value);
+        Assert.Equal("按最大码", schema.Sections[0].Fields[0].Options![0].Display);
+
+        var ok = ModuleSettingsValidator.Validate(
+            schema,
+            new JsonObject { ["CodePickPolicy"] = "MIN_LEVEL" });
+        Assert.True(ok.Ok, ok.Message);
+
+        var bad = ModuleSettingsValidator.Validate(
+            schema,
+            new JsonObject { ["CodePickPolicy"] = "按最小码" });
+        Assert.False(bad.Ok);
+    }
+
+    [Fact]
+    public void Accepts_col_field_list_settings()
+    {
+        const string schemaJson = """
+            {
+              "schemaVersion": 1,
+              "sections": [
+                {
+                  "fields": [
+                    {
+                      "key": "ColFields",
+                      "type": "colFieldList",
+                      "label": "列映射"
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+        var schema = ModuleSettingsValidator.TryParseSchema(schemaJson);
+        Assert.NotNull(schema);
+
+        var ok = ModuleSettingsValidator.Validate(
+            schema,
+            new JsonObject
+            {
+                ["ColFields"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "drugName",
+                        ["headers"] = new JsonArray("物资名称", "药品名称"),
+                        ["required"] = true,
+                        ["asInt"] = false,
+                    }),
+            });
+        Assert.True(ok.Ok, ok.Message);
+
+        var missingHeader = ModuleSettingsValidator.Validate(
+            schema,
+            new JsonObject
+            {
+                ["ColFields"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "drugName",
+                        ["headers"] = new JsonArray(),
+                    }),
+            });
+        Assert.False(missingHeader.Ok);
+    }
+
+    [Fact]
+    public void Rejects_col_field_list_duplicate_ids()
+    {
+        var schema = ModuleSettingsValidator.TryParseSchema(
+            """
+            {"schemaVersion":1,"sections":[{"fields":[{"key":"ColFields","type":"colFieldList","label":"列映射"}]}]}
+            """);
+        Assert.NotNull(schema);
+
+        var result = ModuleSettingsValidator.Validate(
+            schema!,
+            new JsonObject
+            {
+                ["ColFields"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "drugName",
+                        ["headers"] = new JsonArray("A"),
+                    },
+                    new JsonObject
+                    {
+                        ["id"] = "drugName",
+                        ["headers"] = new JsonArray("B"),
+                    }),
+            });
+        Assert.False(result.Ok);
+        Assert.Contains("重复", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Injector_settings_json_matches_schema()
+    {
+        var moduleDir = Path.Combine(RepoRoot(), "runtime", "agents", "modules", "injector");
+        var result = ModuleSettingsValidator.Validate(
+            File.ReadAllText(Path.Combine(moduleDir, "settings.schema.json")),
+            File.ReadAllText(Path.Combine(moduleDir, "settings.json")));
+        Assert.True(result.Ok, result.Message);
+
+        var settings = JsonNode.Parse(File.ReadAllText(Path.Combine(moduleDir, "settings.json")))!.AsObject();
+        Assert.True(settings["AppWin"] is JsonArray);
+        Assert.True(settings["ColFields"] is JsonArray);
+        Assert.False(settings.ContainsKey("ColSpecs"));
+        Assert.False(settings.ContainsKey("IntCols"));
+        Assert.False(settings.ContainsKey("WarehouseTaskIdentifier"));
+        Assert.Equal(9, settings["ColFields"]!.AsArray().Count);
     }
 
     [Fact]

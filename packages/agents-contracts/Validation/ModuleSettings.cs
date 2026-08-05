@@ -139,7 +139,7 @@ public static class ModuleSettingsValidator
 
                 var options = field.Options ?? [];
                 if (options.Count > 0
-                    && !options.Any(o => string.Equals(o, selected, StringComparison.OrdinalIgnoreCase)))
+                    && !options.Any(o => string.Equals(o.Value, selected, StringComparison.OrdinalIgnoreCase)))
                 {
                     return $"{label} 取值无效";
                 }
@@ -220,6 +220,65 @@ public static class ModuleSettingsValidator
 
                 return null;
 
+            case ModuleSettingsFieldTypes.ColFieldList:
+                if (node is null)
+                {
+                    return $"{label} 不能为空";
+                }
+
+                if (node is not JsonArray colList)
+                {
+                    return $"{label} 必须是对象列表";
+                }
+
+                if (colList.Count == 0)
+                {
+                    return field.AllowEmpty ? null : $"{label} 不能为空";
+                }
+
+                var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in colList)
+                {
+                    if (item is not JsonObject row)
+                    {
+                        return $"{label} 每项必须是对象";
+                    }
+
+                    if (!TryGetString(row["id"], out var rowId) || string.IsNullOrWhiteSpace(rowId))
+                    {
+                        return $"{label} 缺少有效 id";
+                    }
+
+                    rowId = rowId.Trim();
+                    if (!ids.Add(rowId))
+                    {
+                        return $"{label} 含重复 id：{rowId}";
+                    }
+
+                    if (row["headers"] is not JsonArray headers || headers.Count == 0)
+                    {
+                        return $"{label}（{rowId}）headers 不能为空";
+                    }
+
+                    var hasHeader = false;
+                    foreach (var headerNode in headers)
+                    {
+                        if (!TryGetString(headerNode, out var headerText))
+                        {
+                            return $"{label}（{rowId}）headers 只能包含字符串";
+                        }
+
+                        hasHeader |= !string.IsNullOrWhiteSpace(headerText);
+                    }
+
+                    if (!hasHeader)
+                    {
+                        return $"{label}（{rowId}）headers 不能为空";
+                    }
+                }
+
+                return null;
+
             default:
                 if (!TryGetString(node, out var stringText))
                 {
@@ -281,11 +340,13 @@ public static class ModuleSettingsValidator
 
                 if (type == ModuleSettingsFieldTypes.Enum)
                 {
-                    var options = field.Options?
-                        .Where(static option => !string.IsNullOrWhiteSpace(option))
+                    var values = field.Options?
+                        .Where(static option => option is not null && !string.IsNullOrWhiteSpace(option.Value))
+                        .Select(static option => option.Value.Trim())
                         .ToList() ?? [];
-                    if (options.Count == 0
-                        || options.Distinct(StringComparer.OrdinalIgnoreCase).Count() != options.Count)
+                    if (values.Count == 0
+                        || values.Count != (field.Options?.Count ?? 0)
+                        || values.Distinct(StringComparer.OrdinalIgnoreCase).Count() != values.Count)
                     {
                         return $"模块 settings schema 枚举选项无效：{field.Key}";
                     }
