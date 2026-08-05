@@ -1481,6 +1481,12 @@ public partial class Settings
                 {
                     item.PropertyChanged += OnModuleFieldListItemChanged;
                 }
+
+                field.ColFields.CollectionChanged += OnModuleColFieldListChanged;
+                foreach (var item in field.ColFields)
+                {
+                    item.PropertyChanged += OnModuleColFieldItemChanged;
+                }
             }
         }
     }
@@ -1498,6 +1504,12 @@ public partial class Settings
                     foreach (var item in field.ListItems)
                     {
                         item.PropertyChanged -= OnModuleFieldListItemChanged;
+                    }
+
+                    field.ColFields.CollectionChanged -= OnModuleColFieldListChanged;
+                    foreach (var item in field.ColFields)
+                    {
+                        item.PropertyChanged -= OnModuleColFieldItemChanged;
                     }
                 }
             }
@@ -1863,6 +1875,46 @@ public partial class Settings
     private void OnModuleFieldListItemChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(SettingsLineItem.Value) or null or "")
+        {
+            RefreshPendingChanges();
+        }
+    }
+
+    private void OnModuleColFieldListChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (var item in e.OldItems)
+            {
+                if (item is SettingsColFieldItem row)
+                {
+                    row.PropertyChanged -= OnModuleColFieldItemChanged;
+                }
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var item in e.NewItems)
+            {
+                if (item is SettingsColFieldItem row)
+                {
+                    row.PropertyChanged += OnModuleColFieldItemChanged;
+                }
+            }
+        }
+
+        RefreshPendingChanges();
+    }
+
+    private void OnModuleColFieldItemChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SettingsColFieldItem.Id)
+            or nameof(SettingsColFieldItem.HeadersText)
+            or nameof(SettingsColFieldItem.Required)
+            or nameof(SettingsColFieldItem.AsInt)
+            or null
+            or "")
         {
             RefreshPendingChanges();
         }
