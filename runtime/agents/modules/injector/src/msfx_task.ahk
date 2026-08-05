@@ -1,5 +1,5 @@
 ; 码上放心仓库任务：解析行、防重、贴码验证与节拍（SQL/取码见 msfx_sql / msfx_code）
-Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colSpecs, intCols, iptCls, win := "A", clickAnchor := "") {
+Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colFields, iptCls, win := "A", clickAnchor := "") {
 	win := Util_NormalizeWin(win)
 	flowT0 := A_TickCount
 	Log_Debug("msfx.flow.start", "仓库流程开始", Map(
@@ -15,29 +15,27 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	}
 	headerLine := pre.Has("header_line") ? Trim(pre["header_line"]) : ""
 
-	taskIdentifierSpec := Msfx_GetWarehouseTaskIdentifierSpec()
-	parseSpecs := Msfx_BuildWarehouseParseSpecs(colSpecs, taskIdentifierSpec)
-	p := Parse_TargetInfo(parseSpecs, iptCls, intCols, "", win, parseGridClassNN)
+	p := Parse_TargetInfo(colFields, iptCls, "", win, parseGridClassNN)
 	if !p["ok"] {
 		Log_Debug("msfx.flow.parse_fail", "仓库解析失败", Map("elapsedMs", A_TickCount - flowT0))
 		return p
 	}
 
 	by := p["bySpec"]
-	drugId := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
-	spec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
-	warehouseBillNo := Msfx_ResolveWarehouseBillNo(by, taskIdentifierSpec)
+	drugId := Trim("" By_Get(by, "drugName"))
+	spec := Trim("" By_Get(by, "drugSpec"))
+	warehouseBillNo := Trim("" By_Get(by, "billNo"))
 	baseRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec)
 	rowFingerprint := baseRowFingerprint
 	Log_Debug("msfx.flow.parsed", "仓库行已解析", Map(
 		"drugId", drugId, "spec", spec, "bill", warehouseBillNo,
-		"fp", baseRowFingerprint, "idSpec", taskIdentifierSpec
+		"fp", baseRowFingerprint
 	))
 	if (drugId = "" || spec = "") {
 		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少关键字段`n药品名称=" drugId "`n规格=" spec)
 	}
 	if (warehouseBillNo = "") {
-		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少任务标识`n任务标识=" taskIdentifierSpec)
+		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少任务标识（billNo）")
 	}
 	if (Trim(baseRowFingerprint) = "") {
 		return Map("ok", false, "level", "Warn", "message", "[仓库任务校验]`n仓库行指纹生成失败，已停止执行以避免错误防重`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec)
@@ -398,72 +396,30 @@ Msfx_ApplyWarehouseBurstPacing(groupIndex, totalGroups) {
 		Sleep(pauseMs)
 }
 
-Msfx_GetWarehouseTaskIdentifierSpec() {
-	return Trim(Cfg["WAREHOUSE_TASK_IDENTIFIER"])
-}
-
-Msfx_BuildWarehouseParseSpecs(colSpecs, taskIdentifierSpec) {
-	specs := []
-	exists := false
-	for _, spec in colSpecs {
-		specs.Push(spec)
-		if (Trim(StrReplace(spec, "?", "")) = taskIdentifierSpec)
-			exists := true
-	}
-	if !exists
-		specs.Push("?" taskIdentifierSpec)
-	return specs
-}
-
-Msfx_ResolveWarehouseBillNo(bySpec, taskIdentifierSpec) {
-	if !IsObject(bySpec)
-		return ""
-
-	if (taskIdentifierSpec != "" && bySpec.Has(taskIdentifierSpec)) {
-		v := Trim("" bySpec[taskIdentifierSpec])
-		if (v != "")
-			return v
-	}
-	return ""
-}
-
 Msfx_BuildWarehouseRowFingerprint(bySpec, warehouseBillNo, drugId, spec, clickAnchor := "") {
 	if !IsObject(bySpec)
 		return ""
 
-	currentNo := Msfx_GetWarehouseBySpecValue(bySpec, ["当前编号"])
-	qty := Msfx_GetWarehouseBySpecValue(bySpec, ["数量", "入库数量"])
-	unit := Msfx_GetWarehouseBySpecValue(bySpec, ["单位"])
-	batchNo := Msfx_GetWarehouseBySpecValue(bySpec, ["批号", "生产批号"])
+	billPart := Msfx_NormalizeFingerprintPart(warehouseBillNo)
+	drugPart := Msfx_NormalizeFingerprintPart(drugId)
+	specPart := Msfx_NormalizeFingerprintPart(spec)
+	qtyPart := Msfx_NormalizeFingerprintPart(By_Get(bySpec, "qty"))
+	unitPart := Msfx_NormalizeFingerprintPart(By_Get(bySpec, "unit"))
+	if (billPart = "" || drugPart = "" || specPart = "" || qtyPart = "" || unitPart = "")
+		return ""
+
+	batchNo := Trim("" By_Get(bySpec, "batchNo"))
 	rowSlot := ""
 	if (IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"] && clickAnchor.Has("rowSlot"))
 		rowSlot := "" clickAnchor["rowSlot"]
 
-	if (Trim(warehouseBillNo) = "" || Trim(currentNo) = "" || Trim(drugId) = "" || Trim(spec) = "" || Trim(qty) = "" || Trim(unit) = "")
-		return ""
-
-	return "bill=" Msfx_NormalizeFingerprintPart(warehouseBillNo)
-		. "|no=" Msfx_NormalizeFingerprintPart(currentNo)
-		. "|drug=" Msfx_NormalizeFingerprintPart(drugId)
-		. "|spec=" Msfx_NormalizeFingerprintPart(spec)
-		. "|qty=" Msfx_NormalizeFingerprintPart(qty)
-		. "|unit=" Msfx_NormalizeFingerprintPart(unit)
+	return "bill=" billPart
+		. "|drug=" drugPart
+		. "|spec=" specPart
+		. "|qty=" qtyPart
+		. "|unit=" unitPart
 		. ((Trim(rowSlot) != "") ? ("|slot=" Msfx_NormalizeFingerprintPart(rowSlot)) : "")
-		. ((Trim(batchNo) != "") ? ("|batch=" Msfx_NormalizeFingerprintPart(batchNo)) : "")
-}
-
-Msfx_GetWarehouseBySpecValue(bySpec, aliases) {
-	if !IsObject(bySpec)
-		return ""
-	for specKey, specVal in bySpec {
-		for _, alias in aliases {
-			for _, one in StrSplit(specKey, "||") {
-				if (Trim(one) = Trim(alias))
-					return Trim("" specVal)
-			}
-		}
-	}
-	return ""
+		. ((batchNo != "") ? ("|batch=" Msfx_NormalizeFingerprintPart(batchNo)) : "")
 }
 
 Msfx_NormalizeFingerprintPart(value) {

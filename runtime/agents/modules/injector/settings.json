@@ -3,22 +3,84 @@
   "PgSsl": "disable",
   "OptWindowClass": "TFrm_mzcffy",
   "IptWindowClass": "Tfrm_wzzsm",
-  "AppWin": {
-    "互慧软件.exe": 1,
-    "ProjectMain.exe": 1
-  },
-  "ConfirmTimeoutMs": 2500,
-  "ColSpecs": [
-    "?追溯码",
-    "物资名称||药品名称",
-    "规格||药品规格",
-    "数量",
-    "?单位",
-    "?用量单位",
-    "?拆零标签||拆零"
+  "AppWin": [
+    "互慧软件.exe",
+    "ProjectMain.exe"
   ],
-  "IntCols": [
-    "数量"
+  "ConfirmTimeoutMs": 2500,
+  "ColFields": [
+    {
+      "id": "traceCode",
+      "label": "追溯码",
+      "headers": ["追溯码"],
+      "required": false,
+      "asInt": false,
+      "locked": true
+    },
+    {
+      "id": "drugName",
+      "label": "药品名称",
+      "headers": ["物资名称", "药品名称"],
+      "required": true,
+      "asInt": false,
+      "locked": true
+    },
+    {
+      "id": "drugSpec",
+      "label": "规格",
+      "headers": ["规格", "药品规格"],
+      "required": true,
+      "asInt": false,
+      "locked": true
+    },
+    {
+      "id": "qty",
+      "label": "数量",
+      "headers": ["数量"],
+      "required": true,
+      "asInt": true,
+      "locked": true
+    },
+    {
+      "id": "unit",
+      "label": "单位",
+      "headers": ["单位"],
+      "required": false,
+      "asInt": false,
+      "locked": true
+    },
+    {
+      "id": "doseUnit",
+      "label": "用量单位",
+      "headers": ["用量单位"],
+      "required": false,
+      "asInt": false,
+      "locked": true
+    },
+    {
+      "id": "splitFlag",
+      "label": "拆零",
+      "headers": ["拆零标签", "拆零"],
+      "required": false,
+      "asInt": false,
+      "locked": true
+    },
+    {
+      "id": "billNo",
+      "label": "单据号",
+      "headers": ["单据号", "当前编号"],
+      "required": false,
+      "asInt": false,
+      "locked": true
+    },
+    {
+      "id": "batchNo",
+      "label": "批号",
+      "headers": ["批号", "生产批号"],
+      "required": false,
+      "asInt": false,
+      "locked": true
+    }
   ],
   "OptParseGridClassNN": "TcxGridSite2",
   "IptParseGridClassNN": "TcxGridSite2",
@@ -31,7 +93,6 @@
     "应扫次数"
   ],
   "CodePickPolicy": "MAX_LEVEL",
-  "WarehouseTaskIdentifier": "单据号||当前编号",
   "LogEnabled": true,
   "LogMinimumLevel": "Error",
   "LogRetentionDays": 14,

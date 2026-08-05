@@ -5,9 +5,15 @@
 #Include "%A_ScriptDir%\..\src\pg_exec.ahk"
 #Include "%A_ScriptDir%\..\src\util_misc.ahk"
 #Include "%A_ScriptDir%\..\src\db_txn.ahk"
+#Include "%A_ScriptDir%\_env.ahk"
 
 global Cfg := IsSet(Cfg) && IsObject(Cfg) ? Cfg : Map()
-Cfg := Util_LoadDotEnv(A_ScriptDir "\..\.env.local")
+loaded := Test_LoadEnvLocal()
+if !loaded["ok"] {
+	MsgBox "[配置错误] 缺少 env`n" loaded["path"] "`n见 modules/injector/.env.example"
+	ExitApp 1
+}
+Cfg := loaded["cfg"]
 
 global TEST_DRUG := "盐酸氨基葡萄糖胶囊"
 global TEST_SPEC := "0.75g*60粒"

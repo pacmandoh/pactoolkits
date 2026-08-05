@@ -1,6 +1,6 @@
 ; 半自动：左键 rem 只注拆零；右键 full 整盒+拆零；预留失败必须回滚
 
-Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A", clickAnchor := "", injectMode := "rem") {
+Semi_Auto_Fill(opt, ipt, colFields, timeoutMs, optParseGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A", clickAnchor := "", injectMode := "rem") {
 	global RuntimeInfo
 	flowT0 := A_TickCount
 	win := Util_NormalizeWin(win)
@@ -46,7 +46,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 		"timeoutMs", timeoutMs, "clientId", clientId
 	))
 
-	p := Parse_TargetInfo(colSpecs, ipt, intCols, "", win, parseGridClassNN)
+	p := Parse_TargetInfo(colFields, ipt, "", win, parseGridClassNN)
 
 	if !p["ok"] {
 		Log_Debug("semi_auto.parse_fail", p["message"], Map(
@@ -57,9 +57,9 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 	}
 
 	by := p["bySpec"]
-	drugId := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
-	spec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
-	qtyVal := by.Has("数量") ? by["数量"] : ""
+	drugId := Trim("" By_Get(by, "drugName"))
+	spec := Trim("" By_Get(by, "drugSpec"))
+	qtyVal := By_Get(by, "qty")
 	Log_Debug("semi_auto.fields", "关键字段", Map(
 		"mode", mode, "injectMode", injectMode, "drugId", drugId, "spec", spec, "qty", qtyVal
 	))
@@ -68,17 +68,17 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n解析结果缺少关键字段`n药品名称=" drugId "`n规格=" spec)
 	}
 
-	; 门诊：药品行取已扫（供确认累计与减量预留）；必须有追溯码列
+	; 门诊：药品行取已扫（供确认累计与减量预留）；表头须命中 traceCode
 	alreadyScanned := 0
 	if (mode = "门诊") {
-		if !by.Has("追溯码") {
+		if !by.Has("traceCode") {
 			Log_Debug("semi_auto.trace_col_miss", "门诊缺少追溯码列", Map(
 				"elapsedMs", A_TickCount - flowT0
 			))
 			return Map("ok", false, "level", "Warn",
 				"message", "[解析错误] 门诊药品行缺少「追溯码」列，已中止")
 		}
-		traceCell := Trim(by["追溯码"], " `t`r`n")
+		traceCell := Trim("" By_Get(by, "traceCode"), " `t`r`n")
 		if (traceCell != "" && RegExMatch(traceCell, "已扫\s*(\d+)\s*码", &mScan)) {
 			alreadyScanned := Integer(mScan[1])
 		} else if (traceCell != "" && RegExMatch(traceCell, "\d")) {
@@ -162,7 +162,8 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 			"drugId", drugId,
 			"spec", spec,
 			"qty", Util_ToInt(qtyVal, 0),
-			"anchor", clickAnchor
+			"anchor", clickAnchor,
+			"colFields", colFields
 		)
 	}
 	; 多码贴完后拉长确认窗，跟 HIS 刷「已扫」/验证区

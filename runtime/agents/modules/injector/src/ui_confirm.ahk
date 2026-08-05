@@ -292,15 +292,26 @@ UI_WaitConfirm_Opt(codes, timeoutMs, gridClassNN, win, optCtx, t0) {
 	lastGot := -1
 	lastTickLog := 0
 	delay := 15
+
+	; 门诊校验用 colFields（optCtx 优先，否则 Cfg.COL_FIELDS）
+	srcFields := []
+	if (IsObject(optCtx) && optCtx.Has("colFields"))
+		srcFields := optCtx["colFields"]
+	else if (IsSet(Cfg) && IsObject(Cfg) && Cfg.Has("COL_FIELDS"))
+		srcFields := Cfg["COL_FIELDS"]
+	confirmFields := Parse_NormalizeColFields(srcFields)
+	if (confirmFields.Length = 0) {
+		Log_Debug("ui.confirm.opt_fields_empty", "门诊校验列映射为空", Map(
+			"hasOptCtx", IsObject(optCtx),
+			"hasCfg", IsSet(Cfg) && IsObject(Cfg) && Cfg.Has("COL_FIELDS")
+		))
+		return Map("ok", false, "level", "Error",
+			"message", "[录入验证错误]`n门诊校验缺少列映射配置")
+	}
+
 	while (A_TickCount - t0 < timeoutMs) {
 		txt := UI_TryCopyGridClassNNText(gridClassNN, win)
-		; 金标准：追溯码列「已扫 N 码」+ 药/规/量身份，勿拖全表 ColSpecs
-		p := Parse_TargetInfo([
-			"追溯码",
-			"物资名称||药品名称",
-			"规格||药品规格",
-			"数量"
-		], "", [], txt, win, "", true)
+		p := Parse_TargetInfo(confirmFields, "", txt, win, "", true)
 		if !(IsObject(p) && p.Has("ok") && p["ok"]) {
 			Log_Debug("ui.confirm.opt_candidates", "点回后解析失败", Map(
 				"lines", StrSplit(Trim(txt), "`n").Length, "txtLen", StrLen(txt),
@@ -313,9 +324,9 @@ UI_WaitConfirm_Opt(codes, timeoutMs, gridClassNN, win, optCtx, t0) {
 		}
 
 		by := p["bySpec"]
-		gotDrug := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
-		gotSpec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
-		gotQty := by.Has("数量") ? Util_ToInt(by["数量"], 0) : 0
+		gotDrug := Trim("" By_Get(by, "drugName"))
+		gotSpec := Trim("" By_Get(by, "drugSpec"))
+		gotQty := Util_ToInt(By_Get(by, "qty"), 0)
 		if (gotDrug = "" || gotDrug != wantDrug || gotSpec = "" || gotSpec != wantSpec || gotQty != wantQty) {
 			Log_Debug("ui.confirm.opt_row_mismatch", "点回行身份不匹配", Map(
 				"wantDrug", wantDrug, "gotDrug", gotDrug,
@@ -330,7 +341,7 @@ UI_WaitConfirm_Opt(codes, timeoutMs, gridClassNN, win, optCtx, t0) {
 		}
 
 		gotN := -1
-		traceCell := by.Has("追溯码") ? Trim(by["追溯码"]) : ""
+		traceCell := Trim("" By_Get(by, "traceCode"))
 		if (traceCell != "" && RegExMatch(traceCell, "已扫\s*(\d+)\s*码", &mScan))
 			gotN := Integer(mScan[1])
 
