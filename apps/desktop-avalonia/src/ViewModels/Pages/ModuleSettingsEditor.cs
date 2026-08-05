@@ -153,7 +153,7 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
 
     public int? Max { get; init; }
 
-    public IReadOnlyList<string> Options { get; init; } = [];
+    public IReadOnlyList<ModuleSettingsOption> Options { get; init; } = [];
 
     public bool IsString => Type == ModuleSettingsFieldTypes.String;
 
@@ -167,15 +167,29 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
 
     public bool IsStringFlagMap => Type == ModuleSettingsFieldTypes.StringFlagMap;
 
+    public bool IsColFieldList => Type == ModuleSettingsFieldTypes.ColFieldList;
+
+    /// <summary>
+    /// 单值字段：左侧 label，右侧控件
+    /// </summary>
+    public bool IsScalar => IsString || IsBool || IsInt || IsEnum;
+
+    /// <summary>
+    /// 行列表字段：stringList / stringFlagMap 共用行编辑器
+    /// </summary>
+    public bool IsLineList => IsStringList || IsStringFlagMap;
+
     [ObservableProperty] private string _stringValue = string.Empty;
 
     [ObservableProperty] private bool _boolValue;
 
     [ObservableProperty] private int _intValue;
 
-    [ObservableProperty] private string? _selectedOption;
+    [ObservableProperty] private ModuleSettingsOption? _selectedOption;
 
     public ObservableCollection<SettingsLineItem> ListItems { get; } = new();
+
+    public ObservableCollection<SettingsColFieldItem> ColFields { get; } = new();
 
     public static ModuleSettingsFieldViewModel From(ModuleSettingsField field, JsonObject settings)
     {
@@ -209,14 +223,33 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void AddColField()
+    {
+        var id = SettingsColFieldItem.NewUniqueId(ColFields.Select(static r => r.Id));
+        ColFields.Insert(
+            0,
+            new SettingsColFieldItem(id, "自定义", [], required: false, asInt: false, isLocked: false));
+    }
+
+    [RelayCommand]
+    private void RemoveColField(SettingsColFieldItem? item)
+    {
+        if (item is not null && item.CanEdit)
+        {
+            ColFields.Remove(item);
+        }
+    }
+
     public JsonNode? ToJsonNode()
         => Type switch
         {
             ModuleSettingsFieldTypes.Bool => JsonValue.Create(BoolValue),
             ModuleSettingsFieldTypes.Int => JsonValue.Create(IntValue),
-            ModuleSettingsFieldTypes.Enum => JsonValue.Create(SelectedOption),
+            ModuleSettingsFieldTypes.Enum => JsonValue.Create(SelectedOption?.Value),
             ModuleSettingsFieldTypes.StringList => ToStringArray(),
             ModuleSettingsFieldTypes.StringFlagMap => ToFlagMap(),
+            ModuleSettingsFieldTypes.ColFieldList => ToColFieldArray(),
             _ => JsonValue.Create(StringValue),
         };
 
@@ -247,7 +280,7 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
         if (IsEnum)
         {
             var next = ResolveOption(node, Options);
-            if (!string.Equals(SelectedOption, next, StringComparison.Ordinal))
+            if (!ReferenceEquals(SelectedOption, next))
             {
                 SelectedOption = next;
             }
@@ -264,6 +297,12 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
         if (IsStringFlagMap)
         {
             ReplaceListItems(ReadEnabledFlagKeys(node as JsonObject));
+            return;
+        }
+
+        if (IsColFieldList)
+        {
+            ReplaceColFields(ReadColFields(node as JsonArray));
             return;
         }
 
@@ -284,10 +323,34 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
             return;
         }
 
-        ListItems.Clear();
+        // 逐项 Remove，便于 CollectionChanged 携带 OldItems 解绑（Clear 仅 Reset）
+        for (var i = ListItems.Count - 1; i >= 0; i--)
+        {
+            ListItems.RemoveAt(i);
+        }
+
         foreach (var text in next)
         {
             ListItems.Add(new SettingsLineItem(text));
+        }
+    }
+
+    private void ReplaceColFields(IReadOnlyList<SettingsColFieldItem> next)
+    {
+        if (ColFields.Count == next.Count
+            && ColFields.Zip(next, static (a, b) => a.SameAs(b)).All(static same => same))
+        {
+            return;
+        }
+
+        for (var i = ColFields.Count - 1; i >= 0; i--)
+        {
+            ColFields.RemoveAt(i);
+        }
+
+        foreach (var item in next)
+        {
+            ColFields.Add(item);
         }
     }
 
@@ -333,14 +396,80 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
         return values;
     }
 
-    private static string ResolveOption(JsonNode? node, IReadOnlyList<string> options)
+    private static IReadOnlyList<SettingsColFieldItem> ReadColFields(JsonArray? list)
     {
+        if (list is null || list.Count == 0)
+        {
+            return [];
+        }
+
+        var values = new List<SettingsColFieldItem>();
+        foreach (var item in list)
+        {
+            if (item is not JsonObject row)
+            {
+                continue;
+            }
+
+            // 保留不完整行，由 Validate 报错，避免静默丢配置
+            var id = ReadJsonString(row["id"]);
+            var label = ReadJsonString(row["label"]);
+            var headers = new List<string>();
+            if (row["headers"] is JsonArray arr)
+            {
+                foreach (var h in arr)
+                {
+                    var text = ReadJsonString(h);
+                    if (text.Length > 0)
+                    {
+                        headers.Add(text);
+                    }
+                }
+            }
+
+            var required = true;
+            if (row["required"] is JsonValue reqVal && reqVal.TryGetValue(out bool reqBool))
+            {
+                required = reqBool;
+            }
+
+            var asInt = false;
+            if (row["asInt"] is JsonValue asIntVal && asIntVal.TryGetValue(out bool asIntBool))
+            {
+                asInt = asIntBool;
+            }
+
+            var isLocked = row["locked"] is JsonValue lockedVal
+                && lockedVal.TryGetValue(out bool lockedBool)
+                && lockedBool;
+
+            values.Add(new SettingsColFieldItem(id, label, headers, required, asInt, isLocked));
+        }
+
+        return values;
+    }
+
+    private static string ReadJsonString(JsonNode? node)
+    {
+        if (node is not JsonValue value || !value.TryGetValue(out string? text))
+        {
+            return string.Empty;
+        }
+
+        return (text ?? string.Empty).Trim();
+    }
+
+    private static ModuleSettingsOption? ResolveOption(JsonNode? node, IReadOnlyList<ModuleSettingsOption> options)
+    {
+        if (options.Count == 0)
+        {
+            return null;
+        }
+
         var value = node?.GetValue<string>()?.Trim();
         return options.FirstOrDefault(option =>
-                   string.Equals(option, value, StringComparison.OrdinalIgnoreCase))
-               ?? value
-               ?? options.FirstOrDefault()
-               ?? string.Empty;
+                   string.Equals(option.Value, value, StringComparison.OrdinalIgnoreCase))
+               ?? options[0];
     }
 
     private JsonArray ToStringArray()
@@ -373,4 +502,34 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
         return map;
     }
 
+    private JsonArray ToColFieldArray()
+    {
+        var arr = new JsonArray();
+        foreach (var item in ColFields)
+        {
+            // 原样序列化，空/重复 id 与空 headers 交 Validate，避免保存路径静默改写
+            var row = new JsonObject
+            {
+                ["id"] = (item.Id ?? string.Empty).Trim(),
+                ["label"] = (item.Label ?? string.Empty).Trim(),
+                ["required"] = item.Required,
+                ["asInt"] = item.AsInt,
+            };
+            if (item.IsLocked)
+            {
+                row["locked"] = true;
+            }
+
+            var headerArr = new JsonArray();
+            foreach (var header in item.ParseHeaders())
+            {
+                headerArr.Add(header);
+            }
+
+            row["headers"] = headerArr;
+            arr.Add(row);
+        }
+
+        return arr;
+    }
 }

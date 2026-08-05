@@ -1538,7 +1538,7 @@
                               <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ModuleSettingsFieldViewModel">
                                   <StackPanel>
-                                    <Border Classes="Field" IsVisible="{Binding IsString}">
+                                    <Border Classes="Field" IsVisible="{Binding IsScalar}">
                                       <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                                         <StackPanel
                                           Grid.Column="0"
@@ -1548,80 +1548,41 @@
                                           <TextBlock
                                             Classes="Caption Muted FieldDesc"
                                             IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                            Text="{Binding Description}" />
+                                            Text="{Binding Description}"
+                                            TextWrapping="Wrap" />
                                         </StackPanel>
                                         <TextBox
                                           Grid.Column="1"
                                           VerticalAlignment="Center"
+                                          IsVisible="{Binding IsString}"
                                           Text="{Binding StringValue}" />
-                                      </Grid>
-                                    </Border>
-
-                                    <Border Classes="Field" IsVisible="{Binding IsBool}">
-                                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                                        <StackPanel
-                                          Grid.Column="0"
-                                          VerticalAlignment="Center"
-                                          Spacing="2">
-                                          <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
-                                          <TextBlock
-                                            Classes="Caption Muted FieldDesc"
-                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                            Text="{Binding Description}" />
-                                        </StackPanel>
                                         <ToggleSwitch
                                           Grid.Column="1"
                                           VerticalAlignment="Center"
                                           IsChecked="{Binding BoolValue, Mode=TwoWay}"
+                                          IsVisible="{Binding IsBool}"
                                           OffContent="关闭"
                                           OnContent="开启" />
-                                      </Grid>
-                                    </Border>
-
-                                    <Border Classes="Field" IsVisible="{Binding IsInt}">
-                                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                                        <StackPanel
-                                          Grid.Column="0"
-                                          VerticalAlignment="Center"
-                                          Spacing="2">
-                                          <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
-                                          <TextBlock
-                                            Classes="Caption Muted FieldDesc"
-                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                            Text="{Binding Description}" />
-                                        </StackPanel>
                                         <NumericUpDown
                                           Grid.Column="1"
                                           VerticalAlignment="Center"
                                           FormatString="0"
                                           Increment="1"
+                                          IsVisible="{Binding IsInt}"
                                           Maximum="{Binding Max}"
                                           Minimum="{Binding Min}"
                                           Value="{Binding IntValue}" />
-                                      </Grid>
-                                    </Border>
-
-                                    <Border Classes="Field" IsVisible="{Binding IsEnum}">
-                                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                                        <StackPanel
-                                          Grid.Column="0"
-                                          VerticalAlignment="Center"
-                                          Spacing="2">
-                                          <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
-                                          <TextBlock
-                                            Classes="Caption Muted FieldDesc"
-                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                            Text="{Binding Description}" />
-                                        </StackPanel>
                                         <ComboBox
                                           Grid.Column="1"
                                           VerticalAlignment="Center"
+                                          DisplayMemberBinding="{Binding Display}"
+                                          IsVisible="{Binding IsEnum}"
                                           ItemsSource="{Binding Options}"
                                           SelectedItem="{Binding SelectedOption, Mode=TwoWay}" />
                                       </Grid>
                                     </Border>
 
-                                    <StackPanel IsVisible="{Binding IsStringList}">
+                                    <StackPanel IsVisible="{Binding IsLineList}">
                                       <Border Classes="Field">
                                         <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                                           <StackPanel VerticalAlignment="Center" Spacing="2">
@@ -1677,7 +1638,7 @@
                                       </ItemsControl>
                                     </StackPanel>
 
-                                    <StackPanel IsVisible="{Binding IsStringFlagMap}">
+                                    <StackPanel IsVisible="{Binding IsColFieldList}">
                                       <Border Classes="Field">
                                         <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                                           <StackPanel VerticalAlignment="Center" Spacing="2">
@@ -1692,7 +1653,7 @@
                                             Grid.Column="1"
                                             Classes="Outline"
                                             Click="OnModuleAddLineClicked"
-                                            Command="{Binding AddListItemCommand}">
+                                            Command="{Binding AddColFieldCommand}">
                                             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                                               <controls:AppIcon
                                                 Width="{DynamicResource IconSizeSmall}"
@@ -1704,20 +1665,56 @@
                                         </Grid>
                                       </Border>
 
-                                      <ItemsControl ItemsSource="{Binding ListItems}">
+                                      <ItemsControl Grid.IsSharedSizeScope="True" ItemsSource="{Binding ColFields}">
                                         <ItemsControl.ItemTemplate>
-                                          <DataTemplate x:DataType="vm:SettingsLineItem">
+                                          <DataTemplate x:DataType="vm:SettingsColFieldItem">
                                             <Border Classes="Field">
-                                              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
-                                                <TextBox
-                                                  Grid.Column="0"
+                                              <Grid Classes="FieldSplit" ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                                                <Grid.ColumnDefinitions>
+                                                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColFieldLabel" />
+                                                  <ColumnDefinition Width="*" MinWidth="96" />
+                                                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColFieldReq" />
+                                                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColFieldAsInt" />
+                                                  <ColumnDefinition Width="2*" MinWidth="120" />
+                                                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColFieldRemove" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
                                                   VerticalAlignment="Center"
-                                                  Text="{Binding Value}" />
-                                                <Button
+                                                  Classes="FieldTitle"
+                                                  Text="{Binding DisplayTitle}"
+                                                  TextTrimming="CharacterEllipsis"
+                                                  ToolTip.Tip="{Binding DisplayTitle}" />
+                                                <TextBox
                                                   Grid.Column="1"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Center"
+                                                  IsEnabled="{Binding CanEdit}"
+                                                  PlaceholderText="id"
+                                                  Text="{Binding Id}" />
+                                                <CheckBox
+                                                  Grid.Column="2"
+                                                  VerticalAlignment="Center"
+                                                  Content="必填"
+                                                  IsChecked="{Binding Required}"
+                                                  IsEnabled="{Binding CanEdit}" />
+                                                <CheckBox
+                                                  Grid.Column="3"
+                                                  VerticalAlignment="Center"
+                                                  Content="整数"
+                                                  IsChecked="{Binding AsInt}"
+                                                  IsEnabled="{Binding CanEdit}" />
+                                                <TextBox
+                                                  Grid.Column="4"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Center"
+                                                  PlaceholderText="别名，用 / 分隔"
+                                                  Text="{Binding HeadersText}" />
+                                                <Button
+                                                  Grid.Column="5"
                                                   Classes="Ghost"
-                                                  Command="{Binding $parent[ItemsControl].((vm:ModuleSettingsFieldViewModel)DataContext).RemoveListItemCommand}"
-                                                  CommandParameter="{Binding .}">
+                                                  Command="{Binding $parent[ItemsControl].((vm:ModuleSettingsFieldViewModel)DataContext).RemoveColFieldCommand}"
+                                                  CommandParameter="{Binding .}"
+                                                  IsEnabled="{Binding CanEdit}">
                                                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                                                     <controls:AppIcon
                                                       Width="{DynamicResource IconSizeSmall}"
