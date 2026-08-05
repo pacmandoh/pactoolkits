@@ -16,7 +16,6 @@
 #Include "%A_ScriptDir%\..\..\lib\ahk\path.ahk"
 #Include "%A_ScriptDir%\..\..\lib\ahk\startup.ahk"
 #Include "%A_ScriptDir%\src\util_misc.ahk"
-#Include "%A_ScriptDir%\src\util_rem.ahk"
 #Include "%A_ScriptDir%\src\util_config.ahk"
 #Include "%A_ScriptDir%\src\util_scene.ahk"
 #Include "%A_ScriptDir%\src\ui_focus.ahk"
@@ -62,7 +61,7 @@ UI_Tip(Module_UiTitle() " v" VersionInfo["moduleVersion"], 1600)
 
 Cfg_RequireKeys(Cfg, [
 	"PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL",
-	"OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN", "OPT_VERIFY_GRID_CLASSNN",
+	"OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN",
 	"IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN",
 	"COL_SPECS", "INT_COLS", "CONFIRM_TIMEOUT_MS", "APP_WIN"
 ], Module_UiTitle("启动自检"))
@@ -77,7 +76,6 @@ Log_Debug("startup.cfg", "目标门控配置", Map(
 	"optClass", Cfg["OPT_WINDOW_CLASS"],
 	"iptClass", Cfg["IPT_WINDOW_CLASS"],
 	"optParseNn", Cfg["OPT_PARSE_GRID_CLASSNN"],
-	"optVerifyNn", Cfg["OPT_VERIFY_GRID_CLASSNN"],
 	"optInputNn", Cfg["OPT_INPUT_CLASSNN"],
 	"iptParseNn", Cfg["IPT_PARSE_GRID_CLASSNN"],
 	"iptVerifyNn", Cfg["IPT_VERIFY_GRID_CLASSNN"],
@@ -106,8 +104,7 @@ Cleanup_PendingTimer(*) {
 		return
 	_CLEANUP_BUSY := true
 	try Txn_CleanupPending(10, 200)
-	catch
-		_CLEANUP_BUSY := false
+	finally _CLEANUP_BUSY := false
 }
 SetTimer(Cleanup_PendingTimer, 300000)
 
@@ -174,6 +171,7 @@ global _LAST_RUN := 0
 	MouseGetPos(, , , &ctrlHwnd, 2)
 	ptrNn := ""
 	try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
+
 	Log_Debug("hot.lbutton", "左键入口", Map(
 		"activeCls", activeCls, "needNn", parseGridClassNN, "ptrNn", ptrNn
 	))
@@ -183,11 +181,23 @@ global _LAST_RUN := 0
 		))
 		return
 	}
+
 	clickAnchor := ""
 	warehouseMode := (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
-	if warehouseMode {
-		MouseGetPos &sx, &sy
-		clickAnchor := Map("ok", true, "screenX", sx, "screenY", sy, "targetNN", parseGridClassNN)
+	; 仅仓库防重 / 门诊点回需要锚点；住院半自动不采集
+	needAnchor := warehouseMode || (activeCls = Cfg["OPT_WINDOW_CLASS"])
+	if needAnchor {
+		clickAnchor := UI_CaptureGridClickAnchor(parseGridClassNN, ctrlHwnd)
+		Log_Debug("hot.lbutton.anchor", "点击锚点已采集", Map(
+			"ok", IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"],
+			"restoreOk", IsObject(clickAnchor) && clickAnchor.Has("restoreOk") && clickAnchor["restoreOk"],
+			"cx", IsObject(clickAnchor) && clickAnchor.Has("clientX") ? clickAnchor["clientX"] : "",
+			"cy", IsObject(clickAnchor) && clickAnchor.Has("clientY") ? clickAnchor["clientY"] : "",
+			"sx", IsObject(clickAnchor) && clickAnchor.Has("screenX") ? clickAnchor["screenX"] : "",
+			"sy", IsObject(clickAnchor) && clickAnchor.Has("screenY") ? clickAnchor["screenY"] : "",
+			"rowSlot", IsObject(clickAnchor) && clickAnchor.Has("rowSlot") ? clickAnchor["rowSlot"] : "",
+			"warehouse", warehouseMode
+		))
 	}
 
 	Critical
@@ -248,10 +258,11 @@ global _LAST_RUN := 0
 				Cfg["OPT_WINDOW_CLASS"], Cfg["IPT_WINDOW_CLASS"],
 				Cfg["COL_SPECS"], Cfg["INT_COLS"],
 				Cfg["CONFIRM_TIMEOUT_MS"],
-				Cfg["OPT_PARSE_GRID_CLASSNN"], Cfg["OPT_VERIFY_GRID_CLASSNN"],
+				Cfg["OPT_PARSE_GRID_CLASSNN"],
 				Cfg["IPT_PARSE_GRID_CLASSNN"], Cfg["IPT_VERIFY_GRID_CLASSNN"],
 				Cfg["OPT_INPUT_CLASSNN"], Cfg["IPT_INPUT_CLASSNN"],
-				ctx["win"]
+				ctx["win"],
+				clickAnchor
 			)
 		}
 
@@ -297,10 +308,12 @@ global _LAST_RUN := 0
 		if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
 			UI_Tip(msa["message"], 1500)
 
-		if (cls = Cfg["IPT_WINDOW_CLASS"]) {
+		; 成功：优先用返回的 focusClassNN，否则按场景回输入框
+		if (msa.Has("focusClassNN") && Trim(msa["focusClassNN"]) != "") {
+			UI_FocusClassNN(msa["focusClassNN"], ctx["win"])
+		} else if (cls = Cfg["IPT_WINDOW_CLASS"]) {
 			UI_FocusClassNN(Cfg["IPT_INPUT_CLASSNN"], ctx["win"])
-		}
-		if (cls = Cfg["OPT_WINDOW_CLASS"]) {
+		} else if (cls = Cfg["OPT_WINDOW_CLASS"]) {
 			UI_FocusClassNN(Cfg["OPT_INPUT_CLASSNN"], ctx["win"])
 		}
 	} finally _BUSY := false

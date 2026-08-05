@@ -58,7 +58,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 					"elapsedMs", A_TickCount - t0
 				))
 				return Map(
-					"ok", false, "level", "Warn", "message", "[解析错误]`n等待超时：`n - 请确认是否选中列表中相应药品",
+					"ok", false, "level", "Warn", "message", "[解析错误] 等待超时：请确认是否选中列表中相应药品",
 					"reason", "ClipWait timeout"
 				)
 			}
@@ -86,7 +86,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 		if !quiet
 			Log_Debug("parse.empty", "选中内容为空", Map("copied", copied, "elapsedMs", A_TickCount - t0))
 		return Map(
-			"ok", false, "level", "Warn", "message", "[解析错误]`n选中内容为空",
+			"ok", false, "level", "Warn", "message", "[解析错误] 选中内容为空",
 			"reason", "Text is empty", "raw", text, "copied", copied
 		)
 	}
@@ -147,7 +147,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 				"elapsedMs", A_TickCount - t0
 			))
 		return Map(
-			"ok", false, "level", "Warn", "message", "[解析错误]`n未找到相对应表头",
+			"ok", false, "level", "Warn", "message", "[解析错误] 未找到相对应表头",
 			"reason", "Header not found", "raw", txt, "copied", copied
 		)
 	}
@@ -212,7 +212,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 				"skippedShort", skippedShort, "elapsedMs", A_TickCount - t0
 			))
 		return Map(
-			"ok", false, "level", "Warn", "message", "[解析错误]`n未找到数据行",
+			"ok", false, "level", "Warn", "message", "[解析错误] 未找到数据行",
 			"reason", "Row not found", "raw", txt, "copied", copied
 		)
 	}
