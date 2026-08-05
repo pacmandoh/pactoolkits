@@ -29,7 +29,10 @@ public sealed class ModuleSettingsField
 
     public string? Description { get; set; }
 
-    public List<string>? Options { get; set; }
+    /// <summary>
+    /// 枚举选项：字符串，或 { value, label }（见 <see cref="ModuleSettingsOption"/>）
+    /// </summary>
+    public List<ModuleSettingsOption>? Options { get; set; }
 
     public int? Min { get; set; }
 
@@ -46,7 +49,8 @@ public static class ModuleSettingsFieldTypes
     public const string Enum = "enum";
     public const string StringList = "stringList";
     public const string StringFlagMap = "stringFlagMap";
+    public const string ColFieldList = "colFieldList";
 
     internal static bool IsSupported(string type)
-        => type is String or Bool or Int or Enum or StringList or StringFlagMap;
+        => type is String or Bool or Int or Enum or StringList or StringFlagMap or ColFieldList;
 }
