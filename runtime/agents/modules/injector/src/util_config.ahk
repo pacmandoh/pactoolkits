@@ -77,9 +77,6 @@ Util_LoadUnifiedConfig(configPath) {
 	cfg["OPT_PARSE_GRID_CLASSNN"] := Util_CfgGetString(agent, "OptParseGridClassNN", true, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
-	cfg["OPT_VERIFY_GRID_CLASSNN"] := Util_CfgGetString(agent, "OptVerifyGridClassNN", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 	cfg["IPT_PARSE_GRID_CLASSNN"] := Util_CfgGetString(agent, "IptParseGridClassNN", true, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")

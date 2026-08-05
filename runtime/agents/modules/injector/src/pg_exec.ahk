@@ -5,7 +5,11 @@ global __PG := Map(
 	"in_txn", false
 )
 
-; alreadyScanned：门诊「已扫 N 码」；拆零进度=max(0,已扫-整盒数)；整盒不挡预留；本机 rem_done 闩锁防重复
+; alreadyScanned：门诊「已扫 N 码」
+; 门诊拆零门控（整盒手扫优先）：
+;   整盒>0 且 已扫<整盒 → 拒绝（须先扫满整盒再注余数）
+;   已扫=整盒 → 注入余数（含整盒=0 的纯拆零起扫）
+;   已扫≥整盒+1 → 跳过（拆零侧已有码）
 Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cls := "", alreadyScanned := 0) {
 	need := reqQty
 	codes := []
@@ -27,7 +31,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		; 非拆零业务不得从追溯池预留记录
 		if (splitFlag = "否") {
 			Log_Debug("txn.reserve.skip", "未拆零跳过", Map("txn", txnId))
-			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码]`n未拆零药物", "need", 0, "codes", [], "items", [])
+			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码] 未拆零药物", "need", 0, "codes", [], "items", [])
 		}
 
 		qtyN := 0
@@ -38,7 +42,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
 		if (qtyN <= 0) {
 			Log_Debug("txn.reserve.qty_bad", "数量无效", Map("txn", txnId, "qty", qtyVal))
-			return Map("ok", false, "level", "Warn", "message", "[解析错误]`n数量无效：" qtyVal)
+			return Map("ok", false, "level", "Warn", "message", "[解析错误] 数量无效：" qtyVal)
 		}
 
 		; 单盒数量以 drug_index.qty 为准，用于计算拆零余数
@@ -55,7 +59,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		if (rr["rows"].Length = 0) {
 			Log_Debug("txn.reserve.dbqty_miss", "药品索引无此规格", Map("txn", txnId, "drugId", drugId, "spec", spec))
 			return Map(
-				"ok", false, "level", "Warn", "message", "[查询错误]`n药品索引未配置该药品规格（无法计算拆零余数）：`n" "药品=" drugId "`n规格=" spec
+				"ok", false, "level", "Warn", "message", "[查询错误]`n药品索引未配置该药品规格（无法计算拆零余数）`n药品=" drugId "`n规格=" spec
 			)
 		}
 
@@ -74,41 +78,43 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
 		if (rem = 0) {
 			Log_Debug("txn.reserve.skip", "整包装跳过", Map("txn", txnId, "qty", qtyN, "dbQty", dbQty))
-			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码]`n整包装（数量为整包整数倍，单盒数量=" dbQty "）"
+			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码] 整包装（数量为整包整数倍，单盒数量=" dbQty "）"
 				, "need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty)
 		}
 
-		; 拆零门控仅门诊：完成态 rem_done（药|规|量|库存快照）；半截未上闩可再预留
+		; 门诊拆零：强制先整盒后余数，且拆零侧有码后不重注
 		if (Trim("" opt) != "" && cls = opt) {
 			scannedN := Util_ToInt(alreadyScanned, 0)
 			splitScanned := Max(0, scannedN - wholeN)
-			stockSnap := Util_OptRemStockFromBy(bySpec)
-			remKey := Util_OptRemKey(drugId, spec, qtyN, stockSnap)
-			if (scannedN = 0 && remKey != "")
-				Util_OptRemDone_Clear(remKey)
-
-			Log_Debug("txn.reserve.opt_gate", "门诊拆零门控", Map(
+			Log_Debug("txn.reserve.opt_gate", "门诊拆零已扫门控", Map(
 				"txn", txnId, "alreadyScanned", scannedN, "splitScanned", splitScanned,
-				"stock", stockSnap, "remKey", remKey,
-				"remDone", Util_OptRemDone_Has(remKey) ? 1 : 0
+				"rem", rem, "wholeN", wholeN
 			))
 
-			if Util_OptRemDone_Has(remKey) {
-				Log_Debug("txn.reserve.skip", "拆零闩锁跳过", Map(
+			; 已扫≥整盒+1：拆零侧至少 1 码 → 跳过，避免重复注余数
+			if (splitScanned >= 1) {
+				Log_Debug("txn.reserve.skip", "拆零已扫足跳过", Map(
 					"txn", txnId, "rem", rem, "wholeN", wholeN, "alreadyScanned", scannedN,
-					"remKey", remKey, "stock", stockSnap
+					"splitScanned", splitScanned
 				))
 				return Map("ok", true, "skip", true, "level", "Info",
-					"message", "[跳过取码]`n本机已注入过该库存快照下的拆零余数（已扫=" scannedN "，整盒=" wholeN "，余数=" rem " 粒，库存=" stockSnap "）",
+					"message", "[跳过取码] 拆零余数已有已扫记录，无需重复注入",
 					"need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty,
 					"already_scanned", scannedN, "whole_n", wholeN, "rem", rem)
 			}
 
-			; 界面已有拆零码但未提交成功：继续预留（HIS 拒重码则 abort 回滚）
-			if (splitScanned > 0)
-				Log_Debug("txn.reserve.opt_partial", "拆零半截续预留", Map(
-					"txn", txnId, "alreadyScanned", scannedN, "splitScanned", splitScanned, "rem", rem
+			; 有整盒时须已扫恰好=整盒数才开口注余数（先整盒后拆零）
+			if (wholeN > 0 && scannedN < wholeN) {
+				Log_Debug("txn.reserve.opt_whole_pending", "整盒未扫满，拒绝注余数", Map(
+					"txn", txnId, "alreadyScanned", scannedN, "wholeN", wholeN, "rem", rem
 				))
+				return Map("ok", false, "level", "Warn",
+					"message", "[取码提示]`n请先手动扫完整盒追溯码，再注入拆零余数`n已扫=" scannedN "`n整盒=" wholeN,
+					"reason", "WHOLE_BOX_PENDING",
+					"need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty,
+					"already_scanned", scannedN, "whole_n", wholeN, "rem", rem)
+			}
+			; scannedN = wholeN（含 wholeN=0 且已扫=0）：允许预留 rem
 		}
 
 		need := rem
@@ -305,7 +311,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 				case "CONCURRENCY_OR_LIMIT":
 					msg := "并发抢占或 LIMIT 截断：请重试"
 				default:
-					msg := "`n" reason
+					msg := reason
 			}
 
 			Log_Debug("txn.reserve.guard_fail", "预留 guard 失败", Map(
@@ -313,7 +319,8 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 				"drugId", drugId, "spec", spec, "elapsedMs", A_TickCount - t0
 			))
 			return Map(
-				"ok", false, "level", "Warn", "message", "[预留错误]`n" msg "`n预留数量=" need "`n规格=" spec "`n药品=" drugId,
+				"ok", false, "level", "Warn",
+				"message", "[预留错误]`n" msg "`n预留数量=" need "`n规格=" spec "`n药品=" drugId,
 				"reason", reason, "need", need, "codes", [], "items", [],
 				"skip", false)
 		}
@@ -490,7 +497,6 @@ Txn_Rollback(txnId) {
 
 ; 超时 PENDING 恢复用于回补异常退出前已预留的库存
 Txn_CleanupPending(timeoutMinutes := 10, maxBatch := 200) {
-	; 缺少 created_at 时使用 txn_id 的时间前缀判断超时，以兼容旧表结构
 	rOpen := PG_EnsureOpen()
 	if !rOpen["ok"]
 		return rOpen
@@ -499,39 +505,13 @@ Txn_CleanupPending(timeoutMinutes := 10, maxBatch := 200) {
 	if (mins < 1)
 		mins := 1
 
-	cutoff := FormatTime(DateAdd(A_Now, -mins, "Minutes"), "yyyyMMddHHmmss")
-
-	; 优先使用 created_at，旧表缺少该列时改用 txn_id 时间前缀
-	hasCreatedAt := false
-	qCol := ""
-		. "SELECT 1 "
-		. "FROM information_schema.columns "
-		. "WHERE table_schema='public' "
-		. "  AND table_name='trace_txn' "
-		. "  AND column_name='created_at' "
-		. "LIMIT 1;"
-
-	rCol := DB_Query(qCol)
-	if (IsObject(rCol) && rCol.Has("ok") && rCol["ok"] && rCol["rows"].Length > 0)
-		hasCreatedAt := true
-
-	if (hasCreatedAt) {
-		sql := ""
-			. "SELECT txn_id "
-			. "FROM trace_txn "
-			. "WHERE status='PENDING' "
-			. "  AND created_at < (now() - (" (mins + 0) " * interval '1 minute')) "
-			. "ORDER BY created_at, txn_id "
-			. "LIMIT " (maxBatch + 0) ";"
-	} else {
-		sql := ""
-			. "SELECT txn_id "
-			. "FROM trace_txn "
-			. "WHERE status='PENDING' "
-			. "  AND left(txn_id,14) < '" Util_EscapeSQL(cutoff) "' "
-			. "ORDER BY txn_id "
-			. "LIMIT " (maxBatch + 0) ";"
-	}
+	sql := ""
+		. "SELECT txn_id "
+		. "FROM trace_txn "
+		. "WHERE status='PENDING' "
+		. "  AND created_at < (now() - (" (mins + 0) " * interval '1 minute')) "
+		. "ORDER BY created_at, txn_id "
+		. "LIMIT " (maxBatch + 0) ";"
 
 	r := DB_Query(sql)
 	if !r["ok"] {
@@ -550,8 +530,7 @@ Txn_CleanupPending(timeoutMinutes := 10, maxBatch := 200) {
 	}
 	if (cleaned > 0 || r["rows"].Length > 0)
 		Log_Debug("txn.cleanup.done", "清理 PENDING 完成", Map(
-			"found", r["rows"].Length, "cleaned", cleaned,
-			"hasCreatedAt", hasCreatedAt, "mins", mins
+			"found", r["rows"].Length, "cleaned", cleaned, "mins", mins
 		))
-	return Map("ok", true, "cleaned", cleaned, "cutoff", cutoff)
+	return Map("ok", true, "cleaned", cleaned)
 }

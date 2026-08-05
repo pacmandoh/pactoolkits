@@ -94,11 +94,10 @@ UI_PollIptDialogs(maxMs := 280, interval := 12) {
 	return ""
 }
 
-; optTargetScanned：门诊累计已扫目标（必填 >0）；iptSawForce：贴码阶段已点过「信息不匹配：是」
-UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win, optTargetScanned, iptSawForce) {
+; optCtx：门诊 Map(alreadyScanned, drugId, spec, qty, anchor)
+; optGridClassNN：门诊点回 ClassNN
+UI_WaitConfirm(codes, timeoutMs, opt, ipt, optGridClassNN, iptVerifyGridClassNN, win, iptSawForce, optCtx := "") {
 	t0 := A_TickCount
-	delay := 15
-	lastTickLog := 0
 
 	win := Util_NormalizeWin(win)
 	; 用户在贴码后、校验前关掉录入窗：勿对已死窗 WinGetClass
@@ -112,7 +111,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 		Log_Debug("ui.confirm.ipt_closed_pre", "校验前窗已关且无受理信号", Map("elapsedMs", 0))
 		return Map(
 			"ok", false, "level", "Warn",
-			"message", "[录入验证错误]`n录入窗口已关闭，无法确认是否注入成功",
+			"message", "[录入验证错误] 录入窗口已关闭，无法确认是否注入成功",
 			"reason", "win_closed_unconfirmed"
 		)
 	}
@@ -123,70 +122,23 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 		cls := ""
 	Log_Debug("ui.confirm.start", "开始录入校验", Map(
 		"cls", cls, "codes", IsObject(codes) ? codes.Length : 0,
-		"timeoutMs", timeoutMs, "optTargetScanned", optTargetScanned, "iptSawForce", iptSawForce,
-		"optVerifyNn", optVerifyGridClassNN, "iptVerifyNn", iptVerifyGridClassNN
+		"timeoutMs", timeoutMs, "iptSawForce", iptSawForce,
+		"optGridNn", optGridClassNN, "iptVerifyNn", iptVerifyGridClassNN,
+		"hasOptCtx", IsObject(optCtx)
 	))
 
-	; 门诊：HIS「已扫 N 码」按码累计；跨码时码数≠拆零余数（粒），目标必须由调用方显式传入
+	; 门诊：点回目标行后只认已扫数量
 	if (cls = opt) {
-		needN := Util_ToInt(optTargetScanned, 0)
-		if (needN <= 0) {
-			Log_Debug("ui.confirm.opt_bad_target", "门诊缺少累计已扫目标", Map(
-				"optTargetScanned", optTargetScanned, "codes", IsObject(codes) ? codes.Length : 0
-			))
-			return Map("ok", false, "level", "Error",
-				"message", "[录入验证错误]`n门诊校验缺少累计已扫目标")
-		}
-
-		colSpecs := ["追溯码"]
-		intCols := []
-		lastGot := -1
-
-		while (A_TickCount - t0 < timeoutMs) {
-			txt := UI_TryCopyGridClassNNText(optVerifyGridClassNN, win)
-			gotN := -1
-			cell := ""
-			if RegExMatch(txt, "已扫\s*\d+\s*码") {
-				gotN := UI_Parse_MaxScanned(txt)
-			} else {
-				p := Parse_TargetInfo(colSpecs, ipt, intCols, txt, win, iptParseGridClassNN, true)
-				if (IsObject(p) && p.Has("ok") && p["ok"]) {
-					v := p["bySpec"].Has("追溯码") ? Trim(p["bySpec"]["追溯码"]) : ""
-					cell := v
-					if (v != "" && RegExMatch(v, "已扫\s*(\d+)\s*码", &m))
-						gotN := Integer(m[1])
-				}
-			}
-
-			if (gotN >= needN) {
-				Log_Debug("ui.confirm.opt_ok", "门诊校验通过", Map(
-					"needN", needN, "gotN", gotN, "elapsedMs", A_TickCount - t0, "cell", cell
-				))
-				return Map("ok", true)
-			}
-
-			if (gotN != lastGot || A_TickCount - lastTickLog >= 500) {
-				lastTickLog := A_TickCount
-				lastGot := gotN
-				Log_Debug("ui.confirm.opt_tick", "门诊校验等待", Map(
-					"needN", needN, "gotN", gotN,
-					"cell", cell, "txtLen", StrLen(txt), "elapsedMs", A_TickCount - t0
-				))
-			}
-
-			Sleep(delay)
-			if (delay < 120)
-				delay += 15
-		}
-		Log_Debug("ui.confirm.opt_fail", "门诊校验超时", Map(
-			"needN", needN, "lastGot", lastGot, "elapsedMs", A_TickCount - t0
-		))
-		return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n门诊窗口录入追溯码验证失败，未实际扫码成功")
+		return UI_WaitConfirm_Opt(
+			codes, timeoutMs, optGridClassNN, win,
+			optCtx, t0
+		)
 	}
 
 	; 住院流程要求验证区域出现全部注入码，并处理可能的失败弹窗
 	if (cls = ipt) {
-		ipt := Map("codes", codes, "gridN", 1)
+		delay := 15
+		lastTickLog := 0
 		lastHit := -1
 		sawForce := !!iptSawForce
 		hit := 0
@@ -195,7 +147,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 			dlg := UI_PollIptDialogs(180)
 			if (dlg = "abort") {
 				Log_Debug("ui.confirm.ipt_dialog", "住院失败弹窗触发回退", Map("elapsedMs", A_TickCount - t0))
-				return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
+				return Map("ok", false, "level", "Warn", "message", "[录入验证错误] 重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
 			}
 			if (dlg = "force")
 				sawForce := true
@@ -213,7 +165,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 				))
 				return Map(
 					"ok", false, "level", "Warn",
-					"message", "[录入验证错误]`n录入窗口已关闭，无法确认是否注入成功",
+					"message", "[录入验证错误] 录入窗口已关闭，无法确认是否注入成功",
 					"reason", "win_closed_unconfirmed"
 				)
 			}
@@ -222,7 +174,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 			hit := 0
 			if (txt != "") {
 				allOk := true
-				for c in ipt["codes"] {
+				for c in codes {
 					if InStr(txt, c)
 						hit++
 					else
@@ -259,6 +211,161 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 	return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n未知窗口，请一直保持在相应扫码窗口")
 }
 
+; 门诊校验：点回目标行 → 轮询已扫至 alreadyScanned+codes（只认「已扫 N 码」）
+UI_WaitConfirm_Opt(codes, timeoutMs, gridClassNN, win, optCtx, t0) {
+	if !IsObject(optCtx) {
+		Log_Debug("ui.confirm.opt_no_ctx", "门诊缺少目标上下文", Map())
+		return Map("ok", false, "level", "Error",
+			"message", "[录入验证错误]`n门诊校验缺少目标行上下文，无法安全验证")
+	}
+
+	alreadyScanned := optCtx.Has("alreadyScanned") ? Util_ToInt(optCtx["alreadyScanned"], 0) : 0
+	wantDrug := optCtx.Has("drugId") ? Trim(optCtx["drugId"]) : ""
+	wantSpec := optCtx.Has("spec") ? Trim(optCtx["spec"]) : ""
+	wantQty := optCtx.Has("qty") ? Util_ToInt(optCtx["qty"], 0) : 0
+	anchor := optCtx.Has("anchor") ? optCtx["anchor"] : ""
+	codeCount := IsObject(codes) ? codes.Length : 0
+	needN := alreadyScanned + codeCount
+
+	if (wantDrug = "" || wantSpec = "") {
+		Log_Debug("ui.confirm.opt_no_identity", "门诊缺少行身份", Map(
+			"drugId", wantDrug, "spec", wantSpec
+		))
+		return Map("ok", false, "level", "Error",
+			"message", "[录入验证错误]`n门诊校验缺少药品行身份，无法安全验证")
+	}
+
+	if (needN <= 0) {
+		Log_Debug("ui.confirm.opt_bad_target", "门诊缺少累计已扫目标", Map(
+			"alreadyScanned", alreadyScanned, "codes", codeCount
+		))
+		return Map("ok", false, "level", "Error",
+			"message", "[录入验证错误]`n门诊校验缺少累计已扫目标")
+	}
+
+	if !(IsObject(anchor) && anchor.Has("ok") && anchor["ok"] && anchor.Has("restoreOk") && anchor["restoreOk"]) {
+		Log_Debug("ui.confirm.opt_restore_fail", "锚点不可用于点回", Map(
+			"needN", needN,
+			"anchorOk", IsObject(anchor) && anchor.Has("ok") && anchor["ok"],
+			"restoreOk", IsObject(anchor) && anchor.Has("restoreOk") && anchor["restoreOk"],
+			"cx", IsObject(anchor) && anchor.Has("clientX") ? anchor["clientX"] : "",
+			"cy", IsObject(anchor) && anchor.Has("clientY") ? anchor["clientY"] : ""
+		))
+		return Map("ok", false, "level", "Error",
+			"message", "[录入验证错误]`n门诊校验缺少可用的网格点击锚点")
+	}
+
+	Log_Debug("ui.confirm.opt_snapshot", "门诊校验快照", Map(
+		"needN", needN, "alreadyScanned", alreadyScanned, "codes", codeCount,
+		"drugId", wantDrug, "spec", wantSpec, "qty", wantQty,
+		"cx", anchor["clientX"], "cy", anchor["clientY"]
+	))
+
+	; 先点回（失败可再试一次），成功后只轮询复制读已扫，不再连点
+	maxRestore := 2
+	restoreUsed := 0
+	restored := false
+	delay := 15
+	while (restoreUsed < maxRestore) {
+		rr := UI_RestoreGridClick(anchor, gridClassNN, win)
+		restoreUsed += 1
+		if (IsObject(rr) && rr.Has("ok") && rr["ok"]) {
+			restored := true
+			break
+		}
+		Log_Debug("ui.confirm.opt_restore_fail", "点回失败", Map(
+			"reason", IsObject(rr) && rr.Has("reason") ? rr["reason"] : "",
+			"restoreUsed", restoreUsed, "elapsedMs", A_TickCount - t0
+		))
+		Sleep(delay)
+		if (delay < 120)
+			delay += 15
+	}
+	if !restored {
+		Log_Debug("ui.confirm.opt_restore_exhausted", "点回次数用尽", Map(
+			"restoreUsed", restoreUsed, "needN", needN, "elapsedMs", A_TickCount - t0
+		))
+		return Map("ok", false, "level", "Error",
+			"message", "[录入验证错误]`n门诊校验点回目标行失败")
+	}
+
+	lastGot := -1
+	lastTickLog := 0
+	delay := 15
+	while (A_TickCount - t0 < timeoutMs) {
+		txt := UI_TryCopyGridClassNNText(gridClassNN, win)
+		; 金标准：追溯码列「已扫 N 码」+ 药/规/量身份，勿拖全表 ColSpecs
+		p := Parse_TargetInfo([
+			"追溯码",
+			"物资名称||药品名称",
+			"规格||药品规格",
+			"数量"
+		], "", [], txt, win, "", true)
+		if !(IsObject(p) && p.Has("ok") && p["ok"]) {
+			Log_Debug("ui.confirm.opt_candidates", "点回后解析失败", Map(
+				"lines", StrSplit(Trim(txt), "`n").Length, "txtLen", StrLen(txt),
+				"restoreUsed", restoreUsed, "elapsedMs", A_TickCount - t0
+			))
+			Sleep(delay)
+			if (delay < 120)
+				delay += 15
+			continue
+		}
+
+		by := p["bySpec"]
+		gotDrug := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
+		gotSpec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
+		gotQty := by.Has("数量") ? Util_ToInt(by["数量"], 0) : 0
+		if (gotDrug = "" || gotDrug != wantDrug || gotSpec = "" || gotSpec != wantSpec || gotQty != wantQty) {
+			Log_Debug("ui.confirm.opt_row_mismatch", "点回行身份不匹配", Map(
+				"wantDrug", wantDrug, "gotDrug", gotDrug,
+				"wantSpec", wantSpec, "gotSpec", gotSpec,
+				"wantQty", wantQty, "gotQty", gotQty,
+				"elapsedMs", A_TickCount - t0
+			))
+			Sleep(delay)
+			if (delay < 120)
+				delay += 15
+			continue
+		}
+
+		gotN := -1
+		traceCell := by.Has("追溯码") ? Trim(by["追溯码"]) : ""
+		if (traceCell != "" && RegExMatch(traceCell, "已扫\s*(\d+)\s*码", &mScan))
+			gotN := Integer(mScan[1])
+
+		if (gotN >= needN) {
+			Log_Debug("ui.confirm.opt_ok", "门诊校验通过", Map(
+				"needN", needN, "gotN", gotN, "alreadyScanned", alreadyScanned,
+				"drugId", wantDrug, "spec", wantSpec, "qty", wantQty,
+				"restoreUsed", restoreUsed, "elapsedMs", A_TickCount - t0
+			))
+			return Map("ok", true)
+		}
+
+		if (gotN != lastGot || A_TickCount - lastTickLog >= 500) {
+			lastTickLog := A_TickCount
+			lastGot := gotN
+			Log_Debug("ui.confirm.opt_tick", "门诊校验等待", Map(
+				"needN", needN, "gotN", gotN, "alreadyScanned", alreadyScanned,
+				"cellLen", StrLen(traceCell), "txtLen", StrLen(txt),
+				"restoreUsed", restoreUsed,
+				"elapsedMs", A_TickCount - t0
+			))
+		}
+
+		Sleep(delay)
+		if (delay < 120)
+			delay += 15
+	}
+
+	Log_Debug("ui.confirm.opt_fail", "门诊校验超时", Map(
+		"needN", needN, "lastGot", lastGot, "alreadyScanned", alreadyScanned,
+		"restoreUsed", restoreUsed, "elapsedMs", A_TickCount - t0
+	))
+	return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n门诊窗口录入追溯码验证失败，未实际扫码成功")
+}
+
 UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 	t0 := A_TickCount
 	delay := 20
@@ -266,13 +373,13 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 
 	if !IsObject(codes) || (codes.Length = 0) {
 		Log_Debug("ui.confirm.wh_empty", "仓库验证缺码", Map())
-		return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n仓库验证缺少待验证码")
+		return Map("ok", false, "level", "Warn", "message", "[录入验证错误] 仓库验证缺少待验证码")
 	}
 
 	target := Trim(codes[1])
 	if (target = "") {
 		Log_Debug("ui.confirm.wh_empty", "仓库验证目标码为空", Map())
-		return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n仓库验证目标码为空")
+		return Map("ok", false, "level", "Warn", "message", "[录入验证错误] 仓库验证目标码为空")
 	}
 
 	codeTail := (StrLen(target) <= 4) ? target : SubStr(target, -3)
@@ -284,7 +391,7 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 		dlg := UI_PollIptDialogs(180)
 		if (dlg = "abort") {
 			Log_Debug("ui.confirm.wh_dialog", "仓库失败弹窗", Map("elapsedMs", A_TickCount - t0))
-			return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n仓库窗口出现错误提示，已终止本次注入")
+			return Map("ok", false, "level", "Warn", "message", "[录入验证错误] 仓库窗口出现错误提示，已终止本次注入")
 		}
 
 		txt := UI_TryCopyGridClassNNText(verifyGridClassNN, win)
@@ -308,42 +415,4 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 
 	Log_Debug("ui.confirm.wh_fail", "仓库首条校验超时", Map("elapsedMs", A_TickCount - t0, "codeTail", codeTail))
 	return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n仓库窗口首条注入验证失败，未匹配到目标码")
-}
-
-UI_Parse_MaxScanned(txt) {
-	max := 0
-	pos := 1
-	while RegExMatch(txt, "已扫\s*(\d+)\s*码", &m, pos) {
-		n := Integer(m[1])
-		if (n > max)
-			max := n
-		pos := m.Pos + m.Len
-	}
-	return max
-}
-
-; 读门诊验证网格当前「已扫 N 码」；读不到返回 -1（勿当 0，以免误预留满额）
-UI_ReadOptScannedCount(verifyNn, win := "A", iptCls := "", parseNn := "") {
-	win := Util_NormalizeWin(win)
-	txt := UI_TryCopyGridClassNNText(verifyNn, win)
-	if (txt = "")
-		return -1
-	if RegExMatch(txt, "已扫\s*\d+\s*码")
-		return UI_Parse_MaxScanned(txt)
-
-	; 全文无「已扫」时再试追溯码列（未扫过可能仍无文案）
-	if (iptCls != "" || parseNn != "") {
-		p := Parse_TargetInfo(["追溯码"], iptCls, [], txt, win, parseNn, true)
-		if (IsObject(p) && p.Has("ok") && p["ok"]) {
-			v := p["bySpec"].Has("追溯码") ? Trim(p["bySpec"]["追溯码"]) : ""
-			if (v != "" && RegExMatch(v, "已扫\s*(\d+)\s*码", &m))
-				return Integer(m[1])
-			; 追溯码列为空/无已扫文案：视为尚未扫过
-			if (v = "" || !RegExMatch(v, "\d"))
-				return 0
-		}
-	}
-
-	; 网格有内容但无「已扫」模式：无法判断，拒绝猜测
-	return -1
 }

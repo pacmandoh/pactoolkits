@@ -34,7 +34,7 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 		"fp", baseRowFingerprint, "idSpec", taskIdentifierSpec
 	))
 	if (drugId = "" || spec = "") {
-		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少关键字段`n药品名称=" drugId " 规格=" spec)
+		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少关键字段`n药品名称=" drugId "`n规格=" spec)
 	}
 	if (warehouseBillNo = "") {
 		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少任务标识`n任务标识=" taskIdentifierSpec)
@@ -53,12 +53,12 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 		return dup
 	if dup["exists"] {
 		Log_Debug("msfx.flow.dup", "命中防重，尝试行槽指纹", Map("bill", warehouseBillNo, "fp", baseRowFingerprint))
-		if (IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"]) {
-			slotAnchor := UI_CaptureGridClickAnchorFromPoint(parseGridClassNN, clickAnchor, win)
-			slotRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec, slotAnchor)
+		if (IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"] && clickAnchor.Has("rowSlot")) {
+			; 左键已采集 rowSlot，直接用于防重消歧（不再屏幕坐标二次换算）
+			slotRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec, clickAnchor)
 			Log_Debug("msfx.flow.slot_fp", "行槽指纹", Map(
 				"base", baseRowFingerprint, "slot", slotRowFingerprint,
-				"anchorOk", IsObject(slotAnchor) && slotAnchor.Has("ok") && slotAnchor["ok"]
+				"anchorOk", true, "rowSlot", clickAnchor["rowSlot"]
 			))
 			if (slotRowFingerprint != "" && slotRowFingerprint != baseRowFingerprint) {
 				dup2 := Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec, slotRowFingerprint)
@@ -89,7 +89,7 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	tasks := claim["tasks"]
 	Log_Debug("msfx.flow.claim", "领取任务", Map("tasks", tasks.Length, "drugId", drugId, "spec", spec))
 	if (tasks.Length = 0)
-		return Map("ok", true, "skip", true, "level", "Info", "message", "[仓库任务]`n未找到匹配任务：药品=" drugId " 规格=" spec)
+		return Map("ok", true, "skip", true, "level", "Info", "message", "[仓库任务]`n未找到匹配任务`n药品=" drugId "`n规格=" spec)
 	UI_Tip("[仓库模式] 已匹配任务 1 条，开始注入…", 1000)
 
 	policy := Cfg["CODE_PICK_POLICY"]
@@ -111,14 +111,14 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	}
 
 	if (lastErr != "")
-		return Map("ok", false, "level", hasErr ? "Error" : "Warn", "message", "[仓库任务]`n" lastErr)
+		return Map("ok", false, "level", hasErr ? "Error" : "Warn", "message", lastErr)
 
 	Log_Info("msfx.flow.done", "仓库流程完成", Map(
 		"tasks", tasks.Length, "bill", warehouseBillNo, "drugId", drugId, "spec", spec,
 		"elapsedMs", A_TickCount - flowT0
 	))
 	return Map(
-		"ok", true, "level", "Info", "message", "[仓库任务完成]`n已处理任务数=" tasks.Length "，单据号=" warehouseBillNo "，药品=" drugId "，规格=" spec
+		"ok", true, "level", "Info", "message", "[仓库任务完成]`n已处理任务数=" tasks.Length "`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec
 	)
 }
 
@@ -147,7 +147,7 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 	if (codeRows.Length = 0) {
 		Msfx_InsertEvent(taskId, "PARSE", "WARN", "任务无待处理明细")
 		Msfx_FinalizeInjectTask(taskId, "任务无待处理明细")
-		return Map("ok", false, "level", "Warn", "message", "[仓库任务错误]`n任务无待注入明细")
+		return Map("ok", false, "level", "Warn", "message", "[仓库任务错误] 任务无待注入明细")
 	}
 
 	succ := 0
@@ -380,7 +380,7 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 		"taskId", taskId, "runs", injectRuns, "succ", succ, "fail", fail,
 		"elapsedMs", A_TickCount - taskT0
 	))
-	return Map("ok", true, "level", "Info", "message", "[仓库任务完成]`ntask_id=" taskId " 注入次数=" injectRuns " 成功=" succ " 失败=" fail)
+	return Map("ok", true, "level", "Info", "message", "[仓库任务完成]`ntask_id=" taskId "`n注入次数=" injectRuns "`n成功=" succ "`n失败=" fail)
 }
 
 Msfx_ApplyWarehouseBurstPacing(groupIndex, totalGroups) {

@@ -7,7 +7,7 @@ Injector 是 Agents 的生产业务模块，由 Host 根据 `module.json` 中的
 - 识别目标应用和业务窗口
 - 解析 Grid 或剪贴板中的业务数据
 - 执行门诊、住院和仓库场景的追溯码录入
-- 验证录入结果并记录异常（门诊拆零完成靠 rem_done 落盘闩锁，key 含库存快照；半截未上闩可再预留补码）
+- 验证录入结果并记录异常
 - 领取仓库任务并回写任务状态与事件
 
 ## 启动参数
@@ -66,7 +66,6 @@ Desktop 仅在用户配置不存在时复制默认配置；升级时若默认配
 - `src/ui_paste.ahk`：追溯码贴入策略（门诊/住院/仓库）
 - `src/ui_confirm.ahk`：录入结果等待与弹窗处置
 - `src/util_misc.ahk`：SQL/剪贴板/dotenv 等杂项辅助
-- `src/util_rem.ahk`：门诊拆零 rem_done 闩锁
 - `src/util_config.ahk`：模块配置加载与字段校验
 - `src/util_scene.ahk`：场景识别、HotIf、表头抓取
 
