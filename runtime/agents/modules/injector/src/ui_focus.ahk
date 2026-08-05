@@ -82,7 +82,7 @@ UI_FocusGridClassNN(classNN, win := "A", control := true) {
 	return h
 }
 
-UI_TryCopyGridClassNNText(classNN, win := "A", control := true) {
+UI_TryCopyGridClassNNText(classNN, win := "A", control := true, clipWaitSec := 0.25) {
 	win := Util_NormalizeWin(win)
 	if !WinExist(win) {
 		Log_Debug("ui.copy_grid.miss_win", "复制网格时目标窗不存在", Map("nn", classNN))
@@ -103,9 +103,12 @@ UI_TryCopyGridClassNNText(classNN, win := "A", control := true) {
 		return ""
 	}
 
-	if !ClipWait(0.25) {
+	waitSec := clipWaitSec
+	if !IsNumber(waitSec) || waitSec <= 0
+		waitSec := 0.25
+	if !ClipWait(waitSec) {
 		try A_Clipboard := old
-		Log_Debug("ui.copy_grid.clip_timeout", "网格复制剪贴板超时", Map("nn", classNN))
+		Log_Debug("ui.copy_grid.clip_timeout", "网格复制剪贴板超时", Map("nn", classNN, "waitSec", waitSec))
 		return ""
 	}
 	txt := A_Clipboard
@@ -372,22 +375,55 @@ UI_GetWindowRect(hwnd, &x, &y, &w, &h) {
 	return true
 }
 
-UI_CaptureGridClickAnchor(targetNN, win := "A") {
-	win := Util_NormalizeWin(win)
-	MouseGetPos &sx, &sy, &winHwnd, &ctrlHwnd, 2
-	return UI_CaptureGridClickAnchorFromPoint(targetNN, Map("ok", true, "screenX", sx, "screenY", sy), win, ctrlHwnd)
+; 客户区尺寸（不含非客户区）；失败返回 false
+UI_GetClientSize(hwnd, &w, &h) {
+	w := 0, h := 0
+	if !hwnd
+		return false
+	rc := Buffer(16, 0)
+	if !DllCall("user32\GetClientRect", "ptr", hwnd, "ptr", rc, "int")
+		return false
+	w := NumGet(rc, 8, "int")
+	h := NumGet(rc, 12, "int")
+	return true
 }
 
-UI_CaptureGridClickAnchorFromPoint(targetNN, clickPoint, win := "A", ctrlHwnd := 0) {
-	win := Util_NormalizeWin(win)
-	if !IsObject(clickPoint)
+; 当前光标屏幕坐标
+UI_GetCursorPosScreen(&sx, &sy) {
+	sx := 0, sy := 0
+	pt := Buffer(8, 0)
+	if !DllCall("user32\GetCursorPos", "ptr", pt, "int")
+		return false
+	sx := NumGet(pt, 0, "int")
+	sy := NumGet(pt, 4, "int")
+	return true
+}
+
+; 屏幕坐标 → 控件客户区坐标
+UI_ScreenToClient(hwnd, sx, sy, &cx, &cy) {
+	cx := 0, cy := 0
+	if !hwnd
+		return false
+	pt := Buffer(8, 0)
+	NumPut("int", Integer(sx), pt, 0)
+	NumPut("int", Integer(sy), pt, 4)
+	if !DllCall("user32\ScreenToClient", "ptr", hwnd, "ptr", pt, "int")
+		return false
+	cx := NumGet(pt, 0, "int")
+	cy := NumGet(pt, 4, "int")
+	return true
+}
+
+; 采集网格点击锚点：仓库防重用 rowSlot；门诊点回用客户区 (cx,cy)
+; 屏幕坐标来自 GetCursorPos（不受 CoordMode 影响）
+UI_CaptureGridClickAnchor(targetNN, ctrlHwnd := 0) {
+	sx := 0, sy := 0
+	if !UI_GetCursorPosScreen(&sx, &sy)
 		return Map("ok", false)
-	sx := clickPoint.Has("screenX") ? Integer(clickPoint["screenX"]) : 0
-	sy := clickPoint.Has("screenY") ? Integer(clickPoint["screenY"]) : 0
 
 	h0 := ctrlHwnd
 	if !h0 {
-		h0 := DllCall("user32\WindowFromPoint", "Int64", (sy << 32) | sx, "Ptr")
+		h0 := DllCall("user32\WindowFromPoint", "Int64", (Integer(sy) << 32) | (Integer(sx) & 0xFFFFFFFF), "Ptr")
 	}
 	if !h0
 		return Map("ok", false)
@@ -407,25 +443,119 @@ UI_CaptureGridClickAnchorFromPoint(targetNN, clickPoint, win := "A", ctrlHwnd :=
 	rowHeightPx := 24
 	rowSlot := Floor(relY / rowHeightPx)
 
+	cx := 0, cy := 0
+	clientW := 0, clientH := 0
+	hasClient := UI_ScreenToClient(hSite, sx, sy, &cx, &cy)
+	hasSize := UI_GetClientSize(hSite, &clientW, &clientH)
+	; restoreOk：客户区内有效点即可，门诊验证点回依赖药品行左键锚点
+	; 该点击本身标定数据区
+	restoreOk := false
+	if (hasClient && hasSize && clientW > 0 && clientH > 0) {
+		if (cx >= 0 && cx < clientW && cy >= 0 && cy < clientH)
+			restoreOk := true
+	}
+
 	return Map(
 		"ok", true,
+		"rowSlot", rowSlot,
+		"clientX", cx,
+		"clientY", cy,
+		"clientW", clientW,
+		"clientH", clientH,
 		"screenX", sx,
 		"screenY", sy,
-		"relY", relY,
-		"rowSlot", rowSlot,
-		"targetNN", nnTarget
+		"restoreOk", restoreOk
 	)
+}
+
+; 门诊：按采集时的客户区坐标单次点回
+UI_RestoreGridClick(anchor, classNN, win := "A") {
+	win := Util_NormalizeWin(win)
+	if !IsObject(anchor) || !(anchor.Has("ok") && anchor["ok"]) {
+		Log_Debug("ui.restore_click.no_anchor", "无可用点击锚点", Map("nn", classNN))
+		return Map("ok", false, "reason", "no_anchor")
+	}
+	if !(anchor.Has("restoreOk") && anchor["restoreOk"]) {
+		Log_Debug("ui.restore_click.unsafe", "锚点不在客户区内，拒绝点回", Map(
+			"nn", classNN,
+			"cx", anchor.Has("clientX") ? anchor["clientX"] : "",
+			"cy", anchor.Has("clientY") ? anchor["clientY"] : "",
+			"clientW", anchor.Has("clientW") ? anchor["clientW"] : "",
+			"clientH", anchor.Has("clientH") ? anchor["clientH"] : ""
+		))
+		return Map("ok", false, "reason", "anchor_unsafe")
+	}
+
+	cx := Integer(anchor["clientX"])
+	cy := Integer(anchor["clientY"])
+	savedW := anchor.Has("clientW") ? Integer(anchor["clientW"]) : 0
+	savedH := anchor.Has("clientH") ? Integer(anchor["clientH"]) : 0
+
+	hwndSite := UI_FocusGridClassNN(classNN, win, true)
+	if !hwndSite {
+		Log_Debug("ui.restore_click.focus_fail", "点回前网格聚焦失败", Map("nn", classNN))
+		return Map("ok", false, "reason", "focus_fail")
+	}
+	if !DllCall("IsWindow", "Ptr", hwndSite, "Int") {
+		Log_Debug("ui.restore_click.dead_hwnd", "网格 HWND 已失效", Map("nn", classNN, "hwnd", hwndSite))
+		return Map("ok", false, "reason", "dead_hwnd")
+	}
+
+	curW := 0, curH := 0
+	if !UI_GetClientSize(hwndSite, &curW, &curH) || curW <= 0 || curH <= 0 {
+		Log_Debug("ui.restore_click.no_client", "无法读取客户区", Map("nn", classNN, "hwnd", hwndSite))
+		return Map("ok", false, "reason", "no_client")
+	}
+
+	; 客户区尺寸相对采集时变化过大则放弃（避免错行）
+	if (savedW > 0 && savedH > 0) {
+		if (Abs(curW - savedW) > 80 || Abs(curH - savedH) > 80) {
+			Log_Debug("ui.restore_click.size_drift", "客户区尺寸漂移，拒绝点回", Map(
+				"nn", classNN, "savedW", savedW, "savedH", savedH, "curW", curW, "curH", curH
+			))
+			return Map("ok", false, "reason", "size_drift", "cx", cx, "cy", cy, "clientW", curW, "clientH", curH)
+		}
+	}
+
+	; 仍用成功点击标定的 (cx,cy)；仅校验仍落在当前客户区内
+	if (cx < 0 || cy < 0 || cx >= curW || cy >= curH) {
+		Log_Debug("ui.restore_click.point_outside_client", "点回坐标越界", Map(
+			"nn", classNN, "cx", cx, "cy", cy, "clientW", curW, "clientH", curH
+		))
+		return Map("ok", false, "reason", "point_outside_client",
+			"cx", cx, "cy", cy, "clientW", curW, "clientH", curH)
+	}
+
+	; X 钳到内侧，避免点到垂直滚动条；Y 保持采集值以对准行
+	clickX := cx
+	if (curW > 48) {
+		if (clickX < 24)
+			clickX := 24
+		if (clickX > curW - 24)
+			clickX := curW - 24
+	}
+
+	UI_PostClick(hwndSite, clickX, cy)
+	Sleep(40)
+	Log_Debug("ui.restore_click.ok", "已单次点回网格行", Map(
+		"nn", classNN, "hwnd", hwndSite, "cx", clickX, "cy", cy,
+		"srcCx", cx, "clientW", curW, "clientH", curH
+	))
+	return Map("ok", true, "reason", "ok", "hwnd", hwndSite, "cx", clickX, "cy", cy, "clientW", curW, "clientH", curH)
 }
 
 UI_MouseOnClassNN(targetNN, win := "A") {
 	win := Util_NormalizeWin(win)
-	MouseGetPos &sx, &sy, &winHwnd, &ctrlHwnd, 2
+	MouseGetPos(, , &winHwnd, &ctrlHwnd, 2)
 
 	; (3) 命中：优先 AHK 指针下控件 HWND，再父链比完整 ClassNN
 	h0 := ctrlHwnd
 	if !h0 {
+		sx := 0, sy := 0
+		if !UI_GetCursorPosScreen(&sx, &sy)
+			return false
 		h0 := DllCall("user32\WindowFromPoint"
-			, "Int64", (sy << 32) | sx, "Ptr")
+			, "Int64", (Integer(sy) << 32) | (Integer(sx) & 0xFFFFFFFF), "Ptr")
 	}
 	if !h0
 		return false

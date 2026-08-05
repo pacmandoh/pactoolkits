@@ -72,11 +72,33 @@ Main() {
 			. "beforeSum=" beforeSum "`n"
 			. "afterReserveSum=" afterReserveSum "`n"
 			. "txn=" txnId
+		try Txn_Rollback(txnId)
+		ExitApp 1
+	}
+
+	; 清理只认 created_at；把本条 PENDING 回拨到超时阈值之外
+	backdate := DB_Exec(
+		"UPDATE trace_txn "
+		. "SET created_at = now() - interval '5 minutes' "
+		. "WHERE txn_id='" Util_EscapeSQL(txnId) "' AND status='PENDING';"
+	)
+	if !IsObject(backdate) || !backdate.Has("ok") || !backdate["ok"] {
+		MsgBox "[SQL 错误] 回写 created_at 失败`n"
+			. "txn=" txnId "`n"
+			. (IsObject(backdate) && backdate.Has("err") ? backdate["err"] : "")
+		try Txn_Rollback(txnId)
 		ExitApp 1
 	}
 
 	; 执行恢复后以事务和库存的最终状态作为判定依据
 	rr := Txn_CleanupPending(TIMEOUT_MIN, LIMIT_N)
+	if !IsObject(rr) || !rr.Has("ok") || !rr["ok"] {
+		MsgBox "[自愈错误] CleanupPending 失败`n"
+			. "txn=" txnId "`n"
+			. (IsObject(rr) && rr.Has("message") ? rr["message"] : "")
+		try Txn_Rollback(txnId)
+		ExitApp 1
+	}
 
 	; 返回标志不是恢复完成的充分条件，测试以事务和库存状态为准
 	AssertTxnStatus(txnId, "ROLLED_BACK", "[信息] 自愈后状态校验(ROLLED_BACK)")

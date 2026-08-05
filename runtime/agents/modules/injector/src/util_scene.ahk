@@ -150,13 +150,13 @@ Util_WarehouseSoftCheck(win := "A") {
 	anchors := Cfg["WAREHOUSE_ANCHORS"]
 	if (anchors.Length = 0) {
 		Log_Debug("wh.soft.cfg_empty", "仓库列特征为空")
-		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验]`n仓库列特征不能为空")
+		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验] 仓库列特征不能为空")
 	}
 
 	hdrLine := Util_TryGetGridHeaderLine(win)
 	if (hdrLine = "") {
 		Log_Debug("wh.soft.hdr_empty", "无法抓取表头")
-		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验]`n无法抓取表头，请检查当前选中行或剪贴板权限")
+		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验] 无法抓取表头，请检查当前选中行或剪贴板权限")
 	}
 
 	for _, a in anchors {

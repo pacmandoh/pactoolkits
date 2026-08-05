@@ -59,13 +59,7 @@
           "key": "OptParseGridClassNN",
           "type": "string",
           "label": "门诊解析网格",
-          "description": "门诊解析区 ClassNN"
-        },
-        {
-          "key": "OptVerifyGridClassNN",
-          "type": "string",
-          "label": "门诊验证网格",
-          "description": "门诊验证区 ClassNN"
+          "description": "门诊解析区/验证区 ClassNN"
         },
         {
           "key": "OptInputClassNN",
@@ -143,7 +137,7 @@
           "key": "ColSpecs",
           "type": "stringList",
           "label": "ColSpecs",
-          "description": "解析列规格，每行一条；门诊拆零闩锁建议含可选列「?库存数量」"
+          "description": "解析列规格，每行一条"
         },
         {
           "key": "IntCols",

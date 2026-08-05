@@ -14,14 +14,12 @@
     "规格||药品规格",
     "数量",
     "?单位",
-    "?库存数量",
     "?拆零标签||拆零"
   ],
   "IntCols": [
     "数量"
   ],
   "OptParseGridClassNN": "TcxGridSite2",
-  "OptVerifyGridClassNN": "TcxGridSite2",
   "IptParseGridClassNN": "TcxGridSite2",
   "IptVerifyGridClassNN": "TcxGridSite1",
   "OptInputClassNN": "TMemo2",
