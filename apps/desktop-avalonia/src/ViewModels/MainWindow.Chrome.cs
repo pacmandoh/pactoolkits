@@ -244,14 +244,8 @@ public partial class MainWindowViewModel
             if (Agents.IsHostRunning)
             {
                 IsAgentsActionRunning = true;
-
                 Agents.Reload();
-                if (Agents.IsHostRunning)
-                {
-                    // Host 不依赖 DB：健康检查只看进程
-                    TryShowAgentsTopToast(() => _toasts.Success("Agents", "健康检查通过：Host 进程运行中"));
-                }
-                else
+                if (!Agents.IsHostRunning)
                 {
                     TryShowAgentsTopToast(() => _toasts.Error("Agents", "健康检查失败：未检测到 Host 进程"));
                 }
@@ -321,10 +315,6 @@ public partial class MainWindowViewModel
                 {
                     TryShowAgentsTopToast(() => _toasts.Error("Agents", $"健康检查失败：{moduleLabel} 未运行"));
                 }
-                else
-                {
-                    TryShowAgentsTopToast(() => _toasts.Success("Agents", $"健康检查通过：{moduleLabel} 已就绪"));
-                }
 
                 return;
             }
@@ -334,6 +324,84 @@ public partial class MainWindowViewModel
         catch (Exception ex)
         {
             _logger.Error("MainWindowVM", "agents.module_top_action.error", "Agents module top action failed", ex, new { moduleId });
+            TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
+        }
+        finally
+        {
+            await RunOnUiAsync(() =>
+            {
+                IsAgentsActionRunning = false;
+                RaiseAgentsStateChanged();
+            });
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanControlAgents))]
+    private async Task RestartHost()
+    {
+        if (SkipTrigger("main.agents.host_restart", (int)ChromeActionDebounce.TotalMilliseconds))
+        {
+            return;
+        }
+
+        if (!Agents.IsHostRunning)
+        {
+            return;
+        }
+
+        try
+        {
+            await RunAgentsCommandAsync(() => Agents.StartOrRestartAsync()).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("MainWindowVM", "agents.host_restart.error", "Agents Host restart failed", ex);
+            TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
+        }
+        finally
+        {
+            await RunOnUiAsync(() =>
+            {
+                IsAgentsActionRunning = false;
+                RaiseAgentsStateChanged();
+            });
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanControlAgents))]
+    private async Task RestartModule(string? moduleId)
+    {
+        if (string.IsNullOrWhiteSpace(moduleId))
+        {
+            return;
+        }
+
+        if (SkipTrigger($"main.agents.module_restart:{moduleId}", (int)ChromeActionDebounce.TotalMilliseconds))
+        {
+            return;
+        }
+
+        if (!Agents.IsModuleEnabled(moduleId))
+        {
+            var label = Agents.Modules
+                .FirstOrDefault(m => string.Equals(m.Id, moduleId, StringComparison.Ordinal))
+                ?.DisplayName ?? moduleId;
+            TryShowAgentsTopToast(() => _toasts.Error("Agents", $"{label} 未启用"));
+            return;
+        }
+
+        if (Agents.GetModuleState(moduleId) is not (AgentsRunState.Running or AgentsRunState.Starting))
+        {
+            return;
+        }
+
+        try
+        {
+            await RunAgentsCommandAsync(() => Agents.StartModuleAsync(moduleId)).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("MainWindowVM", "agents.module_restart.error", "Agents module restart failed", ex, new { moduleId });
             TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
         }
         finally
@@ -674,25 +742,20 @@ public partial class MainWindowViewModel
         await RunOnUiAsync(() => IsAgentsActionRunning = true);
 
         var result = await run().ConfigureAwait(false);
-        if (result.SuppressToast)
+        if (result.SuppressToast || result.Ok)
         {
             return;
         }
 
-        if (result.Ok)
-        {
-            TryShowAgentsTopToast(() => _toasts.Success("Agents", result.Message));
-        }
-        else
-        {
-            TryShowAgentsTopToast(() => _toasts.Error("Agents", result.Message));
-        }
+        TryShowAgentsTopToast(() => _toasts.Error("Agents", result.Message));
     }
 
     private void NotifyAgentsCommands()
     {
         StartOrRestartHostCommand.NotifyCanExecuteChanged();
         StartOrRestartModuleCommand.NotifyCanExecuteChanged();
+        RestartHostCommand.NotifyCanExecuteChanged();
+        RestartModuleCommand.NotifyCanExecuteChanged();
         StopHostCommand.NotifyCanExecuteChanged();
         StopModuleCommand.NotifyCanExecuteChanged();
     }
