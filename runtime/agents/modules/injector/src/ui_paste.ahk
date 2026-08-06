@@ -135,8 +135,8 @@ UI_PrepareWarehouseFastTarget(inputClassNN, win := "A") {
 	return Map("ok", true)
 }
 
-; 门诊/住院贴码：取 HWND + WinActivate + WM_PASTE + Enter
-; 禁用 ControlFocus：聚焦会把光标放到末尾，跨码时 WM_PASTE 会追加拼成一条
+; 门诊/住院贴码：取 HWND + WinActivate + WM_SETTEXT + 读回后 Enter
+; 禁用 ControlFocus；不用剪贴板/WM_PASTE（避免忙/超时与光标追加拼码）
 ; doEnter：true=门诊(KEYDOWN+KEYUP)；false=住院(仅 KEYDOWN，勿发 KEYUP)
 UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 	winTitle := Util_NormalizeWin(winTitle)
@@ -171,37 +171,76 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 		return Map("ok", false, "level", "Warn", "message", "[窗口错误] 目标窗口未就绪，无法注入")
 	}
 
-	oldClip := ClipboardAll()
+	if !DllCall("IsWindow", "Ptr", hwndCtrl, "Int") {
+		Log_Debug("ui.paste_impl.dead_hwnd", "写入前控件已失效", Map("ctrl", classNN, "hwnd", hwndCtrl))
+		return Map("ok", false, "level", "Warn", "message", "[窗口错误] 录入窗口已失效，无法继续注入", "reason", "win_closed")
+	}
+
+	; 直接覆盖写入，避开剪贴板竞争；HIS 实测不依赖粘贴事件
+	try SendMessage(0x000C, 0, StrPtr(text), , "ahk_id " hwndCtrl) ; WM_SETTEXT
+	catch as e {
+		Log_Debug("ui.paste_impl.settext_fail", "WM_SETTEXT 失败", Map(
+			"ctrl", classNN, "hwnd", hwndCtrl, "err", e.Message, "codeLen", codeLen
+		))
+		return Map(
+			"ok", false, "level", "Warn",
+			"message", "[窗口错误] 追溯码写入输入框失败",
+			"reason", "settext_fail", "ctrl", classNN
+		)
+	}
+
+	; 读回须严格等于当前码才 Enter：写入失败/旧码残留一律回滚
+	Sleep(30)
+	got := ""
+	if DllCall("IsWindow", "Ptr", hwndCtrl, "Int") {
+		try got := ControlGetText(hwndCtrl)
+		catch
+			got := ""
+	}
+	got := Trim(got, " `t`r`n")
+	want := Trim("" text)
+	if (want = "" || got != want) {
+		Log_Debug("ui.paste_impl.verify_fail", "写入后读回非当前码，跳过 Enter", Map(
+			"ctrl", classNN, "hwnd", hwndCtrl, "codeLen", codeLen, "codeTail", codeTail,
+			"gotLen", StrLen(got), "gotTail", (StrLen(got) <= 4) ? got : SubStr(got, -3),
+			"closed", !WinExist(winTitle)
+		))
+		return Map(
+			"ok", false, "level", "Warn",
+			"message", "[窗口错误] 追溯码未写入输入框，已中止回车以免误提交",
+			"reason", "write_verify_fail", "ctrl", classNN
+		)
+	}
+
+	; doEnter 两种模式必须分开（实测契约，禁止合并成同一种回车）：
+	;   true  → 门诊：KEYDOWN + KEYUP
+	;   false → 住院：仅 KEYDOWN（禁止补发 KEYUP）
+	Sleep(50)
 	try {
-		A_Clipboard := text
-		if !ClipWait(0.6) {
-			Log_Debug("ui.paste_impl.clip_timeout", "贴码剪贴板超时", Map("ctrl", classNN, "codeLen", codeLen))
-			return Map(
-				"ok", false, "level", "Warn", "message", "[解析错误] 等待超时：请确认是否选中列表中相应药品",
-				"reason", "ClipWait timeout"
-			)
-		}
-
-		SendMessage(0x0302, 0, 0, , "ahk_id " hwndCtrl) ; WM_PASTE
-
-		; doEnter 两种模式必须分开（实测契约，禁止合并成同一种回车）：
-		;   true  → 门诊：KEYDOWN + KEYUP
-		;   false → 住院：仅 KEYDOWN（禁止补发 KEYUP）
 		if (doEnter) {
-			Sleep(50)
 			PostMessage(0x0100, 0x0D, 0, , "ahk_id " hwndCtrl)
 			PostMessage(0x0101, 0x0D, 0, , "ahk_id " hwndCtrl)
 		} else {
-			Sleep(50)
 			PostMessage(0x0100, 0x0D, 0, , "ahk_id " hwndCtrl)
 		}
-	} finally {
-		try A_Clipboard := oldClip
+	} catch as e {
+		alive := DllCall("IsWindow", "Ptr", hwndCtrl, "Int")
+		Log_Debug("ui.paste_impl.enter_fail", "回车投递失败", Map(
+			"ctrl", classNN, "hwnd", hwndCtrl, "err", e.Message,
+			"doEnter", doEnter, "alive", alive
+		))
+		return Map(
+			"ok", false, "level", "Warn",
+			"message", alive
+				? "[窗口错误] 追溯码提交失败"
+			: "[窗口错误] 回车时录入窗口已关闭，无法确认是否提交",
+			"reason", alive ? "enter_fail" : "win_closed"
+		)
 	}
 
 	Log_Debug("ui.paste_impl.ok", "贴码完成", Map(
-		"ctrl", classNN, "hwnd", hwndCtrl, "doEnter", doEnter, "via", "WM_PASTE",
+		"ctrl", classNN, "hwnd", hwndCtrl, "doEnter", doEnter, "via", "WM_SETTEXT",
 		"codeLen", codeLen, "codeTail", codeTail, "elapsedMs", A_TickCount - t0
 	))
-	return Map("ok", true, "ctrl", classNN, "doEnter", doEnter, "via", "WM_PASTE")
+	return Map("ok", true, "ctrl", classNN, "doEnter", doEnter, "via", "WM_SETTEXT")
 }
