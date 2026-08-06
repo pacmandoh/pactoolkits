@@ -11,3 +11,5 @@ public interface IDeferRefreshTopic
 public interface IInventoryRefreshPage : IDeferRefreshTopic;
 
 public interface IDrugIndexRefreshPage : IDeferRefreshTopic;
+
+public interface IMsfxRefreshPage : IDeferRefreshTopic;

@@ -22,7 +22,7 @@ public sealed partial class MsfxLink : AppPageBase
         => !IsAutoBusy && !IsManualMsfxWriteActive;
 
     private bool CanRefreshAutoBoard()
-        => !IsAutoBoardBusy && !IsAutoBusy;
+        => !IsAutoBoardBusy && !IsAutoBusy && !IsManualMsfxWriteActive;
 
     [RelayCommand(CanExecute = nameof(CanRunAutoOnce))]
     private async Task RunAutoOnceAsync()
@@ -371,13 +371,17 @@ public sealed partial class MsfxLink : AppPageBase
     private void EnterManualMsfxWrite()
     {
         Interlocked.Increment(ref _manualMsfxWriteDepth);
-        RefreshCommands(RunAutoOnceCommand);
+        RefreshCommands(RunAutoOnceCommand, RefreshAutoBoardCommand, RefreshQueueTabCommand);
     }
 
     private void ExitManualMsfxWrite()
     {
-        Interlocked.Decrement(ref _manualMsfxWriteDepth);
-        RefreshCommands(RunAutoOnceCommand);
+        var depth = Interlocked.Decrement(ref _manualMsfxWriteDepth);
+        RefreshCommands(RunAutoOnceCommand, RefreshAutoBoardCommand, RefreshQueueTabCommand);
+        if (depth == 0)
+        {
+            _dirtyRefresh.TryRefreshIfDirty(this);
+        }
     }
 
     private async Task ReopenSelectedTaskAsync()

@@ -10,6 +10,7 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -97,7 +98,6 @@ public sealed partial class MsfxLink
         await RunOnUiAsync(() => IsMappingWorkspace = true).ConfigureAwait(false);
     }
 
-    [RelayCommand]
     private Task RefreshMappingWorkspaceAsync()
         => RunLocalReloadAsync(
             v => IsMappingBusy = v,
@@ -168,7 +168,6 @@ public sealed partial class MsfxLink
         OnPropertyChanged(nameof(ShowMappingConfigHeaderAction));
         OnPropertyChanged(nameof(QueueWorkspaceToggleText));
         OnPropertyChanged(nameof(QueueWorkspaceToggleIcon));
-        OnPropertyChanged(nameof(RefreshCommand));
         if (!value)
         {
             _mappingKeywordDebouncer.Cancel();
@@ -180,6 +179,7 @@ public sealed partial class MsfxLink
     {
         RefreshMappingCommands();
         RefreshOpsUnlockCommands();
+        RefreshQueueTabCommand.NotifyCanExecuteChanged();
     }
 
     public void SyncMappingGroupSelection()
@@ -574,9 +574,12 @@ public sealed partial class MsfxLink
 
             await RunOnUiAsync(ClearMappingTarget).ConfigureAwait(false);
 
-            await Task.WhenAll(
-                ReloadMappingGroupsSafeAsync(_mappingLifetimeCts.Token),
-                RefreshAutoBoardAsync()).ConfigureAwait(false);
+            // 单次队列 Tab 重载：映射分组 + 监控板（含任务队列）；勿拆成两路 RunLocalReload 互抢
+            await RunLocalReloadAsync(_ => { }, ReloadQueueTabCoreAsync).ConfigureAwait(false);
+            if (WorkspacePageRefresh.RefreshSucceeded(this))
+            {
+                _dirtyRefresh.Clear(this);
+            }
         }
         catch (OperationCanceledException) when (_mappingLifetimeCts.IsCancellationRequested)
         {
@@ -587,8 +590,9 @@ public sealed partial class MsfxLink
         }
         finally
         {
-            ExitManualMsfxWrite();
+            // 先清 mapping busy，再 Exit：TryRefreshIfDirty 走 RefreshQueueTab，CanExecute 依赖 !IsMappingBusy
             await RunOnUiAsync(() => IsMappingBusy = false).ConfigureAwait(false);
+            ExitManualMsfxWrite();
         }
     }
 

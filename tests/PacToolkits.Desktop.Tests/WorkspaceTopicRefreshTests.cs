@@ -40,10 +40,10 @@ public sealed class WorkspaceTopicRefreshTests
         var now = DateTimeOffset.UtcNow;
         var active = CreateInventoryDeferPage(suppressUntilUtc: now.AddSeconds(7));
 
-        var (skipInventory, skipDrugIndex) = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
 
-        Assert.True(skipInventory);
-        Assert.False(skipDrugIndex);
+        Assert.True(defer.Inventory);
+        Assert.True(defer.SkipImmediate);
     }
 
     [Fact]
@@ -53,31 +53,16 @@ public sealed class WorkspaceTopicRefreshTests
             suppressUntilUtc: DateTimeOffset.UtcNow.AddSeconds(-1),
             stockEditEnabled: true);
 
-        var (skipInventory, skipDrugIndex) = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
 
-        Assert.True(skipInventory);
-        Assert.False(skipDrugIndex);
+        Assert.True(defer.Inventory);
+        Assert.True(defer.SkipImmediate);
     }
 
     [Fact]
-    public void Plan_dirty_marks_can_skip_inventory_when_requested()
+    public void Plan_dirty_marks_inventory_topic()
     {
-        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(
-            "inventory",
-            skipInventoryPage: true,
-            skipDrugIndexPage: false);
-
-        Assert.False(plan.MarkInventory);
-        Assert.True(plan.MarkDashboard);
-    }
-
-    [Fact]
-    public void Plan_dirty_marks_inventory_when_not_deferred()
-    {
-        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(
-            "inventory",
-            skipInventoryPage: false,
-            skipDrugIndexPage: false);
+        var plan = WorkspaceTopicRefresh.PlanDirtyMarks("inventory");
 
         Assert.True(plan.MarkInventory);
         Assert.True(plan.MarkDashboard);
@@ -108,8 +93,8 @@ public sealed class WorkspaceTopicRefreshTests
 
         await runPending();
 
-        var (deferInventory, _) = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
-        Assert.True(deferInventory);
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
+        Assert.True(defer.Inventory);
         Assert.Equal(0, activeCalls);
         Assert.True(dirtyRefresh.IsDirty(active));
         Assert.True(dirtyRefresh.IsDirty(dashboard));
@@ -173,8 +158,8 @@ public sealed class WorkspaceTopicRefreshTests
 
         await runPending();
 
-        var (deferInventory, _) = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
-        Assert.False(deferInventory);
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "inventory");
+        Assert.False(defer.Inventory);
         Assert.Equal(1, activeCalls);
         Assert.False(dirtyRefresh.IsDirty(active));
         Assert.True(dirtyRefresh.IsDirty(dashboard));
@@ -205,8 +190,8 @@ public sealed class WorkspaceTopicRefreshTests
 
         await runPending();
 
-        var (deferInventory, _) = WorkspaceTopicRefresh.SkipActiveRefresh(active, "trace_pool");
-        Assert.True(deferInventory);
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "trace_pool");
+        Assert.True(defer.Inventory);
         Assert.Equal(0, activeCalls);
         Assert.True(dirtyRefresh.IsDirty(active));
         Assert.True(dirtyRefresh.IsDirty(dashboard));
@@ -216,20 +201,41 @@ public sealed class WorkspaceTopicRefreshTests
     public void Drug_index_during_inventory_suppress_still_marks_cascade_pages_dirty()
     {
         var active = CreateInventoryDeferPage(DateTimeOffset.UtcNow.AddSeconds(7));
-        var (deferInventory, deferDrugIndex) = WorkspaceTopicRefresh.SkipActiveRefresh(active, "drug_index");
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "drug_index");
 
-        Assert.False(deferInventory);
-        Assert.False(deferDrugIndex);
+        Assert.False(defer.Inventory);
+        Assert.False(defer.SkipImmediate);
 
-        // MainWindow 始终按 topic 打 dirty，不再把 defer 传进 PlanDirtyMarks
-        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(
-            "drug_index",
-            skipInventoryPage: false,
-            skipDrugIndexPage: false);
+        // MainWindow 始终按 topic 打 dirty，与 defer 解耦
+        var plan = WorkspaceTopicRefresh.PlanDirtyMarks("drug_index");
 
         Assert.False(plan.MarkInventory);
         Assert.True(plan.MarkDashboard);
         Assert.True(plan.MarkScanCode);
+    }
+
+    [Fact]
+    public void SkipActiveRefresh_defers_msfx_while_manual_write_active()
+    {
+        var active = new MsfxDeferPageStub(manualWriteActive: true);
+        active.TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "msfx");
+
+        Assert.False(defer.Inventory);
+        Assert.True(defer.SkipImmediate);
+    }
+
+    [Fact]
+    public void SkipActiveRefresh_does_not_defer_msfx_when_idle()
+    {
+        var active = new MsfxDeferPageStub(manualWriteActive: false);
+        active.TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "msfx");
+
+        Assert.False(defer.Inventory);
+        Assert.False(defer.SkipImmediate);
     }
 
     private static void RunTopicChangeHarness(
@@ -238,14 +244,10 @@ public sealed class WorkspaceTopicRefreshTests
         WorkspaceDirtyRefresh dirtyRefresh,
         IReadOnlyDictionary<Type, AppPageBase> pagesByType)
     {
-        var (deferInventoryRefresh, deferDrugIndexRefresh) =
-            WorkspaceTopicRefresh.SkipActiveRefresh(active, topic);
+        var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, topic);
 
         // 与 MainWindow.OnTopicChanged 一致：dirty 与 defer 解耦
-        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(
-            topic,
-            skipInventoryPage: false,
-            skipDrugIndexPage: false);
+        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(topic);
 
         WorkspaceTopicRefresh.ApplyDirtyPlan(
             plan,
@@ -255,7 +257,7 @@ public sealed class WorkspaceTopicRefreshTests
             WorkspacePageRefresh.CanRefreshPage,
             dirtyRefresh.Mark);
 
-        if (!deferInventoryRefresh && !deferDrugIndexRefresh)
+        if (!defer.SkipImmediate)
         {
             dirtyRefresh.TryRefreshIfDirty(active, () => true);
         }
@@ -325,6 +327,28 @@ public sealed class WorkspaceTopicRefreshTests
 
         protected override Task ReloadCoreAsync(CancellationToken ct)
             => ReloadAction?.Invoke(ct) ?? Task.CompletedTask;
+    }
+
+    private sealed class MsfxDeferPageStub : AppPageBase, IMsfxRefreshPage
+    {
+        private readonly AsyncRelayCommand _refresh;
+        private readonly bool _manualWriteActive;
+
+        public MsfxDeferPageStub(bool manualWriteActive)
+        {
+            _manualWriteActive = manualWriteActive;
+            _refresh = new AsyncRelayCommand(() => TestRunReloadCoreAsync());
+        }
+
+        public bool DeferRefreshTopic(string? topic)
+            => WorkspaceTopicRefresh.DeferMsfx(topic) && _manualWriteActive;
+
+        public override string DisplayName => "Msfx";
+        public override string Icon => "Cloud";
+        public override int Index => 5;
+        public override System.Windows.Input.ICommand? RefreshCommand => _refresh;
+
+        protected override Task ReloadCoreAsync(CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class RefreshablePageStub : AppPageBase
