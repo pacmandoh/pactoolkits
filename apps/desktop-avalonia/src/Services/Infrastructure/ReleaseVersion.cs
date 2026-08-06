@@ -78,8 +78,8 @@ public sealed class ReleaseVersionService : IReleaseVersionService
             BuildDate: ReadString(release, "date"),
             DesktopMinDbSchema: ReadString(desktop, "minDbSchema"),
             DesktopMaxDbSchema: ReadString(desktop, "maxDbSchema"),
-            AgentsMinDbSchema: ReadString(agents, "minDbSchema"),
-            AgentsMaxDbSchema: ReadString(agents, "maxDbSchema"));
+            AgentsMinDesktop: ReadString(agents, "minDesktop"),
+            AgentsMaxDesktop: ReadString(agents, "maxDesktop"));
     }
 
     private static string ReadString(JsonElement elem, string name)

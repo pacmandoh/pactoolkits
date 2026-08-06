@@ -13,6 +13,8 @@ Usage:
                   [--module MODULE_ID=X.Y.Z]...
                   [--component-min-db COMPONENT_ID=X.Y.Z]...
                   [--desktop-min-db X.Y.Z]
+                  [--agents-min-desktop X.Y.Z|X.Y.Z-beta.N]
+                  [--agents-max-desktop X.Y.Z|X.Y.Z-beta.N]
                   [--channel stable|beta] [--date YYYY-MM-DD]
                   [--output PATH] [--dry-run]
 
@@ -142,6 +144,8 @@ PRODUCT=""
 DESKTOP=""
 DB=""
 DESKTOP_MIN_DB=""
+AGENTS_MIN_DESKTOP=""
+AGENTS_MAX_DESKTOP=""
 CHANNEL=""
 DATE_STR="$(date -u +%F)"
 DRY_RUN="false"
@@ -178,6 +182,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --desktop-min-db)
       DESKTOP_MIN_DB="${2:-}"
+      shift 2
+      ;;
+    --agents-min-desktop)
+      AGENTS_MIN_DESKTOP="${2:-}"
+      shift 2
+      ;;
+    --agents-max-desktop)
+      AGENTS_MAX_DESKTOP="${2:-}"
       shift 2
       ;;
     --channel)
@@ -267,7 +279,7 @@ if [[ -n "$CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$CHANNEL" && ${#COMPONENT_UPDATES[@]} -eq 0 && ${#MODULE_UPDATES[@]} -eq 0 && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 ]]; then
+if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$AGENTS_MIN_DESKTOP$AGENTS_MAX_DESKTOP$CHANNEL" && ${#COMPONENT_UPDATES[@]} -eq 0 && ${#MODULE_UPDATES[@]} -eq 0 && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 ]]; then
   echo "ERROR: nothing to update" >&2
   usage
   exit 1
@@ -384,6 +396,9 @@ if [[ -n "$DESKTOP" ]]; then
     fi
     exit 1
   fi
+else
+  # --component desktop=... alone still pins agents bounds below
+  DESKTOP="$(jq -r '.desktop // empty' <<< "$component_updates_json")"
 fi
 
 if [[ -n "$DB" ]]; then
@@ -422,10 +437,8 @@ for item in "${COMPONENT_MIN_DB_UPDATES[@]}"; do
       }
       ;;
     *)
-      jq -e --arg id "$component_id" '.components[$id].minDbSchema' "$MANIFEST" > /dev/null || {
-        echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
-        exit 1
-      }
+      echo "ERROR: --component-min-db only supports desktop (got $component_id); agents uses minDesktop/maxDesktop" >&2
+      exit 1
       ;;
   esac
   component_min_db_json="$(jq -n \
@@ -488,6 +501,25 @@ if [[ "$final_channel" == "beta" && -z "$DESKTOP" && -n "$PRODUCT" ]]; then
   DESKTOP="$PRODUCT"
 fi
 
+# Desktop 版本推进时若未显式改配套范围，将 agents min/maxDesktop 钉到该 Desktop（同仓发版）
+if [[ -n "$DESKTOP" ]]; then
+  if [[ -z "$AGENTS_MIN_DESKTOP" ]]; then
+    AGENTS_MIN_DESKTOP="$DESKTOP"
+  fi
+  if [[ -z "$AGENTS_MAX_DESKTOP" ]]; then
+    AGENTS_MAX_DESKTOP="$DESKTOP"
+  fi
+fi
+
+for v in "$AGENTS_MIN_DESKTOP" "$AGENTS_MAX_DESKTOP"; do
+  if [[ -n "$v" ]]; then
+    if ! is_stable_semver "$v" && ! is_beta_semver "$v"; then
+      echo "ERROR: invalid agents minDesktop/maxDesktop: $v" >&2
+      exit 1
+    fi
+  fi
+done
+
 TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
@@ -496,6 +528,8 @@ jq \
   --arg desktop "$DESKTOP" \
   --arg db "$DB" \
   --arg desktop_min_db "$DESKTOP_MIN_DB" \
+  --arg agents_min_desktop "$AGENTS_MIN_DESKTOP" \
+  --arg agents_max_desktop "$AGENTS_MAX_DESKTOP" \
   --arg channel "$CHANNEL" \
   --arg date "$DATE_STR" \
   --argjson component_updates "$component_updates_json" \
@@ -519,7 +553,7 @@ jq \
     if $item.key == "desktop" then
       .components.desktop.avalonia.minDbSchema = $item.value
     else
-      .components[$item.key].minDbSchema = $item.value
+      .
     end
   ) |
   .components.desktop.avalonia.version = (
@@ -528,6 +562,12 @@ jq \
   .components.database.postgres.version = (if $db == "" then .components.database.postgres.version else $db end) |
   .components.desktop.avalonia.minDbSchema = (
     if $desktop_min_db == "" then .components.desktop.avalonia.minDbSchema else $desktop_min_db end
+  ) |
+  .components.agents.minDesktop = (
+    if $agents_min_desktop == "" then .components.agents.minDesktop else $agents_min_desktop end
+  ) |
+  .components.agents.maxDesktop = (
+    if $agents_max_desktop == "" then .components.agents.maxDesktop else $agents_max_desktop end
   ) |
   .release.channel = (if $channel == "" then .release.channel else $channel end) |
   .release.date = $date

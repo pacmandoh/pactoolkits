@@ -91,7 +91,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
     private readonly IAppConfigStore _configStore;
     private readonly IModuleSettingsStore _moduleSettings;
     private readonly IReleaseVersionService _releaseVersion;
-    private readonly IDbSchemaVersionService _dbSchemaVersion;
+    private readonly IDbConnectionMonitorService? _dbMonitor;
     private readonly IAppLogger _logger;
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
@@ -105,6 +105,8 @@ public sealed class AgentsRuntime : IAgentsRuntime
     private Dictionary<string, AgentsRunState> _moduleStates = new(StringComparer.Ordinal);
     private readonly HashSet<string> _stoppedModules = new(StringComparer.Ordinal);
     private readonly HashSet<string> _startingModules = new(StringComparer.Ordinal);
+    // 因数据库不可用而挂起、库恢复后须重拉的依赖库模块
+    private readonly HashSet<string> _pausedForDatabase = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string?> _moduleLastErrors = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DateTimeOffset> _moduleLastLaunchAt = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _moduleVersions = new(StringComparer.Ordinal);
@@ -115,6 +117,9 @@ public sealed class AgentsRuntime : IAgentsRuntime
     private string _hostVersion = "未知";
     private bool _disposed;
     private int _polling;
+    private int _dbLifecycleBusy;
+    // -1 无待处理；0 断库停模块；1 连库拉起
+    private int _dbLifecycleWant = -1;
     private DateTimeOffset _lastHostCommandAt = DateTimeOffset.MinValue;
     private int? _lastProcessId;
     private bool _starting;
@@ -137,15 +142,11 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
     }
 
-    public string MinDbSchema
-        => DbSchemaCompat.NormalizeBound(
-            _releaseVersion.Current.AgentsMinDbSchema,
-            _releaseVersion.Current.DbSchemaVersion);
+    public string MinDesktop
+        => (_releaseVersion.Current.AgentsMinDesktop ?? string.Empty).Trim();
 
-    public string MaxDbSchema
-        => DbSchemaCompat.NormalizeBound(
-            _releaseVersion.Current.AgentsMaxDbSchema,
-            _releaseVersion.Current.DbSchemaVersion);
+    public string MaxDesktop
+        => (_releaseVersion.Current.AgentsMaxDesktop ?? string.Empty).Trim();
 
     public AgentsRunState HostState
     {
@@ -206,18 +207,253 @@ public sealed class AgentsRuntime : IAgentsRuntime
         IAppConfigStore configStore,
         IModuleSettingsStore moduleSettings,
         IReleaseVersionService releaseVersion,
-        IDbSchemaVersionService dbSchemaVersion,
-        IAppLogger logger)
+        IAppLogger logger,
+        IDbConnectionMonitorService? dbMonitor = null)
     {
         _configStore = configStore;
         _moduleSettings = moduleSettings ?? throw new ArgumentNullException(nameof(moduleSettings));
         _releaseVersion = releaseVersion;
-        _dbSchemaVersion = dbSchemaVersion;
+        _dbMonitor = dbMonitor;
         _logger = logger;
         Reload();
 
         // 启停期间缩短轮询间隔以尽快收敛 UI，稳定运行后降低轮询频率
         _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(1));
+
+        if (_dbMonitor is not null)
+        {
+            _dbMonitor.Disconnected += OnDatabaseDisconnected;
+            _dbMonitor.Reconnected += OnDatabaseReconnected;
+        }
+    }
+
+    private bool IsDatabaseConnected
+        => _dbMonitor is null || _dbMonitor.IsConnected;
+
+    private void OnDatabaseDisconnected()
+        => QueueDatabaseModuleLifecycle(connected: false);
+
+    private void OnDatabaseReconnected()
+        => QueueDatabaseModuleLifecycle(connected: true);
+
+    private void QueueDatabaseModuleLifecycle(bool connected)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        // 只记最终意图：连断抖动时丢弃中间请求，收尾按最新 want 再跑一轮
+        Volatile.Write(ref _dbLifecycleWant, connected ? 1 : 0);
+        _ = PumpDatabaseModuleLifecycleAsync();
+    }
+
+    private async Task PumpDatabaseModuleLifecycleAsync()
+    {
+        if (Interlocked.Exchange(ref _dbLifecycleBusy, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            while (!_disposed)
+            {
+                var want = Interlocked.Exchange(ref _dbLifecycleWant, -1);
+                if (want < 0)
+                {
+                    break;
+                }
+
+                try
+                {
+                    if (want == 1)
+                    {
+                        await ResumeDatabaseModulesAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await PauseDatabaseModulesAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(
+                        "Agents",
+                        "agents.db_module_lifecycle.fail",
+                        "Database-bound module lifecycle sync failed",
+                        ex,
+                        new { want });
+                }
+            }
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _dbLifecycleBusy, 0);
+            if (!_disposed && Volatile.Read(ref _dbLifecycleWant) >= 0)
+            {
+                _ = PumpDatabaseModuleLifecycleAsync();
+            }
+        }
+    }
+
+    private async Task PauseDatabaseModulesAsync(CancellationToken ct)
+    {
+        await _commandGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            AgentsOptions options;
+            List<string> toStop;
+            lock (_gate)
+            {
+                options = Clone(_options);
+                toStop = _modules
+                    .Where(m => m.RequiresDatabase)
+                    .Select(m => m.Id)
+                    .Where(id =>
+                    {
+                        var state = _moduleStates.TryGetValue(id, out var s) ? s : AgentsRunState.Stopped;
+                        return state is AgentsRunState.Running or AgentsRunState.Starting
+                               || _startingModules.Contains(id);
+                    })
+                    .ToList();
+            }
+
+            if (toStop.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var moduleId in toStop)
+            {
+                var stopped = await EnsureModuleStoppedAsync(options, moduleId, ct).ConfigureAwait(false);
+                lock (_gate)
+                {
+                    // 即使强杀失败仍记挂起：库恢复后 Mount 会再次尝试
+                    _pausedForDatabase.Add(moduleId);
+                    if (stopped)
+                    {
+                        _stoppedModules.Add(moduleId);
+                    }
+
+                    _startingModules.Remove(moduleId);
+                }
+
+                if (stopped)
+                {
+                    _logger.Info(
+                        "Agents",
+                        "agents.module.pause_db",
+                        "Stopped database-bound module after disconnect",
+                        new { moduleId });
+                }
+                else
+                {
+                    _logger.Warn(
+                        "Agents",
+                        "agents.module.pause_db.fail",
+                        "Failed to stop database-bound module after disconnect",
+                        null,
+                        new { moduleId });
+                }
+            }
+
+            RefreshState();
+            RaiseChanged();
+        }
+        finally
+        {
+            _commandGate.Release();
+        }
+    }
+
+    private async Task ResumeDatabaseModulesAsync(CancellationToken ct)
+    {
+        await _commandGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            List<string> toStart;
+            AgentsOptions options;
+            lock (_gate)
+            {
+                options = Clone(_options);
+                toStart = _pausedForDatabase.ToList();
+            }
+
+            if (toStart.Count == 0 || !GetTargetProcesses(options).Any())
+            {
+                return;
+            }
+
+            foreach (var moduleId in toStart)
+            {
+                if (!IsModuleEnabled(moduleId) || !ModuleRequiresDatabase(moduleId))
+                {
+                    lock (_gate)
+                    {
+                        _pausedForDatabase.Remove(moduleId);
+                    }
+
+                    continue;
+                }
+
+                if (!IsDatabaseConnected)
+                {
+                    break;
+                }
+
+                var mount = await MountModuleAsync(options, moduleId, ct).ConfigureAwait(false);
+                if (mount.Ok)
+                {
+                    lock (_gate)
+                    {
+                        _pausedForDatabase.Remove(moduleId);
+                    }
+
+                    _logger.Info(
+                        "Agents",
+                        "agents.module.resume_db",
+                        "Restarted database-bound module after reconnect",
+                        new { moduleId });
+                }
+                else
+                {
+                    _logger.Warn(
+                        "Agents",
+                        "agents.module.resume_db.fail",
+                        "Failed to restart database-bound module after reconnect",
+                        null,
+                        new { moduleId, mount.Message });
+                }
+            }
+
+            RefreshState();
+            RaiseChanged();
+        }
+        finally
+        {
+            _commandGate.Release();
+        }
+    }
+
+    private bool ModuleRequiresDatabase(string moduleId)
+    {
+        lock (_gate)
+        {
+            // 未发现的 id 不当作依赖库，避免误拦合法失败路径（如未发现模块）
+            return _modules.FirstOrDefault(m => string.Equals(m.Id, moduleId, StringComparison.Ordinal))
+                is { RequiresDatabase: true };
+        }
     }
 
     public void Reload()
@@ -384,10 +620,10 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
             NoteHostCommandIssued();
 
-            var schemaValidation = await ValidateSchemaCompatAsync(ct).ConfigureAwait(false);
-            if (!schemaValidation.Ok)
+            var bundleValidation = ValidateHostBundleCompat();
+            if (!bundleValidation.Ok)
             {
-                return SetHostError(schemaValidation.Message);
+                return SetHostError(bundleValidation.Message);
             }
 
             AgentsOptions options;
@@ -474,6 +710,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 _stoppedModules.Clear();
                 _moduleLastErrors.Clear();
                 _startingModules.Clear();
+                _pausedForDatabase.Clear();
             }
 
             MarkStarting();
@@ -525,10 +762,32 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
                 foreach (var moduleId in enabledIds)
                 {
+                    // 依赖库且当前断连：不挂载，记入 paused 待重连拉取
+                    if (ModuleRequiresDatabase(moduleId) && !IsDatabaseConnected)
+                    {
+                        lock (_gate)
+                        {
+                            _pausedForDatabase.Add(moduleId);
+                            _stoppedModules.Add(moduleId);
+                        }
+
+                        _logger.Info(
+                            "Agents",
+                            "agents.module.skip_mount_db",
+                            "Skipped mounting database-bound module while disconnected",
+                            new { moduleId });
+                        continue;
+                    }
+
                     var mount = await MountModuleAsync(options, moduleId, linked.Token).ConfigureAwait(false);
                     if (!mount.Ok)
                     {
                         return mount;
+                    }
+
+                    lock (_gate)
+                    {
+                        _pausedForDatabase.Remove(moduleId);
                     }
                 }
 
@@ -556,6 +815,8 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 {
                     _starting = false;
                     _startingModules.Clear();
+                    // 进程已停：挂起的自动重拉意图作废
+                    _pausedForDatabase.Clear();
                 }
 
                 RefreshState();
@@ -617,6 +878,8 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     _starting = false;
                     _stoppedModules.Clear();
                     _startingModules.Clear();
+                    // 用户停 Host：不再保留因库挂起的自动重拉意图
+                    _pausedForDatabase.Clear();
                 }
                 RefreshState();
                 RaiseChanged();
@@ -676,6 +939,8 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 _starting = false;
                 _stoppedModules.Clear();
                 _startingModules.Clear();
+                // 用户停 Host：不再保留因库挂起的自动重拉意图
+                _pausedForDatabase.Clear();
             }
 
             RefreshState();
@@ -727,6 +992,8 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 _stoppedModules.Add(moduleId);
                 _startingModules.Remove(moduleId);
                 _moduleLastErrors.Remove(moduleId);
+                // 用户显式停止：库恢复后不要静默拉起
+                _pausedForDatabase.Remove(moduleId);
             }
 
             RefreshState();
@@ -785,6 +1052,21 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetModuleError(moduleId, $"未发现模块：{moduleId}");
             }
 
+            // rediscover 之后再判依赖库与 Postgres 配置，避免跳过 Host 门禁后挂载
+            if (ModuleRequiresDatabase(moduleId))
+            {
+                if (!IsDatabaseConnected)
+                {
+                    return SetModuleError(moduleId, $"数据库未连接，无法启动 {moduleId}");
+                }
+
+                var launchConfig = ValidatePostgresLaunchConfig();
+                if (!launchConfig.Ok)
+                {
+                    return SetModuleError(moduleId, launchConfig.Message);
+                }
+            }
+
             var entryPath = ResolveModuleEntryPath(options, moduleId);
             if (string.IsNullOrWhiteSpace(entryPath) || !File.Exists(entryPath))
             {
@@ -797,16 +1079,41 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetModuleError(moduleId, validate.Message);
             }
 
-            // Host 未运行时在当前命令内完成启动和挂载，保持控制序列原子性
+            // Host 未运行时先起 Host（全量挂载）；再确认本模块，跳过时才单独 Mount
             if (!GetTargetProcesses(options).Any())
             {
-                return await ExecuteStartOrRestartAsync(ct).ConfigureAwait(false);
+                var hostResult = await ExecuteStartOrRestartAsync(ct).ConfigureAwait(false);
+                if (!hostResult.Ok)
+                {
+                    return hostResult;
+                }
+
+                if (GetModuleState(moduleId) is AgentsRunState.Running or AgentsRunState.Starting)
+                {
+                    return new AgentsCommandResult(true, $"{moduleId} 已启动");
+                }
+
+                // 全量挂载可能因断库等跳过本模块：按模块语义返回，勿冒充 Host 成功
+                if (ModuleRequiresDatabase(moduleId) && !IsDatabaseConnected)
+                {
+                    return SetModuleError(moduleId, $"数据库未连接，无法启动 {moduleId}");
+                }
+
+                if (!GetTargetProcesses(options).Any())
+                {
+                    return SetModuleError(moduleId, "Host 未就绪，无法启动模块");
+                }
             }
 
             var mount = await MountModuleAsync(options, moduleId, ct).ConfigureAwait(false);
             if (!mount.Ok)
             {
                 return mount;
+            }
+
+            lock (_gate)
+            {
+                _pausedForDatabase.Remove(moduleId);
             }
 
             RefreshState();
@@ -2009,23 +2316,31 @@ public sealed class AgentsRuntime : IAgentsRuntime
     private AgentsCommandResult ValidateHostLaunch()
     {
         var cfg = _configStore.Load();
-        var pg = cfg.Postgres;
-        var host = AgentsConfigValidator.ValidateForLaunch(new AgentsConfigValidator.LaunchContext(
-            cfg.SchemaVersion,
-            pg.Host,
-            pg.Port,
-            pg.Database,
-            pg.Username,
-            pg.Password));
-        if (!host.Ok)
-        {
-            return host;
-        }
 
         IReadOnlyList<ModuleDescriptor> modules;
         lock (_gate)
         {
             modules = _modules;
+        }
+
+        var enabledDbBound = modules
+            .Where(m => IsModuleEnabled(m.Id) && m.RequiresDatabase)
+            .ToList();
+
+        // 仅当存在启用且依赖库的模块时才校验 Postgres 字段；Host 本身不连库
+        if (enabledDbBound.Count > 0)
+        {
+            var host = ValidatePostgresLaunchConfig();
+            if (!host.Ok)
+            {
+                return host;
+            }
+        }
+        else if (cfg.SchemaVersion != 2)
+        {
+            return new AgentsCommandResult(
+                false,
+                $"配置版本不受支持：{cfg.SchemaVersion}（仅支持 SchemaVersion=2）");
         }
 
         foreach (var module in modules)
@@ -2043,6 +2358,19 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
 
         return new AgentsCommandResult(true, "ok");
+    }
+
+    private AgentsCommandResult ValidatePostgresLaunchConfig()
+    {
+        var cfg = _configStore.Load();
+        var pg = cfg.Postgres;
+        return AgentsConfigValidator.ValidateForLaunch(new AgentsConfigValidator.LaunchContext(
+            cfg.SchemaVersion,
+            pg.Host,
+            pg.Port,
+            pg.Database,
+            pg.Username,
+            pg.Password));
     }
 
     private AgentsCommandResult ValidateModuleSettings(string moduleId)
@@ -2102,35 +2430,65 @@ public sealed class AgentsRuntime : IAgentsRuntime
         return validated;
     }
 
-    private async Task<AgentsCommandResult> ValidateSchemaCompatAsync(CancellationToken ct)
+    /// <summary>
+    /// Host 依赖 Desktop 版本区间：当前 Desktop 须位于 agents.minDesktop–maxDesktop（SemVer 闭区间）
+    /// </summary>
+    private AgentsCommandResult ValidateHostBundleCompat()
     {
-        var version = _releaseVersion.Current;
-        var minimum = MinDbSchema;
-        var maximum = MaxDbSchema;
-        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(ct).ConfigureAwait(false);
-        var compatibility = schema.Ok
-            ? DbSchemaCompat.Evaluate(schema.Value, minimum, maximum)
-            : schema.IsMetadataMissing
-                ? new DbSchemaCompatibilityResult(
-                    DbSchemaCompatibility.MetadataMissing,
-                    schema.Value ?? string.Empty,
-                    minimum,
-                    maximum,
-                    schema.Reason ?? "数据库元数据缺失，需要初始化")
-                : new DbSchemaCompatibilityResult(
-                    DbSchemaCompatibility.Unknown,
-                    schema.Value ?? string.Empty,
-                    minimum,
-                    maximum,
-                    schema.Reason ?? "读取失败");
-
-        if (!compatibility.IsCompatible)
+        var desktopVersion = (_releaseVersion.Current.DesktopVersion ?? string.Empty).Trim();
+        if (IsUnknownVersion(desktopVersion))
         {
-            return new AgentsCommandResult(false, compatibility.Message);
+            // 本机未嵌入 Desktop 版本时跳过（开发松绑）
+            return new AgentsCommandResult(true, "ok");
         }
 
-        return new AgentsCommandResult(true, "数据库版本兼容");
+        var minDesktop = MinDesktop;
+        var maxDesktop = MaxDesktop;
+        var minUnknown = IsUnknownVersion(minDesktop);
+        var maxUnknown = IsUnknownVersion(maxDesktop);
+        if (minUnknown && maxUnknown)
+        {
+            // 两端皆缺：开发松绑
+            return new AgentsCommandResult(true, "ok");
+        }
+
+        if (minUnknown || maxUnknown)
+        {
+            return new AgentsCommandResult(
+                false,
+                $"Agents 配套 Desktop 范围不完整（minDesktop={minDesktop}，maxDesktop={maxDesktop}）");
+        }
+
+        if (!SemVer.TryParse(desktopVersion, out var desktop)
+            || !SemVer.TryParse(minDesktop, out var minimum)
+            || !SemVer.TryParse(maxDesktop, out var maximum)
+            || SemVer.Compare(minimum, maximum) > 0)
+        {
+            return new AgentsCommandResult(
+                false,
+                $"无法校验 Agents 与 Desktop 配套范围：Desktop {desktopVersion}，要求 {minDesktop} - {maxDesktop}");
+        }
+
+        if (SemVer.Compare(desktop, minimum) < 0)
+        {
+            return new AgentsCommandResult(
+                false,
+                $"当前 Desktop {desktopVersion} 低于本 Agents 支持下限 {minDesktop}");
+        }
+
+        if (SemVer.Compare(desktop, maximum) > 0)
+        {
+            return new AgentsCommandResult(
+                false,
+                $"当前 Desktop {desktopVersion} 高于本 Agents 支持上限 {maxDesktop}");
+        }
+
+        return new AgentsCommandResult(true, "ok");
     }
+
+    private static bool IsUnknownVersion(string? value)
+        => string.IsNullOrWhiteSpace(value)
+           || string.Equals(value, "unknown", StringComparison.OrdinalIgnoreCase);
 
     private static string BuildConfigArguments(string configPath)
     {
@@ -2242,7 +2600,14 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
 
         _disposed = true;
+        Volatile.Write(ref _dbLifecycleWant, -1);
         CancelStart();
+
+        if (_dbMonitor is not null)
+        {
+            _dbMonitor.Disconnected -= OnDatabaseDisconnected;
+            _dbMonitor.Reconnected -= OnDatabaseReconnected;
+        }
 
         try { _pollTimer.Dispose(); }
         catch (System.Exception ex)

@@ -24,14 +24,4 @@ public sealed class DbSchemaCompatTests
 
         Assert.Contains("数据库版本高于当前程序支持范围", result.Message, StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void Required_range_is_the_intersection_of_component_ranges()
-    {
-        var requiredMin = DbSchemaCompat.GetRequiredMin("1.2.20", "1.2.22");
-        var requiredMax = DbSchemaCompat.GetRequiredMax("1.2.25", "1.2.24");
-
-        Assert.Equal("1.2.22", requiredMin);
-        Assert.Equal("1.2.24", requiredMax);
-    }
 }

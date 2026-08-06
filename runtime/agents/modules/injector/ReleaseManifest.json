@@ -5,8 +5,8 @@
         "installDir": ".",
         "windows-x64": "Agents.exe"
       },
-      "maxDbSchema": "1.2.25",
-      "minDbSchema": "1.2.25",
+      "maxDesktop": "1.0.2-beta.8",
+      "minDesktop": "1.0.2-beta.8",
       "modules": {
         "Injector": {
           "version": "0.7.0"

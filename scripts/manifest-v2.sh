@@ -36,8 +36,12 @@ manifest_agents_version() {
   jq_r '.components["agents"].version // empty' "$1"
 }
 
-manifest_agents_min_db() {
-  jq_r '.components["agents"].minDbSchema // empty' "$1"
+manifest_agents_min_desktop() {
+  jq_r '.components["agents"].minDesktop // empty' "$1"
+}
+
+manifest_agents_max_desktop() {
+  jq_r '.components["agents"].maxDesktop // empty' "$1"
 }
 
 manifest_agents_module_ids() {
@@ -330,6 +334,108 @@ semver_compare_stable() {
   printf 'equal'
 }
 
+# SemVer 2.0 全量比较（含 prerelease；build +… 忽略）；输出 less|equal|greater
+semver_compare_full() {
+  local a b a_core a_pre b_core b_pre
+  a="${1%%+*}"
+  b="${2%%+*}"
+  if [[ "$a" == *-* ]]; then
+    a_core="${a%%-*}"
+    a_pre="${a#*-}"
+  else
+    a_core="$a"
+    a_pre=""
+  fi
+  if [[ "$b" == *-* ]]; then
+    b_core="${b%%-*}"
+    b_pre="${b#*-}"
+  else
+    b_core="$b"
+    b_pre=""
+  fi
+
+  local core_cmp
+  core_cmp="$(semver_compare_stable "$a_core" "$b_core")"
+  if [[ "$core_cmp" != "equal" ]]; then
+    printf '%s' "$core_cmp"
+    return
+  fi
+
+  # 同核心：正式版 > prerelease
+  if [[ -z "$a_pre" && -z "$b_pre" ]]; then
+    printf 'equal'
+    return
+  fi
+  if [[ -z "$a_pre" ]]; then
+    printf 'greater'
+    return
+  fi
+  if [[ -z "$b_pre" ]]; then
+    printf 'less'
+    return
+  fi
+
+  # prerelease 标识点分隔比较
+  local IFS='.'
+  # shellcheck disable=SC2206
+  local -a a_ids=($a_pre) b_ids=($b_pre)
+  local i a_id b_id a_num b_num
+  local max=${#a_ids[@]}
+  ((${#b_ids[@]} > max)) && max=${#b_ids[@]}
+  for ((i = 0; i < max; i++)); do
+    if ((i >= ${#a_ids[@]})); then
+      printf 'less'
+      return
+    fi
+    if ((i >= ${#b_ids[@]})); then
+      printf 'greater'
+      return
+    fi
+    a_id="${a_ids[$i]}"
+    b_id="${b_ids[$i]}"
+    a_num=0
+    b_num=0
+    [[ "$a_id" =~ ^(0|[1-9][0-9]*)$ ]] && a_num=1
+    [[ "$b_id" =~ ^(0|[1-9][0-9]*)$ ]] && b_num=1
+    if ((a_num && b_num)); then
+      if ((10#$a_id != 10#$b_id)); then
+        ((10#$a_id > 10#$b_id)) && printf 'greater' || printf 'less'
+        return
+      fi
+      continue
+    fi
+    if ((a_num && !b_num)); then
+      printf 'less'
+      return
+    fi
+    if ((!a_num && b_num)); then
+      printf 'greater'
+      return
+    fi
+    if [[ "$a_id" > "$b_id" ]]; then
+      printf 'greater'
+      return
+    fi
+    if [[ "$a_id" < "$b_id" ]]; then
+      printf 'less'
+      return
+    fi
+  done
+  printf 'equal'
+}
+
+semver_gte_full() {
+  local cmp
+  cmp="$(semver_compare_full "$1" "$2")"
+  [[ "$cmp" == "greater" || "$cmp" == "equal" ]]
+}
+
+semver_lte_full() {
+  local cmp
+  cmp="$(semver_compare_full "$1" "$2")"
+  [[ "$cmp" == "less" || "$cmp" == "equal" ]]
+}
+
 semver_gte_stable() {
   local cmp
   cmp="$(semver_compare_stable "$1" "$2")"
@@ -352,8 +458,8 @@ validate_component_db_bounds() {
       max_db="$(manifest_desktop_max_db "$manifest")"
       ;;
     *)
-      min_db="$(jq_r --arg id "$component_id" '.components[$id].minDbSchema // empty' "$manifest")"
-      max_db="$(jq_r --arg id "$component_id" '.components[$id].maxDbSchema // empty' "$manifest")"
+      echo "ERROR: component minDbSchema is only defined for desktop (got $component_id)" >&2
+      return 1
       ;;
   esac
   [[ -n "$min_db" && -n "$max_db" ]] || {
@@ -370,6 +476,46 @@ validate_component_db_bounds() {
   }
   semver_lte_stable "$min_db" "$max_db" || {
     echo "ERROR: $component_id minDbSchema ($min_db) must be <= maxDbSchema ($max_db)" >&2
+    return 1
+  }
+}
+
+validate_agents_desktop_bounds() {
+  local manifest="$1"
+  local min_desktop max_desktop desktop_version
+  min_desktop="$(manifest_agents_min_desktop "$manifest")"
+  max_desktop="$(manifest_agents_max_desktop "$manifest")"
+  [[ -n "$min_desktop" && -n "$max_desktop" ]] || {
+    echo "ERROR: agents requires minDesktop and maxDesktop" >&2
+    return 1
+  }
+
+  # 接受 stable / beta 通道形式（与 Desktop/Product 版本一致）
+  if ! is_stable_semver "$min_desktop" && ! is_beta_semver "$min_desktop"; then
+    echo "ERROR: invalid agents.minDesktop: $min_desktop" >&2
+    return 1
+  fi
+  if ! is_stable_semver "$max_desktop" && ! is_beta_semver "$max_desktop"; then
+    echo "ERROR: invalid agents.maxDesktop: $max_desktop" >&2
+    return 1
+  fi
+  semver_lte_full "$min_desktop" "$max_desktop" || {
+    echo "ERROR: agents.minDesktop ($min_desktop) must be <= maxDesktop ($max_desktop)" >&2
+    return 1
+  }
+
+  desktop_version="$(manifest_desktop_version "$manifest")"
+  if ! is_stable_semver "$desktop_version" && ! is_beta_semver "$desktop_version"; then
+    echo "ERROR: invalid desktop.avalonia.version for agents bounds check: $desktop_version" >&2
+    return 1
+  fi
+  # 严格 SemVer：下限为 stable 1.0.2 时，1.0.2-beta 不算进
+  semver_gte_full "$desktop_version" "$min_desktop" || {
+    echo "ERROR: desktop.avalonia.version ($desktop_version) must be >= agents.minDesktop ($min_desktop)" >&2
+    return 1
+  }
+  semver_lte_full "$desktop_version" "$max_desktop" || {
+    echo "ERROR: desktop.avalonia.version ($desktop_version) must be <= agents.maxDesktop ($max_desktop)" >&2
     return 1
   }
 }
@@ -396,22 +542,7 @@ validate_database_postgres_component_compat() {
     return 1
   }
 
-  local component_id
-  while IFS= read -r component_id; do
-    component_id="${component_id//$'\r'/}"
-    [[ -n "$component_id" ]] || continue
-    validate_component_db_bounds "$manifest" "$component_id" || return 1
-    min_db="$(jq_r --arg id "$component_id" '.components[$id].minDbSchema' "$manifest")"
-    max_db="$(jq_r --arg id "$component_id" '.components[$id].maxDbSchema' "$manifest")"
-    semver_lte_stable "$min_db" "$db_version" || {
-      echo "ERROR: database.postgres.version ($db_version) must be >= $component_id.minDbSchema ($min_db)" >&2
-      return 1
-    }
-    semver_lte_stable "$db_version" "$max_db" || {
-      echo "ERROR: database.postgres.version ($db_version) must be <= $component_id.maxDbSchema ($max_db)" >&2
-      return 1
-    }
-  done < <(manifest_agents_component_ids "$manifest")
+  validate_agents_desktop_bounds "$manifest" || return 1
 }
 
 validate_desktop_version_matches_channel() {
@@ -547,8 +678,8 @@ validate_manifest_v2() {
     ($root.components.desktop.avalonia.minDbSchema | semver) and
     ($root.components.desktop.avalonia.maxDbSchema | semver) and
     ($root.components.agents.version | semver) and
-    ($root.components.agents.minDbSchema | semver) and
-    ($root.components.agents.maxDbSchema | semver) and
+    ($root.components.agents.minDesktop | type == "string" and length > 0) and
+    ($root.components.agents.maxDesktop | type == "string" and length > 0) and
     ($root.components.agents.artifact["windows-x64"] | type == "string" and length > 0) and
     (($root.components.agents.artifact.installDir? // ".") | type == "string" and length > 0) and
     ($root.components.agents.modules | type == "object") and

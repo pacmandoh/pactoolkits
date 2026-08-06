@@ -9,8 +9,8 @@ public sealed record ReleaseVersionInfo(
     string BuildDate,
     string DesktopMinDbSchema,
     string DesktopMaxDbSchema,
-    string AgentsMinDbSchema,
-    string AgentsMaxDbSchema)
+    string AgentsMinDesktop,
+    string AgentsMaxDesktop)
 {
     public static ReleaseVersionInfo Unknown { get; } = new(
         ProductVersion: "unknown",
@@ -21,6 +21,6 @@ public sealed record ReleaseVersionInfo(
         BuildDate: "unknown",
         DesktopMinDbSchema: "unknown",
         DesktopMaxDbSchema: "unknown",
-        AgentsMinDbSchema: "unknown",
-        AgentsMaxDbSchema: "unknown");
+        AgentsMinDesktop: "unknown",
+        AgentsMaxDesktop: "unknown");
 }
