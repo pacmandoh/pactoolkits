@@ -785,6 +785,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     mountOnlyOk = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 }
 
+                var anyMounted = false;
                 foreach (var moduleId in mountIds)
                 {
                     // 依赖库且当前断连：不挂载，记入 paused 待重连拉取
@@ -807,9 +808,11 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     var mount = await MountModuleAsync(options, moduleId, linked.Token).ConfigureAwait(false);
                     if (!mount.Ok)
                     {
-                        return mount;
+                        // 不中止 Host；mountOnly 在收口按 last error / 未挂载 返回
+                        continue;
                     }
 
+                    anyMounted = true;
                     lock (_gate)
                     {
                         _pausedForDatabase.Remove(moduleId);
@@ -843,16 +846,27 @@ public sealed class AgentsRuntime : IAgentsRuntime
                             return SetModuleError(id, $"数据库未连接，无法启动 {id}");
                         }
 
+                        // Mount 失败已写入 last error；勿盖成笼统「未挂载」
+                        string? recorded;
+                        lock (_gate)
+                        {
+                            _moduleLastErrors.TryGetValue(id, out recorded);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(recorded))
+                        {
+                            return new AgentsCommandResult(false, recorded);
+                        }
+
                         return SetModuleError(id, $"Host 已启动，但 {id} 未挂载");
                     }
                 }
 
-                var mounted = mountIds.Count > 0;
                 return new AgentsCommandResult(
                     true,
                     wasActive
-                        ? (mounted ? "已重启" : "Agents 已重启")
-                        : (mounted ? "已启动" : "Agents 已启动"));
+                        ? (anyMounted ? "已重启" : "Agents 已重启")
+                        : (anyMounted ? "已启动" : "Agents 已启动"));
             }
             catch (OperationCanceledException)
             {
@@ -1133,12 +1147,6 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetModuleError(moduleId, $"模块入口缺失：{entryPath ?? moduleId}");
             }
 
-            var validate = ValidateModuleSettings(moduleId);
-            if (!validate.Ok)
-            {
-                return SetModuleError(moduleId, validate.Message);
-            }
-
             // Host 未运行时在当前命令内拉起 Host 并只挂载本模块，避免把其他已启用模块一并带上
             if (!GetTargetProcesses(options).Any())
             {
@@ -1180,19 +1188,17 @@ public sealed class AgentsRuntime : IAgentsRuntime
         string moduleId,
         CancellationToken ct)
     {
+        // 模块 settings 只在挂载校验，不进 ValidateHostLaunch（避免单模块坏配置阻止 Host）
+        var settings = ValidateModuleSettings(moduleId);
+        if (!settings.Ok)
+        {
+            return SetModuleError(moduleId, settings.Message);
+        }
+
         var agentsDir = ResolveAgentsDir(options);
         if (agentsDir is null)
         {
             return SetModuleError(moduleId, "无法解析 Agents 目录，无法准备模块 settings");
-        }
-
-        try
-        {
-            _moduleSettings.EnsureUserSettings(moduleId, agentsDir);
-        }
-        catch (Exception ex)
-        {
-            return SetModuleError(moduleId, $"模块 settings 准备失败：{ex.Message}");
         }
 
         if (!await EnsureModuleStoppedAsync(options, moduleId, ct).ConfigureAwait(false))
@@ -1870,10 +1876,9 @@ public sealed class AgentsRuntime : IAgentsRuntime
         lock (_gate)
         {
             _moduleLastErrors[moduleId] = message;
-            _starting = false;
-            // 全量启动失败后清除所有临时状态，避免未处理模块长期显示为 Starting
-            _startingModules.Clear();
             _moduleStates[moduleId] = AgentsRunState.Failed;
+            // 只退本模块启动态；Host 的 _starting 由 Host 启动路径收口（避免单模块失败拖垮整次 Host 启动）
+            _startingModules.Remove(moduleId);
         }
 
         if (log)
@@ -2415,7 +2420,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
             .Where(m => IsModuleEnabled(m.Id) && m.RequiresDatabase)
             .ToList();
 
-        // 仅当存在启用且依赖库的模块时才校验 Postgres 字段；Host 本身不连库
+        // 仅当存在启用且依赖库的模块时才校验 Postgres（Host 不连库）；模块 settings 仅挂载时校验
         if (enabledDbBound.Count > 0)
         {
             var host = ValidatePostgresLaunchConfig();
@@ -2429,20 +2434,6 @@ public sealed class AgentsRuntime : IAgentsRuntime
             return new AgentsCommandResult(
                 false,
                 $"配置版本不受支持：{cfg.SchemaVersion}（仅支持 SchemaVersion=2）");
-        }
-
-        foreach (var module in modules)
-        {
-            if (!IsModuleEnabled(module.Id))
-            {
-                continue;
-            }
-
-            var moduleValidate = ValidateModuleSettings(module.Id);
-            if (!moduleValidate.Ok)
-            {
-                return moduleValidate;
-            }
         }
 
         return new AgentsCommandResult(true, "ok");
