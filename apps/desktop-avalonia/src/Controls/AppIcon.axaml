@@ -8,12 +8,31 @@
   VerticalAlignment="Center"
   ClipToBounds="True">
 
-  <lucide:LucideIcon
-    x:Name="IconPresenter"
-    HorizontalAlignment="Center"
-    VerticalAlignment="Center"
-    Foreground="{Binding Foreground, ElementName=Root}"
-    Kind="{Binding ResolvedKind, ElementName=Root}"
-    Size="{Binding IconSize, ElementName=Root}"
-    StrokeWidth="{Binding StrokeWidth, ElementName=Root}" />
+  <Panel>
+    <!--  Tabler 设计坐标 24×24 + stroke 2，经 Viewbox 等比缩放（含线宽）  -->
+    <Viewbox
+      Width="{Binding IconSize, ElementName=Root}"
+      Height="{Binding IconSize, ElementName=Root}"
+      IsVisible="{Binding AssetGeometry, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}"
+      Stretch="Uniform">
+      <Canvas Width="24" Height="24">
+        <Path
+          Data="{Binding AssetGeometry, ElementName=Root}"
+          Fill="{x:Null}"
+          Stroke="{Binding Foreground, ElementName=Root}"
+          StrokeJoin="Round"
+          StrokeLineCap="Round"
+          StrokeThickness="2" />
+      </Canvas>
+    </Viewbox>
+
+    <lucide:LucideIcon
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center"
+      Foreground="{Binding Foreground, ElementName=Root}"
+      IsVisible="{Binding AssetGeometry, ElementName=Root, Converter={x:Static ObjectConverters.IsNull}}"
+      Kind="{Binding ResolvedKind, ElementName=Root}"
+      Size="{Binding IconSize, ElementName=Root}"
+      StrokeWidth="{Binding StrokeWidth, ElementName=Root}" />
+  </Panel>
 </UserControl>
