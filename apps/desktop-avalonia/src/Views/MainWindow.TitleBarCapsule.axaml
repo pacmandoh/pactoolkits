@@ -77,6 +77,10 @@
           <MenuFlyout Placement="BottomEdgeAlignedLeft">
             <MenuItem Command="{Binding OpenAgentsSettingsCommand}" Header="配置" />
             <MenuItem
+              Command="{Binding RestartHostCommand}"
+              Header="重启"
+              IsEnabled="{Binding CanControlAgents}" />
+            <MenuItem
               Command="{Binding StopHostCommand}"
               Header="停止"
               IsEnabled="{Binding CanControlAgents}" />
@@ -109,6 +113,11 @@
                     Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenModuleSettingsCommand}"
                     CommandParameter="{Binding Id}"
                     Header="配置" />
+                  <MenuItem
+                    Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).RestartModuleCommand}"
+                    CommandParameter="{Binding Id}"
+                    Header="重启"
+                    IsEnabled="{Binding #Root.((vm:MainWindowViewModel)DataContext).CanControlAgents}" />
                   <MenuItem
                     Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).StopModuleCommand}"
                     CommandParameter="{Binding Id}"

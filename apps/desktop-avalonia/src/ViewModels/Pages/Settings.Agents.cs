@@ -279,16 +279,7 @@ public partial class Settings
 
             var result = await ExecuteRuntimeCommandAsync(() => _agents.StartOrRestartAsync())
                 .ConfigureAwait(false);
-            if (result.SuppressToast)
-            {
-                return;
-            }
-
-            if (result.Ok)
-            {
-                _toast.Success("自动化集成", result.Message);
-            }
-            else
+            if (!result.Ok && !result.SuppressToast)
             {
                 _toast.Error("自动化集成", result.Message);
             }
