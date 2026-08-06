@@ -6,6 +6,7 @@
   "entry": {
     "win-x64": "Injector.exe"
   },
+  "requiresDatabase": true,
   "desktop": {
     "icons": {
       "active": "Bone",

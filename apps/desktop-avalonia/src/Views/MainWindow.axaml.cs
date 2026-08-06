@@ -33,7 +33,7 @@ public partial class MainWindow : ShadWindow
                 Win32Properties.WindowCornerPreference.Round);
         }
 
-        FullscreenButton.Click += OnFullScreen;
+        TitleCapsule.ExpandRequested += OnFullScreen;
         SyncExpandButton();
     }
 
@@ -115,7 +115,7 @@ public partial class MainWindow : ShadWindow
 
     private void SyncExpandButton()
     {
-        if (FullscreenButton is null)
+        if (TitleCapsule is null)
         {
             return;
         }
@@ -127,7 +127,7 @@ public partial class MainWindow : ShadWindow
             _ when OperatingSystem.IsWindows() => "最大化",
             _ => "全屏",
         };
-        ToolTip.SetTip(FullscreenButton, tip);
+        TitleCapsule.SetExpandTip(tip);
     }
 
     private void SyncMaximizedChrome()

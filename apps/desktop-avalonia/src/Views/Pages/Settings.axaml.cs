@@ -68,6 +68,7 @@ public partial class Settings : UserControl
 
         _vm?.PropertyChanged -= OnVmPropertyChanged;
         _vm?.UnsavedChanged -= OnUnsavedChanged;
+        _vm?.TabOpenRequested -= OnTabOpenRequested;
 
         _vm = vm;
         _moduleSettingsModuleId = vm?.SelectedModuleEditor?.ModuleId;
@@ -77,6 +78,7 @@ public partial class Settings : UserControl
             IsClientAliasEditable = !_vm.IsClientAliasReadOnly;
             _vm.PropertyChanged += OnVmPropertyChanged;
             _vm.UnsavedChanged += OnUnsavedChanged;
+            _vm.TabOpenRequested += OnTabOpenRequested;
         }
         else
         {
@@ -84,6 +86,17 @@ public partial class Settings : UserControl
         }
 
         RefreshNavDots();
+    }
+
+    private void OnTabOpenRequested(int tabIndex)
+    {
+        // 导航未 Init 时仅保留 VM pending，Init 后再切
+        if (_tabLinks.Count == 0)
+        {
+            return;
+        }
+
+        TaskObserve.Observe(SwitchTabAsync(tabIndex), "Settings", "settings.tab_open_requested.detached.fail");
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -151,6 +164,7 @@ public partial class Settings : UserControl
 
         _vm?.PropertyChanged -= OnVmPropertyChanged;
         _vm?.UnsavedChanged -= OnUnsavedChanged;
+        _vm?.TabOpenRequested -= OnTabOpenRequested;
 
         _tabLinks.Clear();
         _contentHost = null;
@@ -244,8 +258,20 @@ public partial class Settings : UserControl
 
     private async Task SwitchTabAsync(int tabIndex)
     {
+        // 已在目标 Tab：仍可能 deep-link 换模块选择；脏页先确认离开
         if (tabIndex == _activeTabIndex)
         {
+            if (_vm is not null && _vm.IsTabDirty(tabIndex))
+            {
+                var stay = await _vm.ConfirmLeaveTabAsync(tabIndex);
+                if (!stay)
+                {
+                    _vm.CancelPendingOpen();
+                    return;
+                }
+            }
+
+            _vm?.OnTabEntered(tabIndex);
             return;
         }
 
@@ -254,6 +280,7 @@ public partial class Settings : UserControl
             var ok = await _vm.ConfirmLeaveTabAsync(_activeTabIndex);
             if (!ok)
             {
+                _vm.CancelPendingOpen();
                 return;
             }
         }
@@ -279,7 +306,15 @@ public partial class Settings : UserControl
         _navItemsHost.Children.Clear();
         _tabLinks.Clear();
         BuildTabNav();
-        SetActiveTab(0);
+
+        if (_vm is not null && _vm.TryTakePendingOpenTab(out var pending))
+        {
+            SetActiveTab(pending);
+        }
+        else
+        {
+            SetActiveTab(0);
+        }
     }
 
     private void BuildTabNav()

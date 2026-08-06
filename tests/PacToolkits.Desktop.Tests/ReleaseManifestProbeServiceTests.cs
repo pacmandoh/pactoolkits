@@ -225,8 +225,8 @@ public sealed class ReleaseManifestProbeServiceTests
                    }
                  },
                  "agents": {
-                   "minDbSchema": "{{min}}",
-                   "maxDbSchema": "{{max}}"
+                   "minDesktop": "1.0.0",
+                   "maxDesktop": "2.0.0"
                  }
                }
              }

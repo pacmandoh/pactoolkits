@@ -2,12 +2,10 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.DTOs;
 
-/// <summary>数据库结构兼容检查所需的版本范围</summary>
+/// <summary>数据库结构兼容检查所需的版本范围（仅 Desktop 声明的 schema 区间）</summary>
 public sealed record DbSchemaVersionContext(
     string DesktopMinDbSchema,
     string DesktopMaxDbSchema,
-    string AgentsMinDbSchema,
-    string AgentsMaxDbSchema,
     string TargetDbSchemaVersion);
 
 /// <summary>数据库 Schema 版本读取结果</summary>

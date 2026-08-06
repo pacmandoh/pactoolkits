@@ -193,31 +193,11 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
         var components = root.GetProperty("components");
         var desktop = ReleaseManifestDesktop.GetRequiredAvalonia(components);
 
-        var minimums = new List<string> { ReadRequiredString(desktop, "minDbSchema") };
-        var maximums = new List<string> { ReadRequiredString(desktop, "maxDbSchema") };
-        if (components.TryGetProperty("agents", out var agents))
-        {
-            minimums.Add(ReadRequiredString(agents, "minDbSchema"));
-            maximums.Add(ReadRequiredString(agents, "maxDbSchema"));
-        }
-
-        var requiredMin = minimums[0];
-        for (var i = 1; i < minimums.Count; i++)
-        {
-            requiredMin = DbSchemaCompat.GetRequiredMin(requiredMin, minimums[i]);
-        }
-
-        var requiredMax = maximums[0];
-        for (var i = 1; i < maximums.Count; i++)
-        {
-            requiredMax = DbSchemaCompat.GetRequiredMax(requiredMax, maximums[i]);
-        }
-
         return new ChannelManifest(
             NormalizeManifestChannel(channel),
             productVersion,
-            requiredMin,
-            requiredMax);
+            ReadRequiredString(desktop, "minDbSchema"),
+            ReadRequiredString(desktop, "maxDbSchema"));
     }
 
     private static string NormalizeManifestChannel(string channel)

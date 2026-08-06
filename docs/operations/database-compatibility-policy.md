@@ -1,6 +1,6 @@
 # 数据库兼容与回退规则
 
-PacToolkits 使用 `release-manifest.json` 中 Desktop 与 Agents 的 `minDbSchema` 和 `maxDbSchema` 定义闭区间兼容范围。系统的有效兼容范围是所有已启用组件兼容范围的交集。
+PacToolkits 使用 `release-manifest.json` 中 Desktop 的 `minDbSchema` 和 `maxDbSchema` 定义数据库闭区间兼容范围。Agents 组件不再声明 schema 范围，而通过 `minDesktop` / `maxDesktop` 声明可配套的 Desktop 版本区间。
 
 ## 兼容性决策
 
@@ -8,7 +8,7 @@ PacToolkits 使用 `release-manifest.json` 中 Desktop 与 Agents 的 `minDbSche
 | -------------------- | ------------------------------------ |
 | 低于 `minDbSchema`   | 阻止业务访问，等待外部数据库部署完成 |
 | 位于 min/max 范围内  | 允许正常运行                         |
-| 高于 `maxDbSchema`   | 阻止业务访问；Agents 不得启动        |
+| 高于 `maxDbSchema`   | 阻止业务访问                         |
 | 无法读取 Schema 版本 | 失败关闭，阻止业务访问               |
 
 Stable 版本连接到高于其 `maxDbSchema` 的数据库时必须停止写入。安装更早的 Stable 版本不能恢复业务访问；应升级到兼容版本，或按照生产事故流程处理。
@@ -32,10 +32,10 @@ Desktop 不包含数据库迁移执行器，安装包也不分发 migration SQL�
 
 ## 发布前检查
 
-1. 校验 Manifest 的 DB 版本及所有组件 min/max 范围
+1. 校验 Manifest 的 DB 版本与 Desktop min/max schema 范围，以及 Agents minDesktop/maxDesktop 与 Desktop 版本闭环
 2. 确认 Stable 与 Beta Feed 相互隔离，且目标 manifest 来自正确通道
 3. 确认没有修改或删除已执行 migration
-4. 验证 Desktop 与所有启用 Agents 对当前 Schema 均兼容
-5. 验证目标版本失败时保持只读或阻止 Agents 启动
+4. 验证当前 Schema 位于 Desktop 声明的 schema 闭区间内
+5. 验证 Agents 与当前 Desktop 版本配套；Schema 或配套校验失败时保持业务只读或阻止 Host 启动
 
 Beta 的具体发布要求见 [Beta 发布规则](beta-release-policy.md)。

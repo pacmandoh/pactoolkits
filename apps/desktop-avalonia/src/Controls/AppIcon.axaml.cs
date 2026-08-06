@@ -1,5 +1,6 @@
 using System;
 using Avalonia;
+using Avalonia.Media;
 using global::Avalonia.Controls;
 using Lucide.Avalonia;
 
@@ -21,8 +22,12 @@ public partial class AppIcon : UserControl
     public static readonly DirectProperty<AppIcon, double> IconSizeProperty =
         AvaloniaProperty.RegisterDirect<AppIcon, double>(nameof(IconSize), o => o.IconSize);
 
+    public static readonly DirectProperty<AppIcon, Geometry?> AssetGeometryProperty =
+        AvaloniaProperty.RegisterDirect<AppIcon, Geometry?>(nameof(AssetGeometry), o => o.AssetGeometry);
+
     private LucideIconKind _resolvedKind = LucideIconKind.Info;
     private double _iconSize = DefaultIconSize;
+    private Geometry? _assetGeometry;
 
     public string Kind
     {
@@ -46,6 +51,12 @@ public partial class AppIcon : UserControl
     {
         get => _iconSize;
         private set => SetAndRaise(IconSizeProperty, ref _iconSize, value);
+    }
+
+    public Geometry? AssetGeometry
+    {
+        get => _assetGeometry;
+        private set => SetAndRaise(AssetGeometryProperty, ref _assetGeometry, value);
     }
 
     public AppIcon()
@@ -80,17 +91,31 @@ public partial class AppIcon : UserControl
         var raw = (Kind ?? string.Empty).Trim();
         if (raw.Length == 0)
         {
-            ResolvedKind = LucideIconKind.Info;
+            SetLucide(LucideIconKind.Info);
             return;
         }
 
+        // Lucide 优先：避免每个 Kind 都探测 Assets/Icons
         if (Enum.TryParse<LucideIconKind>(raw, true, out var parsed))
         {
-            ResolvedKind = parsed;
+            SetLucide(parsed);
             return;
         }
 
-        ResolvedKind = LucideIconKind.CircleAlert;
+        var geometry = StrokeAssets.TryGet(raw);
+        if (geometry is not null)
+        {
+            AssetGeometry = geometry;
+            return;
+        }
+
+        SetLucide(LucideIconKind.CircleAlert);
+    }
+
+    private void SetLucide(LucideIconKind kind)
+    {
+        AssetGeometry = null;
+        ResolvedKind = kind;
     }
 
     private void UpdateIconSize()

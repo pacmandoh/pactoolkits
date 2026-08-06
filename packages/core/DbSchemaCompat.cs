@@ -1,7 +1,7 @@
 namespace PacToolkits.Core;
 
 /// <summary>
-/// 表示数据库 schema 与 Desktop、Agents 声明范围的兼容状态
+/// 表示数据库 schema 与 Desktop 声明范围的兼容状态
 /// </summary>
 public enum DbSchemaCompatibility
 {
@@ -28,9 +28,9 @@ public sealed record DbSchemaCompatibilityResult(
 }
 
 /// <summary>
-/// 按 SemVer 判断数据库 schema 是否位于 Desktop 与 Agents 兼容范围的交集内
+/// 按 SemVer 判断数据库 schema 是否位于 Desktop 声明的兼容范围内
 ///
-/// 合并组件版本边界并生成不兼容说明，不访问数据库
+/// 生成不兼容说明，不访问数据库
 /// </summary>
 public static class DbSchemaCompat
 {
@@ -91,26 +91,6 @@ public static class DbSchemaCompat
             $"数据库版本 {currentText} 位于支持范围 {minimumText} - {maximumText}");
     }
 
-    public static string GetRequiredMax(string uiMax, string agentsMax)
-    {
-        if (!TryParseSemVer(uiMax, out var ui) || !TryParseSemVer(agentsMax, out var agents))
-        {
-            return uiMax;
-        }
-
-        return CompareSemVer(ui, agents) <= 0 ? uiMax : agentsMax;
-    }
-
-    public static string GetRequiredMin(string uiMin, string agentsMin)
-    {
-        if (!TryParseSemVer(uiMin, out var ui) || !TryParseSemVer(agentsMin, out var agents))
-        {
-            return uiMin;
-        }
-
-        return CompareSemVer(ui, agents) >= 0 ? uiMin : agentsMin;
-    }
-
     public static bool TryParseSemVer(string value, out (int major, int minor, int patch) ver)
     {
         ver = (0, 0, 0);
@@ -164,29 +144,15 @@ public static class DbSchemaCompat
         string? schemaValue,
         string? schemaReason,
         string uiMin,
-        string agentsMin,
-        string uiMax,
-        string agentsMax,
-        string? requiredMin = null,
-        string? requiredMax = null)
+        string uiMax)
     {
         var detail = schemaOk
-            ? $"数据库版本：{schemaValue}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgents 支持范围：{agentsMin} - {agentsMax}"
-            : $"读取失败：{schemaReason ?? "缺少 schema_version 表或版本记录"}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgents 支持范围：{agentsMin} - {agentsMax}";
-
-        if (!string.IsNullOrWhiteSpace(requiredMin))
-        {
-            detail += $"\n实际最低门槛：{requiredMin}";
-        }
-
-        if (!string.IsNullOrWhiteSpace(requiredMax))
-        {
-            detail += $"\n实际最高门槛：{requiredMax}";
-        }
+            ? $"数据库版本：{schemaValue}\nDesktop 支持范围：{uiMin} - {uiMax}"
+            : $"读取失败：{schemaReason ?? "缺少 schema_version 表或版本记录"}\nDesktop 支持范围：{uiMin} - {uiMax}";
 
         var guidance = schemaOk
                        && TryParseSemVer(schemaValue ?? string.Empty, out var current)
-                       && TryParseSemVer(requiredMax ?? string.Empty, out var max)
+                       && TryParseSemVer(uiMax, out var max)
                        && CompareSemVer(current, max) > 0
             ? "数据库版本高于当前程序支持范围，已阻断数据库业务操作，不会执行自动降级，请升级 PacToolkits"
             : "请联系维护者将数据库更新到适配版本后再连接";

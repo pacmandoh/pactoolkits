@@ -12,52 +12,130 @@ public sealed class AgentsRuntimeTests
     private const string TestModuleId = "ModuleA";
 
     [Fact]
-    public void Declares_independent_database_compatibility_range()
+    public void Declares_agents_desktop_compatibility_range()
     {
         using var runtime = new AgentsRuntime(
             new FakeAppConfigStore(),
             new FakeModuleSettingsStore(),
             new FakeReleaseVersionService(),
-            new FakeDbSchemaVersionService(),
             new NullAppLogger());
 
         Assert.True(runtime.IsModuleEnabled(TestModuleId));
-        Assert.Equal("1.2.22", runtime.MinDbSchema);
-        Assert.Equal("1.2.22", runtime.MaxDbSchema);
+        Assert.Equal("0.16.1", runtime.MinDesktop);
+        Assert.Equal("0.16.1", runtime.MaxDesktop);
     }
 
     [Fact]
-    public async Task Start_when_database_schema_is_below_minimum()
+    public async Task Start_when_desktop_outside_agents_range()
     {
         var config = new FakeAppConfigStore();
         using var runtime = new AgentsRuntime(
             config,
             new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(),
-            new FakeDbSchemaVersionService("1.2.20"),
+            new FakeReleaseVersionService(
+                desktopVersion: "0.15.0",
+                agentsMinDesktop: "0.16.0",
+                agentsMaxDesktop: "0.17.0"),
             new NullAppLogger());
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.Ok);
-        Assert.Contains("低于最低支持版本", result.Message, StringComparison.Ordinal);
+        Assert.Contains("支持下限", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("数据库版本", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Start_when_database_schema_is_above_agent_maximum()
+    public async Task Start_rejects_prerelease_below_stable_min_desktop()
+    {
+        using var runtime = new AgentsRuntime(
+            new FakeAppConfigStore(),
+            new FakeModuleSettingsStore(),
+            new FakeReleaseVersionService(
+                desktopVersion: "1.0.2-beta.8",
+                agentsMinDesktop: "1.0.2",
+                agentsMaxDesktop: "1.0.5"),
+            new NullAppLogger());
+
+        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(result.Ok);
+        Assert.Contains("支持下限", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Start_allows_ordered_beta_inside_desktop_range()
+    {
+        using var runtime = new AgentsRuntime(
+            new FakeAppConfigStore(),
+            new FakeModuleSettingsStore(),
+            new FakeReleaseVersionService(
+                desktopVersion: "1.0.3-beta.8",
+                agentsMinDesktop: "1.0.2",
+                agentsMaxDesktop: "1.0.5"),
+            new NullAppLogger());
+
+        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
+
+        // 通过配套门禁；后续平台/路径/OS 门禁可另报
+        Assert.DoesNotContain("支持下限", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("支持上限", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("无法校验 Agents 与 Desktop", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Start_does_not_gate_on_database_schema()
     {
         var config = new FakeAppConfigStore();
         using var runtime = new AgentsRuntime(
             config,
             new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(),
-            new FakeDbSchemaVersionService("1.2.23"),
+            // unknown desktop bounds：跳过配套门禁，后续平台/路径门禁可另报
+            new FakeReleaseVersionService(
+                desktopVersion: "unknown",
+                agentsMinDesktop: "unknown",
+                agentsMaxDesktop: "unknown"),
+            new NullAppLogger());
+
+        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("数据库版本", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("低于最低支持版本", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Failed to connect", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Start_rejects_incomplete_agents_desktop_bounds()
+    {
+        using var runtime = new AgentsRuntime(
+            new FakeAppConfigStore(),
+            new FakeModuleSettingsStore(),
+            new FakeReleaseVersionService(
+                desktopVersion: "1.0.2",
+                agentsMinDesktop: "1.0.2",
+                agentsMaxDesktop: string.Empty),
             new NullAppLogger());
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.Ok);
-        Assert.Contains("数据库版本高于当前程序支持范围", result.Message, StringComparison.Ordinal);
+        Assert.Contains("不完整", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Min_max_desktop_expose_raw_agents_bounds_without_desktop_fallback()
+    {
+        using var runtime = new AgentsRuntime(
+            new FakeAppConfigStore(),
+            new FakeModuleSettingsStore(),
+            new FakeReleaseVersionService(
+                desktopVersion: "1.0.2",
+                agentsMinDesktop: string.Empty,
+                agentsMaxDesktop: "unknown"),
+            new NullAppLogger());
+
+        Assert.Equal(string.Empty, runtime.MinDesktop);
+        Assert.Equal("unknown", runtime.MaxDesktop);
     }
 
     [Fact]
@@ -166,26 +244,25 @@ public sealed class AgentsRuntimeTests
 
     private sealed class FakeReleaseVersionService : IReleaseVersionService
     {
-        public ReleaseVersionInfo Current { get; } = new(
-            ProductVersion: "0.17.1",
-            DesktopVersion: "0.16.1",
-            AgentsVersion: "0.6.1",
-            DbSchemaVersion: "1.2.22",
-            BuildChannel: "stable",
-            BuildDate: "2026-06-13",
-            DesktopMinDbSchema: "1.2.22",
-            DesktopMaxDbSchema: "1.2.22",
-            AgentsMinDbSchema: "1.2.22",
-            AgentsMaxDbSchema: "1.2.22");
-    }
+        public FakeReleaseVersionService(
+            string desktopVersion = "0.16.1",
+            string agentsMinDesktop = "0.16.1",
+            string agentsMaxDesktop = "0.16.1")
+        {
+            Current = new(
+                ProductVersion: "0.17.1",
+                DesktopVersion: desktopVersion,
+                AgentsVersion: "0.6.1",
+                DbSchemaVersion: "1.2.22",
+                BuildChannel: "stable",
+                BuildDate: "2026-06-13",
+                DesktopMinDbSchema: "1.2.22",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDesktop: agentsMinDesktop,
+                AgentsMaxDesktop: agentsMaxDesktop);
+        }
 
-    private sealed class FakeDbSchemaVersionService(string version = "1.2.22") : IDbSchemaVersionService
-    {
-        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionRead(true, version, null));
-
-        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionRead(true, version, null));
+        public ReleaseVersionInfo Current { get; }
     }
 
     private sealed class FakeModuleSettingsStore : IModuleSettingsStore
