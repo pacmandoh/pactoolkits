@@ -2,12 +2,12 @@ namespace PacToolkits.Core;
 
 /// <summary>
 /// SemVer 2.0 核心比较（含 prerelease 序）；build metadata（+…）不参与优先级
+/// PreRelease 为 null 表示正式发布，否则为 '-' 后的 prerelease 标识串（不含前导 '-'）
 /// </summary>
 public readonly record struct SemVerInfo(
     int Major,
     int Minor,
     int Patch,
-    // null：正式发布；否则为 '-' 后的 prerelease 标识串（不含前导 '-'）
     string? PreRelease);
 
 /// <summary>
