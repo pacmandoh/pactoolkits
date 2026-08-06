@@ -102,11 +102,23 @@ public partial class Settings
         }
 
         ReloadClientAliasesIfVisible("client_alias.reload.tab_enter_fail");
-        ReloadModuleSettingsIfVisible();
-        if (tabIndex == (int)Tab.ModuleSettings)
+        if (tabIndex != (int)Tab.ModuleSettings)
         {
-            ApplyPendingModuleSelection();
+            return;
         }
+
+        // disk/stale 对齐后 soft apply；仍 pending 且可重建时才整表 syncModules（内带 discard）
+        ReloadModuleSettingsIfVisible();
+        ApplyPendingModuleSelection();
+        if (string.IsNullOrWhiteSpace(_pendingModuleSettingsId)
+            || IsModuleSettingsDirty()
+            || HasModuleAutoSaves
+            || IsAgentsToggling)
+        {
+            return;
+        }
+
+        SyncAgentsConfig(syncHost: false, syncModules: true);
     }
 
     // discardIfMissing：完整重建后再找不到则作废 deep-link；否则编辑器未就绪时保留
