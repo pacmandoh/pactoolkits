@@ -7,6 +7,22 @@
     <Setter Property="Opacity" Value="0.4" />
   </Style>
 
+  <!--  分区标题（如「模块」）：与 MenuItemAssist.Label 同色阶，覆盖全局 disabled 压暗  -->
+  <Style Selector="shad|Window MenuItem.MenuSectionLabel:disabled">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+
+  <Style Selector="shad|Window MenuItem.MenuSectionLabel:disabled:pointerover">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="shad|Window MenuItem.MenuSectionLabel:disabled TextBlock.Caption.Muted">
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+
   <Style Selector="shad|Sidebar#MainSidebar">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />

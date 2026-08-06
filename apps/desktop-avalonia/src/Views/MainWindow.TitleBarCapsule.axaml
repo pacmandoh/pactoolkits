@@ -1,0 +1,142 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindowTitleBarCapsule"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels"
+  x:Name="Root"
+  x:DataType="vm:MainWindowViewModel">
+  <Border VerticalAlignment="Center" Classes="TitleBarCapsule">
+    <StackPanel Orientation="Horizontal" Spacing="0">
+      <Button
+        Classes="WindowControlsButton"
+        Command="{Binding SwitchThemeCommand}"
+        ToolTip.Tip="切换主题">
+        <icons:AppIcon
+          Width="{DynamicResource IconSizeDefault}"
+          Height="{DynamicResource IconSizeDefault}"
+          Kind="{Binding CurrentTheme, Converter={x:Static conv:Theme.ToIconKind}}" />
+      </Button>
+
+      <Border
+        Width="1"
+        Height="{DynamicResource IconSizeDefault}"
+        Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
+        VerticalAlignment="Center"
+        Background="{DynamicResource BorderColor}" />
+
+      <Button
+        x:Name="ExpandButton"
+        Classes="WindowControlsButton"
+        ToolTip.Tip="全屏">
+        <Panel>
+          <icons:AppIcon
+            Width="{DynamicResource IconSizeDefault}"
+            Height="{DynamicResource IconSizeDefault}"
+            IsVisible="{Binding !IsHostExpanded, ElementName=Root}"
+            Kind="Maximize" />
+          <icons:AppIcon
+            Width="{DynamicResource IconSizeDefault}"
+            Height="{DynamicResource IconSizeDefault}"
+            IsVisible="{Binding IsHostExpanded, ElementName=Root}"
+            Kind="Minimize" />
+        </Panel>
+      </Button>
+
+      <Border
+        Width="1"
+        Height="{DynamicResource IconSizeDefault}"
+        Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
+        VerticalAlignment="Center"
+        Background="{DynamicResource BorderColor}" />
+
+      <Button
+        Classes="WindowControlsButton"
+        Command="{Binding TryReconnectDbCommand}"
+        ToolTip.Tip="{Binding DbItemText}">
+        <Button.ContextFlyout>
+          <MenuFlyout Placement="BottomEdgeAlignedLeft">
+            <MenuItem Command="{Binding OpenDatabaseSettingsCommand}" Header="配置" />
+          </MenuFlyout>
+        </Button.ContextFlyout>
+        <controls:RuntimeStateIcon
+          Width="{DynamicResource IconSizeDefault}"
+          Height="{DynamicResource IconSizeDefault}"
+          ActiveIcon="Link"
+          InactiveIcon="Unlink"
+          State="{Binding DbVisualState}" />
+      </Button>
+
+      <Button
+        Classes="WindowControlsButton"
+        Command="{Binding StartOrRestartHostCommand}"
+        ToolTip.Tip="{Binding AgentsBarTip}">
+        <Button.ContextFlyout>
+          <MenuFlyout Placement="BottomEdgeAlignedLeft">
+            <MenuItem Command="{Binding OpenAgentsSettingsCommand}" Header="配置" />
+            <MenuItem
+              Command="{Binding StopHostCommand}"
+              Header="停止"
+              IsEnabled="{Binding CanControlAgents}" />
+          </MenuFlyout>
+        </Button.ContextFlyout>
+        <controls:RuntimeStateIcon
+          Width="{DynamicResource IconSizeDefault}"
+          Height="{DynamicResource IconSizeDefault}"
+          ActiveIcon="Cpu"
+          InactiveIcon="Cpu"
+          State="{Binding HostVisualState}" />
+      </Button>
+
+      <ItemsControl IsVisible="{Binding IsTopModulesExpanded}" ItemsSource="{Binding TopStatusPills}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="0" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ModuleChrome">
+            <Button
+              Classes="WindowControlsButton"
+              Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).StartOrRestartModuleCommand}"
+              CommandParameter="{Binding Id}"
+              ToolTip.Tip="{Binding Tip}">
+              <Button.ContextFlyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem
+                    Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenModuleSettingsCommand}"
+                    CommandParameter="{Binding Id}"
+                    Header="配置" />
+                  <MenuItem
+                    Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).StopModuleCommand}"
+                    CommandParameter="{Binding Id}"
+                    Header="停止"
+                    IsEnabled="{Binding #Root.((vm:MainWindowViewModel)DataContext).CanControlAgents}" />
+                </MenuFlyout>
+              </Button.ContextFlyout>
+              <controls:RuntimeStateIcon
+                Width="{DynamicResource IconSizeDefault}"
+                Height="{DynamicResource IconSizeDefault}"
+                ActiveIcon="{Binding ActiveIcon}"
+                InactiveIcon="{Binding InactiveIcon}"
+                State="{Binding VisualState}" />
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Button
+        Classes="WindowControlsButton"
+        Command="{Binding ToggleTopModulesExpandedCommand}"
+        IsVisible="{Binding HasTopModules}"
+        ToolTip.Tip="{Binding TopModulesExpandTip}">
+        <icons:AppIcon
+          Width="{DynamicResource IconSizeDefault}"
+          Height="{DynamicResource IconSizeDefault}"
+          Kind="{Binding TopModulesExpandIcon}" />
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>

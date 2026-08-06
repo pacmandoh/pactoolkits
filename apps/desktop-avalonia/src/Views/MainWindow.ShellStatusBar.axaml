@@ -1,0 +1,160 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindowShellStatusBar"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels"
+  HorizontalAlignment="Stretch"
+  x:DataType="vm:MainWindowViewModel">
+  <Border
+    MinHeight="{DynamicResource StatusBarHeight}"
+    Padding="0"
+    HorizontalAlignment="Stretch"
+    BorderBrush="{DynamicResource BorderColor}"
+    BorderThickness="0,1,0,0"
+    Classes="StatusBar">
+    <Grid ColumnDefinitions="*,Auto">
+      <ScrollViewer
+        Grid.Column="0"
+        HorizontalAlignment="Stretch"
+        HorizontalScrollBarVisibility="Auto"
+        VerticalScrollBarVisibility="Disabled">
+        <StackPanel Orientation="Horizontal" Spacing="0">
+          <Button
+            Classes="StatusBarItem StatusBarIconItem"
+            Focusable="False"
+            IsEnabled="False">
+            <icons:AppIcon Kind="Component" />
+          </Button>
+
+          <Button
+            Classes="StatusBarItem"
+            Command="{Binding TryReconnectDbCommand}"
+            ToolTip.ShowDelay="400"
+            ToolTip.Tip="{Binding DbItemText}">
+            <shad:ButtonAssist.Icon>
+              <controls:RuntimeStateIcon
+                ActiveIcon="Link"
+                InactiveIcon="Unlink"
+                IsHitTestVisible="False"
+                State="{Binding DbVisualState}" />
+            </shad:ButtonAssist.Icon>
+            <Panel IsHitTestVisible="False">
+              <icons:AppIcon
+                Foreground="{DynamicResource WarningColor}"
+                IsVisible="{Binding IsDbProbeRunning}"
+                Kind="LoaderCircle" />
+              <icons:AppIcon
+                Foreground="{DynamicResource SuccessColor}"
+                IsVisible="{Binding IsDbStatusConnected}"
+                Kind="CircleCheck" />
+              <icons:AppIcon
+                Foreground="{DynamicResource ErrorColor}"
+                IsVisible="{Binding IsDbStatusDisconnected}"
+                Kind="CircleAlert" />
+            </Panel>
+          </Button>
+
+          <Border Classes="StatusBarDivider" />
+
+          <Menu VerticalAlignment="Stretch" Classes="Single StatusBarAgentsMenu">
+            <MenuItem
+              x:Name="AgentsBarRoot"
+              shad:MenuItemAssist.PopupHorizontalOffset="0"
+              shad:MenuItemAssist.PopupPlacement="TopEdgeAlignedLeft"
+              shad:MenuItemAssist.PopupVerticalOffset="-4"
+              Classes="StatusBarAgentsMenuRoot"
+              CornerRadius="0"
+              ToolTip.ShowDelay="400"
+              ToolTip.Tip="{Binding AgentsBarTip}">
+              <MenuItem.Header>
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <controls:RuntimeStateIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    ActiveIcon="Cpu"
+                    InactiveIcon="Cpu"
+                    IsHitTestVisible="False"
+                    State="{Binding HostVisualState}" />
+                  <icons:AppIcon
+                    Classes="StatusBarAgentsCountIcon"
+                    IsHitTestVisible="False"
+                    Kind="{Binding RunningModuleCountIcon}" />
+                </StackPanel>
+              </MenuItem.Header>
+              <shad:MenuItemAssist.Label>
+                <TextBlock Classes="Caption Muted" Text="Agents" />
+              </shad:MenuItemAssist.Label>
+            </MenuItem>
+          </Menu>
+
+          <Border Classes="StatusBarDivider" IsVisible="{Binding ShowAccessGuardItem}" />
+
+          <Button
+            Classes="StatusBarItem"
+            Command="{Binding OpenSettingsCommand}"
+            IsVisible="{Binding ShowAccessGuardItem}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="ShieldAlert" />
+              <TextBlock
+                MaxWidth="220"
+                Classes="Caption Muted"
+                Text="{Binding AccessGuardItemText}"
+                TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </ScrollViewer>
+
+      <StackPanel
+        Grid.Column="1"
+        VerticalAlignment="Stretch"
+        Orientation="Horizontal"
+        Spacing="0">
+        <Button
+          Classes="StatusBarItem"
+          Command="{Binding OpenUpdateCenterCommand}"
+          IsVisible="{Binding HasUpdateAvailable}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+            <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="CloudDownload" />
+            <TextBlock
+              Classes="Caption"
+              Foreground="{DynamicResource WarningColor}"
+              Text="{Binding LatestProductVersion, StringFormat=更新 {0}}" />
+          </StackPanel>
+        </Button>
+
+        <Border Classes="StatusBarDivider" IsVisible="{Binding HasUpdateAvailable}" />
+
+        <Button Classes="StatusBarItem" IsEnabled="False">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeMini}"
+              Height="{DynamicResource IconSizeMini}"
+              Foreground="{DynamicResource MutedColor}"
+              IsVisible="{Binding !IsUpdateChecking}"
+              Kind="Tag" />
+            <TextBlock Classes="Caption Muted" Text="{Binding VersionBarText}" />
+          </StackPanel>
+        </Button>
+
+        <Border Classes="StatusBarDivider" />
+
+        <Button
+          Classes="StatusBarItem StatusBarIconItem"
+          Classes.active="{Binding IsSettingsPageActive}"
+          Command="{Binding OpenSettingsCommand}">
+          <Panel>
+            <icons:AppIcon Kind="Settings" />
+            <Border
+              Margin="0,-2,-2,0"
+              Classes="UpdateDot"
+              IsVisible="{Binding HasUpdateAvailable}" />
+          </Panel>
+        </Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

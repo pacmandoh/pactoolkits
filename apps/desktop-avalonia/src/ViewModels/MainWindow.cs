@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -12,8 +11,6 @@ using global::Avalonia.Collections;
 using global::Avalonia.Styling;
 using global::Avalonia.Threading;
 using PacToolkits.Agents.Contracts.Abstractions;
-using PacToolkits.Agents.Contracts.Agents;
-using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Core;
@@ -68,7 +65,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ISettingsService _settings;
     private readonly IChangeWatermarkService _changeWatermark;
     private readonly IAgentsManager _agentsManager;
-    private IAgentsRuntime Agents => _agentsManager.GetRequired(AgentsIds.Agents);
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
@@ -87,11 +83,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private volatile bool _isApplyingConfig;
     private DateTimeOffset _lastDbErrorToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastDbOkToastAt = DateTimeOffset.MinValue;
-    private DateTimeOffset _lastAgentsTopToastAt = DateTimeOffset.MinValue;
-    // 顶栏操作节流与 Host 命令冷却保持一致，避免同一请求产生重复反馈
-    private static readonly TimeSpan AgentsTopToastDebounce = TimeSpan.FromMilliseconds(1200);
-    private static readonly TimeSpan TopActionDebounce = TimeSpan.FromMilliseconds(1200);
-    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
     private string? _lastDbFailReason;
     private string? _lastSeenConfigJson;
     private bool _dbEverDisconnected;
@@ -122,11 +113,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
     private readonly PageHistory<NavigationLocation> _pageHistory = new();
-    private readonly Dictionary<string, ModuleChrome> _moduleChromeById = new(StringComparer.Ordinal);
-
-    public ObservableCollection<ModuleChrome> TopStatusPills { get; } = new();
-
-    public ObservableCollection<ModuleChrome> BottomStatusBar { get; } = new();
     private NavigationLocation? _currentLocation;
     private AppPageBase? _activeLifecyclePage;
     private bool _isHistoryNavigation;
@@ -152,6 +138,33 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
         }
+    }
+
+    private void NavigateSettingsTab(string debounceKey, Action<Settings> openTab)
+    {
+        if (SkipTrigger(debounceKey, 250))
+        {
+            return;
+        }
+
+        if (_settingsPage is not Settings settings)
+        {
+            return;
+        }
+
+        ObserveDetached(
+            OpenSettingsTabAsync(settings, () => openTab(settings)),
+            "page.active.detached.fail");
+    }
+
+    private async Task OpenSettingsTabAsync(Settings settings, Action openTab)
+    {
+        if (!ReferenceEquals(ActivePage, settings))
+        {
+            await SetActivePageAsync(settings).ConfigureAwait(true);
+        }
+
+        await RunOnUiAsync(openTab);
     }
 
     [RelayCommand]
@@ -206,30 +219,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
     [ObservableProperty] private string? _activePageRoute;
     [ObservableProperty] private bool _isDbProbeRunning;
-    [ObservableProperty] private bool _isAgentsActionRunning;
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _hasUpdateAvailable;
     [ObservableProperty] private string _currentProductVersion = "unknown";
     [ObservableProperty] private string _latestProductVersion = "unknown";
-    public bool CanProbeDb() => !IsDbProbeRunning;
-    public bool CanControlAgents()
-        => !IsAgentsActionRunning && Agents.HostState != AgentsRunState.Starting;
-
     public bool IsDbConnected => _dbMonitor.IsConnected;
-
-    public RuntimeVisualState DbVisualState
-        => IsDbProbeRunning
-            ? RuntimeVisualState.Transitioning
-            : IsDbConnected
-                ? RuntimeVisualState.Active
-                : RuntimeVisualState.Inactive;
-
-    public string DbItemText
-        => IsDbProbeRunning ? "数据库：检测中…"
-        : IsDbConnected ? "数据库：已连接"
-        : "数据库：未连接";
-
-    public string HostItemText => $"Host：{HostStatusText}";
 
     public string ActivePageText => ActivePage?.DisplayName ?? "就绪";
 
@@ -246,13 +240,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public string NavigateForwardToolTip
         => _pageHistory.ForwardTarget is { } location ? $"前进到 {DescribeLocation(location)}" : "没有可前进位置";
-
-    public bool ShowAccessGuardItem => _accessGuard.IsBlocked;
-
-    public string AccessGuardItemText
-        => string.IsNullOrWhiteSpace(_accessGuard.BlockReason)
-            ? "配置未完成"
-            : _accessGuard.BlockReason!;
 
     public string VersionText
     {
@@ -287,26 +274,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool ConnectivityBannerIsWarning { get; private set; }
     public bool ConnectivityBannerIsInfo { get; private set; }
 
-    public bool IsSettingsPageActive => ActivePage is ISettingsPage;
-
-    public RuntimeVisualState HostVisualState
-        => Agents.HostState switch
-        {
-            AgentsRunState.Running => RuntimeVisualState.Active,
-            AgentsRunState.Starting => RuntimeVisualState.Transitioning,
-            _ => RuntimeVisualState.Inactive,
-        };
-
-    public string HostStatusText
-        => Agents.HostState switch
-        {
-            AgentsRunState.Running => "运行中",
-            AgentsRunState.Starting => "启动中",
-            AgentsRunState.Failed => "启动失败",
-            AgentsRunState.Stopped => "未启动",
-            _ => "未知",
-        };
-
     public string AppBuildChannelText
     {
         get
@@ -340,21 +307,39 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _isDbConnectivityKnown = true;
     }
 
+    private bool _lastNotifiedDbConnected;
+    private bool _lastNotifiedDbProbe;
+    private bool _hasNotifiedDbState;
+
     private void RaiseDbStateChanged()
     {
-        OnPropertyChanged(nameof(IsDbConnected));
-        OnPropertyChanged(nameof(DbVisualState));
-        OnPropertyChanged(nameof(DbItemText));
+        var connected = IsDbConnected;
+        var probe = IsDbProbeRunning;
+        var connectedChanged = !_hasNotifiedDbState || connected != _lastNotifiedDbConnected;
+        // 仅对 chrome 绑定 dedupe：相同 tip 字段反复 Notify 会闪，但 known / banner 仍必须刷新
+        if (!_hasNotifiedDbState
+            || connectedChanged
+            || probe != _lastNotifiedDbProbe)
+        {
+            _hasNotifiedDbState = true;
+            _lastNotifiedDbConnected = connected;
+            _lastNotifiedDbProbe = probe;
+            OnPropertyChanged(nameof(IsDbConnected));
+            OnPropertyChanged(nameof(DbVisualState));
+            OnPropertyChanged(nameof(DbItemText));
+            OnPropertyChanged(nameof(IsDbStatusConnected));
+            OnPropertyChanged(nameof(IsDbStatusDisconnected));
+        }
+
         RaiseConnectivityChanged();
     }
 
     private void RaiseStatusItemsChanged()
     {
-        OnPropertyChanged(nameof(DbItemText));
-        OnPropertyChanged(nameof(HostItemText));
-        OnPropertyChanged(nameof(ActivePageText));
         OnPropertyChanged(nameof(ShowAccessGuardItem));
         OnPropertyChanged(nameof(AccessGuardItemText));
+        OnPropertyChanged(nameof(IsSettingsPageActive));
+        OnPropertyChanged(nameof(ActivePageText));
         OnPropertyChanged(nameof(VersionText));
         OnPropertyChanged(nameof(VersionBarText));
     }
@@ -449,97 +434,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         foreach (var page in WorkspacePages)
         {
             page.SyncPageAvailability();
-        }
-    }
-
-    partial void OnIsDbProbeRunningChanged(bool value)
-    {
-        TryReconnectDbCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(DbVisualState));
-        OnPropertyChanged(nameof(DbItemText));
-    }
-
-    partial void OnIsAgentsActionRunningChanged(bool value)
-    {
-        StartOrRestartHostCommand.NotifyCanExecuteChanged();
-        StartOrRestartModuleCommand.NotifyCanExecuteChanged();
-    }
-
-    private void RaiseAgentsStateChanged()
-    {
-        OnPropertyChanged(nameof(HostVisualState));
-        OnPropertyChanged(nameof(HostStatusText));
-        OnPropertyChanged(nameof(HostItemText));
-        SyncModuleChrome();
-    }
-
-    private void SyncModuleChrome()
-    {
-        var scanned = Agents.Modules;
-        var wanted = scanned
-            .Where(m => m.Desktop.TopStatusPills || m.Desktop.BottomStatusBar)
-            .ToList();
-
-        foreach (var staleId in _moduleChromeById.Keys.Except(wanted.Select(m => m.Id), StringComparer.Ordinal).ToList())
-        {
-            _moduleChromeById.Remove(staleId);
-        }
-
-        foreach (var module in wanted)
-        {
-            if (!_moduleChromeById.TryGetValue(module.Id, out var chrome))
-            {
-                chrome = new ModuleChrome(module);
-                _moduleChromeById[module.Id] = chrome;
-            }
-            else
-            {
-                chrome.ApplyDescriptor(module);
-            }
-
-            chrome.Apply(Agents.GetModuleState(module.Id));
-        }
-
-        ReplaceModuleChrome(TopStatusPills, wanted.Where(m => m.Desktop.TopStatusPills));
-        ReplaceModuleChrome(BottomStatusBar, wanted.Where(m => m.Desktop.BottomStatusBar));
-    }
-
-    private void ReplaceModuleChrome(
-        ObservableCollection<ModuleChrome> target,
-        IEnumerable<ModuleDescriptor> modules)
-    {
-        var next = modules
-            .Select(m => _moduleChromeById[m.Id])
-            .ToList();
-
-        if (target.Count == next.Count &&
-            target.Zip(next, (a, b) => ReferenceEquals(a, b)).All(same => same))
-        {
-            return;
-        }
-
-        for (var index = 0; index < next.Count; index++)
-        {
-            var item = next[index];
-            if (index < target.Count && ReferenceEquals(target[index], item))
-            {
-                continue;
-            }
-
-            var currentIndex = target.IndexOf(item);
-            if (currentIndex >= 0)
-            {
-                target.Move(currentIndex, index);
-            }
-            else
-            {
-                target.Insert(index, item);
-            }
-        }
-
-        while (target.Count > next.Count)
-        {
-            target.RemoveAt(target.Count - 1);
         }
     }
 
@@ -727,7 +621,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _dbMonitor.Reconnected += ScheduleAutoRefresh;
         _dbMonitor.Disconnected += ScheduleAutoRefresh;
-        Agents.StatusChanged += OnAgentsStatusChanged;
         _updates.Changed += OnUpdateChanged;
         _updateFlow.StateChanged += OnUpdateFlowStateChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
@@ -737,9 +630,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         HasUpdateAvailable = _updates.HasUpdateAvailable;
         IsUpdateChecking = _updates.IsChecking;
 
+        AttachChromeHooks();
+
         ObserveDetached(CheckConfigOnStartupAsync(), "startup.config.detached.fail");
         StartConfigWatcher();
-        RaiseAgentsStateChanged();
         _wasAccessGuardBlocked = _accessGuard.IsBlocked;
         RaiseConnectivityChanged();
         ObserveDetached(InitializeAfterStartupChecksAsync(), "startup.init.detached.fail");
@@ -775,36 +669,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         finally
         {
             _startupState.MarkDbInitCompleted();
-        }
-    }
-
-    private async Task StartAgentsOnStartupAsync()
-    {
-        if (Agents.IsHostRunning)
-        {
-            return;
-        }
-
-        try
-        {
-            var result = await Agents.StartOrRestartAsync().ConfigureAwait(false);
-            if (!result.Ok && !result.SuppressToast)
-            {
-                _logger.Warn(
-                    "MainWindowVM",
-                    "agents.startup_autostart.fail",
-                    "Failed to auto-start Agents host on startup",
-                    null,
-                    new { result.Message });
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn("MainWindowVM", "agents.startup_autostart.exception", "Startup auto-start threw exception", ex);
-        }
-        finally
-        {
-            PostOnUi(RaiseAgentsStateChanged);
         }
     }
 
@@ -1093,7 +957,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         WireScanCode(value);
         WireMsfx(value);
 
-        OnPropertyChanged(nameof(IsSettingsPageActive));
         RaiseBreadcrumbBindings();
         RaiseTopBarVisibilityBindings();
         RaiseStatusItemsChanged();
@@ -1404,231 +1267,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         });
     }
 
-    [RelayCommand(CanExecute = nameof(CanProbeDb))]
-    private async Task TryReconnectDb()
-    {
-        if (SkipTrigger("top.db.probe", (int)TopActionDebounce.TotalMilliseconds))
-        {
-            return;
-        }
-
-        _dbMonitor.Start();
-
-        await RunOnUiAsync(() =>
-        {
-            IsDbProbeRunning = true;
-            TryReconnectDbCommand.NotifyCanExecuteChanged();
-        });
-
-        var kind = _dbMonitor.IsConnected
-            ? DbProbeKind.HealthCheck
-            : DbProbeKind.Reconnect;
-
-        DbProbeReport report;
-
-        try
-        {
-            using var cts = new CancellationTokenSource(ProbeTimeout);
-            report = await _dbMonitor.ProbeAsync(kind, cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.Warn("MainWindowVM", "db.probe.timeout", "Database probe timed out");
-            _toasts.Error("数据库", "操作超时：请检查网络/配置");
-            return;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("MainWindowVM", "db.probe.error", "Database probe failed", ex);
-            _toasts.Error("数据库", ex.Message);
-            return;
-        }
-        finally
-        {
-            await RunOnUiAsync(() =>
-            {
-                IsDbProbeRunning = false;
-                TryReconnectDbCommand.NotifyCanExecuteChanged();
-                MarkDbConnectivityKnown();
-                RaiseDbStateChanged();
-            });
-        }
-
-        if (report.Success)
-        {
-            _toasts.Success("数据库", kind == DbProbeKind.HealthCheck ? "健康检查通过" : "重连成功");
-        }
-        else
-        {
-            _logger.Warn("MainWindowVM", "db.probe.unsuccessful", "Database probe finished with unsuccessful result", null, new
-            {
-                kind,
-                report.Reason
-            });
-            _toasts.Error("数据库", report.Reason ?? "连接失败");
-        }
-    }
-
-    [RelayCommand(CanExecute = nameof(CanControlAgents))]
-    private async Task StartOrRestartHost()
-    {
-        if (SkipTrigger("top.agents.host", (int)TopActionDebounce.TotalMilliseconds))
-        {
-            return;
-        }
-
-        try
-        {
-            if (Agents.IsHostRunning)
-            {
-                IsAgentsActionRunning = true;
-                NotifyAgentsCommands();
-
-                Agents.Reload();
-                if (Agents.IsHostRunning)
-                {
-                    TryShowAgentsTopToast(() => _toasts.Success("Agents", "健康检查通过：Host 进程运行中"));
-                }
-                else
-                {
-                    TryShowAgentsTopToast(() => _toasts.Error("Agents", "健康检查失败：未检测到 Host 进程"));
-                }
-            }
-            else
-            {
-                await RunAgentsCommandAsync(() => Agents.StartOrRestartAsync()).ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("MainWindowVM", "agents.host_top_action.error", "Agents Host top action failed", ex);
-            TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
-        }
-        finally
-        {
-            await RunOnUiAsync(() =>
-            {
-                IsAgentsActionRunning = false;
-                NotifyAgentsCommands();
-                RaiseAgentsStateChanged();
-            });
-        }
-    }
-
-    [RelayCommand(CanExecute = nameof(CanControlAgents))]
-    private async Task StartOrRestartModule(string? moduleId)
-    {
-        if (string.IsNullOrWhiteSpace(moduleId))
-        {
-            return;
-        }
-
-        if (SkipTrigger($"top.agents.module:{moduleId}", (int)TopActionDebounce.TotalMilliseconds))
-        {
-            return;
-        }
-
-        try
-        {
-            var moduleLabel = Agents.Modules
-                .FirstOrDefault(m => string.Equals(m.Id, moduleId, StringComparison.Ordinal))
-                ?.DisplayName;
-            if (string.IsNullOrWhiteSpace(moduleLabel))
-            {
-                moduleLabel = moduleId;
-            }
-
-            if (!Agents.IsModuleEnabled(moduleId))
-            {
-                TryShowAgentsTopToast(() => _toasts.Error("Agents", $"{moduleLabel} 未启用"));
-                return;
-            }
-
-            if (!Agents.IsHostRunning)
-            {
-                await RunAgentsCommandAsync(() => Agents.StartOrRestartAsync()).ConfigureAwait(false);
-                return;
-            }
-
-            if (Agents.GetModuleState(moduleId) == AgentsRunState.Running)
-            {
-                IsAgentsActionRunning = true;
-                NotifyAgentsCommands();
-
-                Agents.Reload();
-                if (Agents.GetModuleState(moduleId) == AgentsRunState.Running)
-                {
-                    TryShowAgentsTopToast(() => _toasts.Success("Agents", $"健康检查通过：{moduleLabel} 已就绪"));
-                }
-                else
-                {
-                    TryShowAgentsTopToast(() => _toasts.Error("Agents", $"健康检查失败：{moduleLabel} 未运行"));
-                }
-
-                return;
-            }
-
-            // Host 已运行时仅启动目标模块，保持其他模块和 Host 会话不变
-            await RunAgentsCommandAsync(() => Agents.StartModuleAsync(moduleId)).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("MainWindowVM", "agents.module_top_action.error", "Agents module top action failed", ex, new { moduleId });
-            TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
-        }
-        finally
-        {
-            await RunOnUiAsync(() =>
-            {
-                IsAgentsActionRunning = false;
-                NotifyAgentsCommands();
-                RaiseAgentsStateChanged();
-            });
-        }
-    }
-
-    private async Task RunAgentsCommandAsync(Func<Task<AgentsCommandResult>> run)
-    {
-        await RunOnUiAsync(() =>
-        {
-            IsAgentsActionRunning = true;
-            NotifyAgentsCommands();
-        });
-
-        var result = await run().ConfigureAwait(false);
-        if (result.SuppressToast)
-        {
-            return;
-        }
-
-        if (result.Ok)
-        {
-            TryShowAgentsTopToast(() => _toasts.Success("Agents", result.Message));
-        }
-        else
-        {
-            TryShowAgentsTopToast(() => _toasts.Error("Agents", result.Message));
-        }
-    }
-
-    private void NotifyAgentsCommands()
-    {
-        StartOrRestartHostCommand.NotifyCanExecuteChanged();
-        StartOrRestartModuleCommand.NotifyCanExecuteChanged();
-    }
-
-    private void TryShowAgentsTopToast(Action show)
-    {
-        var now = DateTimeOffset.UtcNow;
-        if (now - _lastAgentsTopToastAt < AgentsTopToastDebounce)
-        {
-            return;
-        }
-
-        _lastAgentsTopToastAt = now;
-        show();
-    }
-
     private async Task<bool> CheckDbOnStartupAsync()
     {
         if (!File.Exists(_configPath))
@@ -1658,8 +1296,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 {
                     desktopMin = state.DesktopMin,
                     desktopMax = state.DesktopMax,
-                    agentsMin = state.AgentsMin,
-                    agentsMax = state.AgentsMax,
                     target = state.Target,
                     dbVersion = state.DbVersion,
                     schemaOk = state.SchemaOk,
@@ -1714,8 +1350,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         return new DbSchemaVersionContext(
             version.DesktopMinDbSchema,
             version.DesktopMaxDbSchema,
-            version.AgentsMinDbSchema,
-            version.AgentsMaxDbSchema,
             version.DbSchemaVersion);
     }
 
@@ -1725,8 +1359,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         var context = BuildSchemaContext();
         var uiMin = DbSchemaCompat.NormalizeBound(version.DesktopMinDbSchema, version.DbSchemaVersion);
         var uiMax = DbSchemaCompat.NormalizeBound(version.DesktopMaxDbSchema, version.DbSchemaVersion);
-        var agentsMin = DbSchemaCompat.NormalizeBound(version.AgentsMinDbSchema, version.DbSchemaVersion);
-        var agentsMax = DbSchemaCompat.NormalizeBound(version.AgentsMaxDbSchema, version.DbSchemaVersion);
         var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
 
         var snapshot = await _settings
@@ -1740,9 +1372,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 schemaValue = snapshot.CurrentVersion,
                 target,
                 desktopMin = uiMin,
-                desktopMax = uiMax,
-                agentsMin,
-                agentsMax
+                desktopMax = uiMax
             });
         }
         else
@@ -1752,8 +1382,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 target,
                 desktopMin = uiMin,
                 desktopMax = uiMax,
-                agentsMin,
-                agentsMax,
                 schemaOk = snapshot.SchemaOk,
                 schemaValue = snapshot.CurrentVersion,
                 schemaReason = snapshot.Reason,
@@ -1767,8 +1395,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             Target: snapshot.TargetVersion,
             DesktopMin: uiMin,
             DesktopMax: uiMax,
-            AgentsMin: agentsMin,
-            AgentsMax: agentsMax,
             SchemaOk: snapshot.SchemaOk,
             DbVersion: snapshot.CurrentVersion,
             Compatibility: snapshot.Compatibility.ToString(),
@@ -1781,8 +1407,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         string Target,
         string DesktopMin,
         string DesktopMax,
-        string AgentsMin,
-        string AgentsMax,
         bool SchemaOk,
         string? DbVersion,
         string Compatibility,
@@ -1916,15 +1540,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void OnAgentsStatusChanged()
-    {
-        PostOnUi(() =>
-        {
-            RaiseAgentsStateChanged();
-            NotifyAgentsCommands();
-        });
-    }
-
     private void OnUpdateChanged()
     {
         PostOnUi(() =>
@@ -1968,7 +1583,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnTopicChanged);
-        SafeExecute(() => Agents.StatusChanged -= OnAgentsStatusChanged);
+        SafeExecute(DetachChromeHooks);
         SafeExecute(() => _updates.Changed -= OnUpdateChanged);
         SafeExecute(() => _updateFlow.StateChanged -= OnUpdateFlowStateChanged);
         SafeExecute(() => _updateSettings.Changed -= OnUpdateSettingsChanged);

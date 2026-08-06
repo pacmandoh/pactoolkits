@@ -41,12 +41,17 @@ public partial class Settings
 
     private int _unsavedMask;
     private int _activeTabIndex = -1;
+    private int? _pendingOpenTabIndex;
+    private string? _pendingModuleSettingsId;
     private Dictionary<string, string>? _clientAliasEditBaseline;
     private CancellationTokenSource? _loggingAutoSaveCts;
     private CancellationTokenSource? _updateAutoCheckSaveCts;
     private CancellationTokenSource? _updateChannelSaveCts;
 
     public event Action? UnsavedChanged;
+
+    /// <summary>请求设置视图切换到指定 Tab（由 view code-behind 处理离开确认）</summary>
+    public event Action<int>? TabOpenRequested;
 
     public bool HasUnsavedChanges => _unsavedMask != 0;
 
@@ -55,10 +60,89 @@ public partial class Settings
            && tabIndex < TabTitles.Length
            && (_unsavedMask & (1 << tabIndex)) != 0;
 
+    public void OpenAgentsTab()
+        => RequestOpenTab((int)Tab.Agents);
+
+    public void OpenDatabaseTab()
+        => RequestOpenTab((int)Tab.Database);
+
+    public void OpenModuleSettingsTab(string moduleId)
+    {
+        _pendingModuleSettingsId = moduleId;
+        RequestOpenTab((int)Tab.ModuleSettings);
+    }
+
+    /// <summary>导航未就绪时保留目标 Tab，就绪后由 view 取出</summary>
+    public bool TryTakePendingOpenTab(out int tabIndex)
+    {
+        if (_pendingOpenTabIndex is not int pending)
+        {
+            tabIndex = 0;
+            return false;
+        }
+
+        _pendingOpenTabIndex = null;
+        tabIndex = pending;
+        return true;
+    }
+
+    /// <summary>离开确认被取消时丢弃 deep-link，避免误跳或选错模块</summary>
+    public void CancelPendingOpen()
+    {
+        _pendingOpenTabIndex = null;
+        _pendingModuleSettingsId = null;
+    }
+
     public void OnTabEntered(int tabIndex)
     {
         _activeTabIndex = tabIndex;
+        if (_pendingOpenTabIndex == tabIndex)
+        {
+            _pendingOpenTabIndex = null;
+        }
+
         ReloadClientAliasesIfVisible("client_alias.reload.tab_enter_fail");
+        if (tabIndex == (int)Tab.ModuleSettings)
+        {
+            ApplyPendingModuleSelection();
+        }
+    }
+
+    // discardIfMissing：完整重建后再找不到则作废 deep-link；否则编辑器未就绪时保留
+    private void ApplyPendingModuleSelection(bool discardIfMissing = false)
+    {
+        if (string.IsNullOrWhiteSpace(_pendingModuleSettingsId))
+        {
+            return;
+        }
+
+        TryFlushStaleModuleEditors();
+        var match = ModuleEditors.FirstOrDefault(editor =>
+            string.Equals(editor.ModuleId, _pendingModuleSettingsId, StringComparison.Ordinal));
+        if (match is null)
+        {
+            if (discardIfMissing)
+            {
+                _pendingModuleSettingsId = null;
+            }
+
+            return;
+        }
+
+        _pendingModuleSettingsId = null;
+        SelectedModuleEditor = match;
+    }
+
+    private void RequestOpenTab(int tabIndex)
+    {
+        // 非模块 Tab 的 deep-link 不应保留上次模块选中
+        if (tabIndex != (int)Tab.ModuleSettings)
+        {
+            _pendingModuleSettingsId = null;
+        }
+
+        _pendingOpenTabIndex = tabIndex;
+        TabOpenRequested?.Invoke(tabIndex);
     }
 
     private void ReloadClientAliasesIfVisible(string failEvent)

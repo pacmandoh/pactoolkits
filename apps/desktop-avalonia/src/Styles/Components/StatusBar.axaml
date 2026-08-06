@@ -1,4 +1,4 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -77,32 +77,55 @@
 
   <Style Selector="Border.StatusBar TextBlock.Caption.Muted">
     <Setter Property="FontSize" Value="{DynamicResource StatusBarCaptionSize}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Button.StatusBarItem TextBlock.Caption.Muted,Button.StatusBarItem:pointerover TextBlock.Caption.Muted,Button.StatusBarItem:pressed TextBlock.Caption.Muted,Button.StatusBarItem.active TextBlock.Caption.Muted,Button.StatusBarItem.active:pointerover TextBlock.Caption.Muted,Button.StatusBarItem.active:pressed TextBlock.Caption.Muted">
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+  <!--  仅尺寸/描边；不设 Foreground，保留状态色与 Caption Muted  -->
+  <Style Selector="Button.StatusBarItem icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
   </Style>
 
-  <Style Selector="Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentsItem) icons|AppIcon">
+  <Style Selector="Menu.StatusBarAgentsMenu">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinHeight" Value="{DynamicResource StatusBarHeight}" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="Menu.StatusBarAgentsMenu &gt; MenuItem.StatusBarAgentsMenuRoot">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="{DynamicResource StatusBarItemPadding}" />
+    <Setter Property="MinHeight" Value="{DynamicResource StatusBarHeight}" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <!--  贴窗底 tip 压控件会闪，强制向上  -->
+    <Setter Property="ToolTip.Placement" Value="Top" />
+    <Setter Property="ToolTip.VerticalOffset" Value="-6" />
+  </Style>
+
+  <Style Selector="Menu.StatusBarAgentsMenu &gt; MenuItem.StatusBarAgentsMenuRoot:pointerover">
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+  </Style>
+
+  <Style Selector="Menu.StatusBarAgentsMenu &gt; MenuItem.StatusBarAgentsMenuRoot icons|AppIcon.StatusBarAgentsCountIcon">
     <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
-
-  <Style Selector="Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentsItem):pointerover icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentsItem):pressed icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentsItem).active icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentsItem).active:pointerover icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentsItem).active:pressed icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
-
-  <Style Selector="Button.StatusBarDbItem icons|AppIcon,Button.StatusBarAgentsItem icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
-    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
-    <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style Selector="Button.StatusBarIconItem">
     <Setter Property="Padding" Value="{DynamicResource StatusBarIconPadding}" />
+  </Style>
+
+  <Style Selector="Border.StatusBar Button.StatusBarItem">
+    <Setter Property="ToolTip.Placement" Value="Top" />
+    <Setter Property="ToolTip.VerticalOffset" Value="-6" />
   </Style>
 
   <Style Selector="Border.StatusBarDivider">
