@@ -11,6 +11,7 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Presentation;
 using PacToolkits.Desktop.Avalonia.Services.Workspace;
@@ -20,7 +21,7 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 /// <summary>
 /// 协调 MSFX 出库、子码、映射、任务队列、自动巡检和敏感写入授权
 /// </summary>
-public sealed partial class MsfxLink : AppPageBase
+public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
 {
     private const int AutoLogMaxRows = 500;
     private static readonly string[] PullBatchPageSizes = ["20", "50", "100"];
@@ -52,11 +53,11 @@ public sealed partial class MsfxLink : AppPageBase
     public override string Icon => "CloudCog";
     public override int Index => 5;
     public override string FunctionAreaId => ShellFunctionAreas.IntegrationId;
+    // 队列 Tab 的脏刷新/顶栏刷新必须同时更新监控板与映射面缓存，不能按当前工作面二选一
     public override ICommand? RefreshCommand => SelectedTabIndex switch
     {
         0 => RefreshAutoBoardCommand,
-        1 when IsMappingWorkspace => RefreshMappingWorkspaceCommand,
-        1 => RefreshAutoBoardCommand,
+        1 => RefreshQueueTabCommand,
         _ => null
     };
     protected override bool AutoRefreshOnDbDisconnected => true;
@@ -336,12 +337,32 @@ public sealed partial class MsfxLink : AppPageBase
         return SelectedTabIndex switch
         {
             0 => RefreshAutoBoardAsync(ct),
-            1 when IsMappingWorkspace => ReloadMappingWorkspaceCoreAsync(ct),
-            1 => RefreshAutoBoardAsync(ct),
+            1 => ReloadQueueTabCoreAsync(ct),
             2 when IsSubcodeQueryMode => QuerySubCodesAsync(null, null),
             2 => QueryUpoutAsync(resetPage: false),
             _ => Task.CompletedTask
         };
+    }
+
+    // 手动写库期间推迟 watermark 立刻刷新；dirty 仍标记，退出写入后再 TryRefreshIfDirty
+    public bool DeferRefreshTopic(string? topic)
+        => WorkspaceTopicRefresh.DeferMsfx(topic) && IsManualMsfxWriteActive;
+
+    private bool CanRefreshQueueTab()
+        => CanRefreshAutoBoard() && !IsMappingBusy;
+
+    [RelayCommand(CanExecute = nameof(CanRefreshQueueTab))]
+    private Task RefreshQueueTabAsync()
+        => RunLocalReloadAsync(_ => { }, ReloadQueueTabCoreAsync);
+
+    private async Task ReloadQueueTabCoreAsync(CancellationToken ct)
+    {
+        if (IsMappingWorkspace)
+        {
+            await ReloadMappingWorkspaceCoreAsync(ct).ConfigureAwait(false);
+        }
+
+        await RefreshAutoBoardAsync(ct).ConfigureAwait(false);
     }
 
     partial void OnUpoutFromDateChanged(DateTime? value)
@@ -433,7 +454,7 @@ public sealed partial class MsfxLink : AppPageBase
             ShowAutoProgress = false;
         }
         RefreshCommandsCoalesced("msfx.auto.busy.commands", () =>
-            RefreshCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand));
+            RefreshCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand, RefreshQueueTabCommand));
     }
 
     partial void OnIsPullPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
@@ -454,7 +475,7 @@ public sealed partial class MsfxLink : AppPageBase
         OnPropertyChanged(nameof(IsAutoBoardBusy));
         RefreshOpsUnlockCommands();
         RefreshCommandsCoalesced("msfx.auto.board.commands", () =>
-            RefreshCommands(RefreshAutoBoardCommand));
+            RefreshCommands(RefreshAutoBoardCommand, RefreshQueueTabCommand));
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks)), DispatcherPriority.Background);
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks)), DispatcherPriority.Background);
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchRemapSelectedTasks)), DispatcherPriority.Background);

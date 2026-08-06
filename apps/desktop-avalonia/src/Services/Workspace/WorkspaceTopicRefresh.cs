@@ -21,10 +21,16 @@ public static class WorkspaceTopicRefresh
         bool MarkMsfx,
         bool MarkAllRefreshable);
 
-    public static (bool SkipInventory, bool SkipDrugIndex) SkipActiveRefresh(AppPageBase? active, string? topic)
-        => (
-            active is IInventoryRefreshPage inventory && inventory.DeferRefreshTopic(topic),
-            active is IDrugIndexRefreshPage drugIndex && drugIndex.DeferRefreshTopic(topic));
+    /// <summary>当前页是否应对该 topic 推迟立刻刷新（仍可 Mark dirty）</summary>
+    public readonly record struct ActiveRefreshDefer(bool Inventory, bool SkipImmediate);
+
+    public static ActiveRefreshDefer SkipActiveRefresh(AppPageBase? active, string? topic)
+    {
+        var inventory = active is IInventoryRefreshPage inventoryPage && inventoryPage.DeferRefreshTopic(topic);
+        var drugIndex = active is IDrugIndexRefreshPage drugIndexPage && drugIndexPage.DeferRefreshTopic(topic);
+        var msfx = active is IMsfxRefreshPage msfxPage && msfxPage.DeferRefreshTopic(topic);
+        return new(inventory, inventory || drugIndex || msfx);
+    }
 
     public static bool DeferDrugIndex(string? topic)
     {
@@ -38,7 +44,10 @@ public static class WorkspaceTopicRefresh
         return key is "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item" or "";
     }
 
-    public static DirtyPlan PlanDirtyMarks(string? topic, bool skipInventoryPage, bool skipDrugIndexPage)
+    public static bool DeferMsfx(string? topic)
+        => Normalize(topic) == "msfx";
+
+    public static DirtyPlan PlanDirtyMarks(string? topic)
     {
         var key = Normalize(topic);
 
@@ -47,14 +56,14 @@ public static class WorkspaceTopicRefresh
             "drug_index" => new DirtyPlan(
                 InvalidateDrugCatalog: true,
                 MarkInventory: false,
-                MarkDrugIndex: !skipDrugIndexPage,
+                MarkDrugIndex: true,
                 MarkDashboard: true,
                 MarkScanCode: true,
                 MarkMsfx: false,
                 MarkAllRefreshable: false),
             "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item" => new DirtyPlan(
                 InvalidateDrugCatalog: false,
-                MarkInventory: !skipInventoryPage,
+                MarkInventory: true,
                 MarkDrugIndex: false,
                 MarkDashboard: true,
                 MarkScanCode: false,
