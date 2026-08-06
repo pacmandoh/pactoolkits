@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\packages\agents-contracts\PacToolkits.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\packages\logger\PacToolkits.Logger.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 # 分层与依赖规则
 
-PacToolkits 按 Desktop、Application、Infrastructure、Core 和 Agents.Contracts 划分职责。Agents Host 与模块位于 `runtime/agents/`，通过 `packages/agents-contracts` 与 Desktop 共享文件布局和模块描述协议。
+PacToolkits 按 Desktop、Application、Infrastructure、Core、Agents.Contracts 和 Logger 划分职责。Agents Host 与模块位于 `runtime/agents/`，通过 `packages/agents-contracts` 与 Desktop 共享文件布局和模块描述协议；JSON Lines 落盘经 `packages/logger` 统一规格。
 
 ## 依赖方向
 
@@ -11,13 +11,16 @@ flowchart TB
     INF["packages/infrastructure\nPostgreSQL 实现"]
     CORE["packages/core\n纯领域"]
     AGENT["packages/agents-contracts\nAgents 协议"]
+    LOGGER["packages/logger\nJSON Lines 日志"]
     HOST["runtime/agents/host\nAgents.exe Host"]
     MODULE["runtime/agents/modules/*\n独立模块进程"]
 
     DESKTOP --> APP
     DESKTOP --> INF
     DESKTOP --> AGENT
+    DESKTOP --> LOGGER
     HOST --> AGENT
+    HOST --> LOGGER
     INF --> APP
     INF --> CORE
     APP --> CORE
@@ -27,8 +30,8 @@ flowchart TB
 
 **允许：**
 
-- Desktop → Application、Infrastructure、Agents.Contracts
-- Host → Agents.Contracts
+- Desktop → Application、Infrastructure、Agents.Contracts、Logger
+- Host → Agents.Contracts、Logger
 - Infrastructure → Application、Core
 - Application → Core
 

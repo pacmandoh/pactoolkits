@@ -2010,7 +2010,7 @@ public sealed partial class MsfxLink : AppPageBase
     private void OnSubCodeRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsSubCodeEmpty));
 
-    public override void Dispose()
+    protected override void DisposeCore()
     {
         _autoRunLifetimeCts.Cancel();
         _autoTimer.Stop();
@@ -2028,6 +2028,6 @@ public sealed partial class MsfxLink : AppPageBase
         _upoutDateRangeController.Dispose();
         _autoRunLifetimeCts.Dispose();
         DisposeMappingWorkspace();
-        base.Dispose();
+        base.DisposeCore();
     }
 }

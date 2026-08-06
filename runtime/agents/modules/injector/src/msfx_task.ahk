@@ -1,18 +1,27 @@
-; 码上放心仓库任务按策略取码并注入目标窗口，同时执行防重和首条强验证
-global __MSFX_COL := Map()
-
+; 码上放心仓库任务：解析行、防重、贴码验证与节拍（SQL/取码见 msfx_sql / msfx_code）
 Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colSpecs, intCols, iptCls, win := "A", clickAnchor := "") {
 	win := Util_NormalizeWin(win)
+	flowT0 := A_TickCount
+	Log_Debug("msfx.flow.start", "仓库流程开始", Map(
+		"parseNn", parseGridClassNN, "verifyNn", verifyGridClassNN, "inputNn", inputClassNN,
+		"timeoutMs", timeoutMs
+	))
 	pre := Util_WarehouseSoftCheck(win)
-	if !pre["ok"]
+	if !pre["ok"] {
+		Log_Debug("msfx.flow.soft_fail", "仓库软校验失败", Map(
+			"message", pre.Has("message") ? pre["message"] : "", "elapsedMs", A_TickCount - flowT0
+		))
 		return pre
+	}
 	headerLine := pre.Has("header_line") ? Trim(pre["header_line"]) : ""
 
 	taskIdentifierSpec := Msfx_GetWarehouseTaskIdentifierSpec()
 	parseSpecs := Msfx_BuildWarehouseParseSpecs(colSpecs, taskIdentifierSpec)
 	p := Parse_TargetInfo(parseSpecs, iptCls, intCols, "", win, parseGridClassNN)
-	if !p["ok"]
+	if !p["ok"] {
+		Log_Debug("msfx.flow.parse_fail", "仓库解析失败", Map("elapsedMs", A_TickCount - flowT0))
 		return p
+	}
 
 	by := p["bySpec"]
 	drugId := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
@@ -20,14 +29,18 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	warehouseBillNo := Msfx_ResolveWarehouseBillNo(by, taskIdentifierSpec)
 	baseRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec)
 	rowFingerprint := baseRowFingerprint
+	Log_Debug("msfx.flow.parsed", "仓库行已解析", Map(
+		"drugId", drugId, "spec", spec, "bill", warehouseBillNo,
+		"fp", baseRowFingerprint, "idSpec", taskIdentifierSpec
+	))
 	if (drugId = "" || spec = "") {
-		return Map("ok", false, "level", "WARN", "type", "[解析错误]", "why", "仓库模式解析结果缺少关键字段`n药品名称=" drugId " 规格=" spec)
+		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少关键字段`n药品名称=" drugId " 规格=" spec)
 	}
 	if (warehouseBillNo = "") {
-		return Map("ok", false, "level", "WARN", "type", "[解析错误]", "why", "仓库模式解析结果缺少任务标识`n任务标识=" taskIdentifierSpec)
+		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少任务标识`n任务标识=" taskIdentifierSpec)
 	}
 	if (Trim(baseRowFingerprint) = "") {
-		return Map("ok", false, "level", "WARN", "type", "[仓库任务校验]", "why", "仓库行指纹生成失败，已停止执行以避免错误防重`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec)
+		return Map("ok", false, "level", "Warn", "message", "[仓库任务校验]`n仓库行指纹生成失败，已停止执行以避免错误防重`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec)
 	}
 
 	global RuntimeInfo
@@ -39,9 +52,14 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	if !dup["ok"]
 		return dup
 	if dup["exists"] {
+		Log_Debug("msfx.flow.dup", "命中防重，尝试行槽指纹", Map("bill", warehouseBillNo, "fp", baseRowFingerprint))
 		if (IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"]) {
 			slotAnchor := UI_CaptureGridClickAnchorFromPoint(parseGridClassNN, clickAnchor, win)
 			slotRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec, slotAnchor)
+			Log_Debug("msfx.flow.slot_fp", "行槽指纹", Map(
+				"base", baseRowFingerprint, "slot", slotRowFingerprint,
+				"anchorOk", IsObject(slotAnchor) && slotAnchor.Has("ok") && slotAnchor["ok"]
+			))
 			if (slotRowFingerprint != "" && slotRowFingerprint != baseRowFingerprint) {
 				dup2 := Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec, slotRowFingerprint)
 				if !dup2["ok"]
@@ -55,21 +73,23 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	}
 	if dup["exists"] {
 		fpTip := (rowFingerprint != "") ? ("`n行指纹=" rowFingerprint) : ""
+		Log_Debug("msfx.flow.dup_block", "防重拦截", Map("bill", warehouseBillNo, "fp", rowFingerprint))
 		return Map(
 			"ok", false,
-			"level", "WARN",
-			"type", "[仓库任务校验]",
-			"why", "当前单据该药品规格已存在成功记录，已阻止重复注入`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec fpTip
+			"level", "Warn", "message", "[仓库任务校验]`n当前单据该药品规格已存在成功记录，已阻止重复注入`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec fpTip
 		)
 	}
 
 	claim := Msfx_ClaimInjectTaskByTarget(clientId, drugId, spec)
-	if !claim["ok"]
+	if !claim["ok"] {
+		Log_Debug("msfx.flow.claim_fail", "领取任务失败", Map("drugId", drugId, "spec", spec))
 		return claim
+	}
 
 	tasks := claim["tasks"]
+	Log_Debug("msfx.flow.claim", "领取任务", Map("tasks", tasks.Length, "drugId", drugId, "spec", spec))
 	if (tasks.Length = 0)
-		return Map("ok", true, "skip", true, "type", "[仓库任务]", "why", "未找到匹配任务：药品=" drugId " 规格=" spec)
+		return Map("ok", true, "skip", true, "level", "Info", "message", "[仓库任务]`n未找到匹配任务：药品=" drugId " 规格=" spec)
 	UI_Tip("[仓库模式] 已匹配任务 1 条，开始注入…", 1000)
 
 	policy := Cfg["CODE_PICK_POLICY"]
@@ -77,24 +97,36 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	hasErr := false
 	for _, task in tasks {
 		taskId := task["task_id"]
+		Log_Debug("msfx.flow.task", "执行仓库任务", Map("taskId", taskId, "policy", policy, "fp", rowFingerprint))
 		r := Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine, warehouseBillNo, rowFingerprint)
 		if !r["ok"] {
-			lastErr := r["why"]
-			if (r.Has("level") && r["level"] = "ERR")
+			lastErr := r["message"]
+			if (r.Has("level") && r["level"] = "Error")
 				hasErr := true
+			Log_Debug("msfx.flow.task_fail", "仓库任务失败", Map(
+				"taskId", taskId, "level", r.Has("level") ? r["level"] : "",
+				"message", lastErr
+			))
 		}
 	}
 
 	if (lastErr != "")
-		return Map("ok", false, "level", hasErr ? "ERR" : "WARN", "type", "[仓库任务]", "why", lastErr)
+		return Map("ok", false, "level", hasErr ? "Error" : "Warn", "message", "[仓库任务]`n" lastErr)
 
+	Log_Info("msfx.flow.done", "仓库流程完成", Map(
+		"tasks", tasks.Length, "bill", warehouseBillNo, "drugId", drugId, "spec", spec,
+		"elapsedMs", A_TickCount - flowT0
+	))
 	return Map(
-		"ok", true, "type", "[仓库任务完成]",
-		"why", "已处理任务数=" tasks.Length "，单据号=" warehouseBillNo "，药品=" drugId "，规格=" spec
+		"ok", true, "level", "Info", "message", "[仓库任务完成]`n已处理任务数=" tasks.Length "，单据号=" warehouseBillNo "，药品=" drugId "，规格=" spec
 	)
 }
 
 Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine := "", warehouseBillNo := "", rowFingerprint := "") {
+	taskT0 := A_TickCount
+	Log_Debug("msfx.task.start", "单任务开始", Map(
+		"taskId", taskId, "policy", policy, "bill", warehouseBillNo, "fp", rowFingerprint
+	))
 	Msfx_InsertEvent(taskId, "PARSE", "INFO", "仓库任务开始执行")
 	if (Trim(headerLine) != "") {
 		line := headerLine
@@ -105,15 +137,17 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 
 	rowsRes := Msfx_GetPendingTaskCodes(taskId)
 	if !rowsRes["ok"] {
+		Log_Debug("msfx.task.codes_fail", "读明细失败", Map("taskId", taskId))
 		Msfx_FinalizeInjectTask(taskId, "读取任务明细失败")
 		return rowsRes
 	}
 
 	codeRows := rowsRes["rows"]
+	Log_Debug("msfx.task.codes", "待注入明细", Map("taskId", taskId, "rows", codeRows.Length))
 	if (codeRows.Length = 0) {
 		Msfx_InsertEvent(taskId, "PARSE", "WARN", "任务无待处理明细")
 		Msfx_FinalizeInjectTask(taskId, "任务无待处理明细")
-		return Map("ok", false, "level", "WARN", "type", "[仓库任务错误]", "why", "任务无待注入明细")
+		return Map("ok", false, "level", "Warn", "message", "[仓库任务错误]`n任务无待注入明细")
 	}
 
 	succ := 0
@@ -157,22 +191,26 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 		u1 := Msfx_BatchUpdateTaskCodes(taskId, noCodeLeafs, "FAILED", "", "取码策略结果为空")
 		if !u1["ok"] {
 			Msfx_FinalizeInjectTask(taskId, "更新失败明细状态失败")
-			return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u1["err"])
+			return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u1["err"])
 		}
 		u2 := Msfx_BatchUpdateStagingCodes(noCodeStaging, "FAILED", "取码策略结果为空")
 		if !u2["ok"] {
 			Msfx_FinalizeInjectTask(taskId, "更新 staging 失败状态失败")
-			return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u2["err"])
+			return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u2["err"])
 		}
 		Msfx_InsertEvent(taskId, "PARSE", "ERR", "取码策略结果为空，明细数=" noCodeLeafs.Length)
 	}
 
 	totalGroups := groups.Length
+	Log_Debug("msfx.task.groups", "取码分组完成", Map(
+		"taskId", taskId, "groups", totalGroups, "noCode", noCodeLeafs.Length, "policy", policy
+	))
 	prep := UI_PrepareWarehouseFastTarget(inputClassNN, win)
 	if !prep["ok"] {
-		why := prep.Has("why") ? prep["why"] : "仓库窗口准备失败"
+		why := prep.Has("message") ? prep["message"] : "仓库窗口准备失败"
+		Log_Debug("msfx.task.prep_fail", why, Map("taskId", taskId))
 		Msfx_FinalizeInjectTask(taskId, "仓库窗口准备失败")
-		return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", why)
+		return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" why)
 	}
 
 	for gIdx, grp in groups {
@@ -182,25 +220,35 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 		leafCodes := Msfx_GroupLeafCodes(items)
 		stagingIds := Msfx_GroupStagingIds(items)
 		injectRuns++
+		codeTail := (StrLen(injectCode) <= 4) ? injectCode : SubStr(injectCode, -3)
 
 		; 首条记录使用完整注入与强验证，确认窗口链路对齐后再进入高吞吐路径
 		useStableInject := !firstVerified
+		if (useStableInject || gIdx <= 2 || Mod(gIdx, 40) = 0)
+			Log_Debug("msfx.task.inject", "注入一组", Map(
+				"taskId", taskId, "gIdx", gIdx, "groups", totalGroups,
+				"items", itemCount, "stable", useStableInject,
+				"codeLen", StrLen(injectCode), "codeTail", codeTail
+			))
 		if useStableInject
 			pr := UI_Paste_Impl(win, inputClassNN, injectCode, false)
 		else
 			pr := UI_Paste_Warehouse(injectCode, inputClassNN, win)
 		if !pr["ok"] {
-			why := pr.Has("why") ? pr["why"] : "仓库窗口注入失败"
+			why := pr.Has("message") ? pr["message"] : "仓库窗口注入失败"
+			Log_Debug("msfx.task.inject_fail", why, Map(
+				"taskId", taskId, "gIdx", gIdx, "codeTail", codeTail, "items", itemCount
+			))
 			fail += itemCount
 			u1 := Msfx_BatchUpdateTaskCodes(taskId, leafCodes, "FAILED", "", why)
 			if !u1["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "更新注入失败状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u1["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u1["err"])
 			}
 			u2 := Msfx_BatchUpdateStagingCodes(stagingIds, "FAILED", why)
 			if !u2["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "更新 staging 注入失败状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u2["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u2["err"])
 			}
 			Msfx_InsertEvent(taskId, "INJECT", "ERR", "注入失败，码=" injectCode "，影响明细=" itemCount "，原因=" why)
 			Msfx_ApplyWarehouseBurstPacing(gIdx, totalGroups)
@@ -212,40 +260,45 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 		if !firstVerified {
 			; 仓库验证窗口结构与住院一致，沿用 TcxGridSite 第 1 个网格验证首条
 			firstTimeout := (timeoutMs < 3500) ? 3500 : timeoutMs
+			Log_Debug("msfx.task.first_verify", "首条强校验", Map("taskId", taskId, "timeoutMs", firstTimeout, "codeTail", codeTail))
 			wc := UI_WaitConfirm_Warehouse([injectCode], firstTimeout, verifyGridClassNN, win)
 			verifyOk := wc["ok"]
 			verifyResult := verifyOk ? "FIRST_OK" : "FIRST_FAIL"
+			Log_Debug("msfx.task.first_verify_result", verifyOk ? "首条通过" : "首条失败", Map(
+				"taskId", taskId, "result", verifyResult,
+				"message", wc.Has("message") ? wc["message"] : ""
+			))
 			if verifyOk {
 				firstVerified := true
 				; 首条验证会将焦点移至验证区域，进入后续循环前必须恢复输入框焦点
 				rePrep := UI_PrepareWarehouseFastTarget(inputClassNN, win)
 				if !rePrep["ok"] {
-					why := rePrep.Has("why") ? rePrep["why"] : "仓库窗口准备失败"
+					why := rePrep.Has("message") ? rePrep["message"] : "仓库窗口准备失败"
 					Msfx_FinalizeInjectTask(taskId, "仓库窗口准备失败")
-					return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", why)
+					return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" why)
 				}
 			}
 		}
 
 		if !verifyOk {
-			why := wc.Has("why") ? wc["why"] : "仓库窗口验证失败"
+			why := wc.Has("message") ? wc["message"] : "仓库窗口验证失败"
 			fail += itemCount
 			u1 := Msfx_BatchUpdateTaskCodes(taskId, leafCodes, "FAILED", verifyResult, why)
 			if !u1["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "更新验证失败状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u1["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u1["err"])
 			}
 			u2 := Msfx_BatchUpdateStagingCodes(stagingIds, "FAILED", why)
 			if !u2["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "更新 staging 验证失败状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u2["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u2["err"])
 			}
 			Msfx_InsertEvent(taskId, "VERIFY", "ERR", "验证失败，码=" injectCode "，影响明细=" itemCount "，原因=" why)
 
 			; 首条验证失败表示窗口链路未对齐，必须终止任务以避免后续数据错位
 			if !firstVerified {
 				Msfx_FinalizeInjectTask(taskId, "首条验证失败，任务已终止以避免错位注入")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", "首条注入验证失败，已终止任务，避免后续错位")
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n首条注入验证失败，已终止任务，避免后续错位")
 			}
 
 			Msfx_ApplyWarehouseBurstPacing(gIdx, totalGroups)
@@ -268,12 +321,12 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 		u1 := Msfx_BatchUpdateTaskCodes(taskId, leafCodes, "INJECTED", verifyResult, "")
 		if !u1["ok"] {
 			Msfx_FinalizeInjectTask(taskId, "更新注入成功状态失败")
-			return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u1["err"])
+			return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u1["err"])
 		}
 		u2 := Msfx_BatchUpdateStagingCodes(stagingIds, "VERIFIED", "")
 		if !u2["ok"] {
 			Msfx_FinalizeInjectTask(taskId, "更新 staging 成功状态失败")
-			return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u2["err"])
+			return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u2["err"])
 		}
 		msg := (itemCount > 1) ? "注入并验证成功（同码合并）" : "注入并验证成功"
 		Msfx_InsertEvent(taskId, "INJECT", "INFO", msg "，码=" injectCode "，影响明细=" itemCount)
@@ -285,24 +338,24 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 			u1 := Msfx_BatchUpdateTaskCodes(taskId, minFirstLeafs, "INJECTED", "FIRST_OK", "")
 			if !u1["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "MIN_LEVEL 批量更新首组成功状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u1["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u1["err"])
 			}
 			u2 := Msfx_BatchUpdateStagingCodes(minFirstStaging, "VERIFIED", "")
 			if !u2["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "MIN_LEVEL 批量更新首组 staging 成功状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u2["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u2["err"])
 			}
 		}
 		if (minSoftLeafs.Length > 0) {
 			u1 := Msfx_BatchUpdateTaskCodes(taskId, minSoftLeafs, "INJECTED", "SOFT_OK", "")
 			if !u1["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "MIN_LEVEL 批量更新后续成功状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u1["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u1["err"])
 			}
 			u2 := Msfx_BatchUpdateStagingCodes(minSoftStaging, "VERIFIED", "")
 			if !u2["ok"] {
 				Msfx_FinalizeInjectTask(taskId, "MIN_LEVEL 批量更新后续 staging 成功状态失败")
-				return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", u2["err"])
+				return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" u2["err"])
 			}
 		}
 		Msfx_InsertEvent(taskId, "INJECT", "INFO", "MIN_LEVEL 极速注入完成，注入次数=" injectRuns "，成功明细=" succ "，失败明细=" fail)
@@ -318,17 +371,16 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 	finalizeBillNo := (fail = 0 && succ > 0) ? warehouseBillNo : ""
 	finalizeRowFingerprint := (fail = 0 && succ > 0) ? rowFingerprint : ""
 	fr := Msfx_FinalizeInjectTask(taskId, finalErr, finalizeBillNo, finalizeRowFingerprint)
-	if !fr["ok"]
-		return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", "任务结算失败：`n" fr["why"])
+	if !fr["ok"] {
+		Log_Debug("msfx.task.finalize_fail", "任务结算失败", Map("taskId", taskId, "message", fr.Has("message") ? fr["message"] : ""))
+		return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n任务结算失败：`n" fr["message"])
+	}
 
-	return Map("ok", true, "type", "[仓库任务完成]", "why", "task_id=" taskId " 注入次数=" injectRuns " 成功=" succ " 失败=" fail)
-}
-
-Msfx_ArrayAppend(dst, src) {
-	if !IsObject(dst) || !IsObject(src)
-		return
-	for _, v in src
-		dst.Push(v)
+	Log_Debug("msfx.task.done", "单任务完成", Map(
+		"taskId", taskId, "runs", injectRuns, "succ", succ, "fail", fail,
+		"elapsedMs", A_TickCount - taskT0
+	))
+	return Map("ok", true, "level", "Info", "message", "[仓库任务完成]`ntask_id=" taskId " 注入次数=" injectRuns " 成功=" succ " 失败=" fail)
 }
 
 Msfx_ApplyWarehouseBurstPacing(groupIndex, totalGroups) {
@@ -344,58 +396,6 @@ Msfx_ApplyWarehouseBurstPacing(groupIndex, totalGroups) {
 		return
 	if (Mod(groupIndex, burstN) = 0)
 		Sleep(pauseMs)
-}
-
-Msfx_ClaimInjectTaskByTarget(clientId, drugId, spec) {
-	escClient := Util_EscapeSQL(clientId)
-	escDrug := Util_EscapeSQL(drugId)
-	escSpec := Util_EscapeSQL(spec)
-
-	sql := ""
-		. "SELECT task_id, bill_id, source_bill_code, mapped_drug_id, mapped_spec, total_codes "
-		. "FROM msfx_claim_inject_task_by_target('"
-		. escClient "', '"
-		. escDrug "', '"
-		. escSpec "');"
-	r := DB_Query(sql)
-	if !r["ok"] {
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", r["err"])
-	}
-
-	tasks := []
-	for _, row in r["rows"] {
-		tasks.Push(Map(
-			"task_id", Util_ToInt(row[1]),
-			"bill_id", Util_ToInt(row[2]),
-			"source_bill_code", row[3],
-			"mapped_drug_id", row[4],
-			"mapped_spec", row[5],
-			"total_codes", Util_ToInt(row[6])
-		))
-	}
-
-	return Map("ok", true, "tasks", tasks)
-}
-
-Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec, rowFingerprint := "") {
-	escBill := Util_EscapeSQL(warehouseBillNo)
-	escDrug := Util_EscapeSQL(drugId)
-	escSpec := Util_EscapeSQL(spec)
-	escFp := Util_EscapeSQL(rowFingerprint)
-	sql := ""
-		. "SELECT msfx_has_warehouse_success_task('"
-		. escBill "', '"
-		. escDrug "', '"
-		. escSpec "', NULLIF('" escFp "', '')) AS has_success;"
-	r := DB_Query(sql)
-	if !r["ok"]
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", r["err"])
-	exists := false
-	if (r["rows"].Length > 0) {
-		v := StrUpper(Trim("" r["rows"][1][1]))
-		exists := (v = "TRUE" || v = "T" || v = "1")
-	}
-	return Map("ok", true, "exists", exists)
 }
 
 Msfx_GetWarehouseTaskIdentifierSpec() {
@@ -469,288 +469,4 @@ Msfx_GetWarehouseBySpecValue(bySpec, aliases) {
 Msfx_NormalizeFingerprintPart(value) {
 	value := Trim("" value)
 	return RegExReplace(value, "\s+", " ")
-}
-
-Msfx_GetPendingTaskCodes(taskId) {
-	escTask := Util_ToInt(taskId, 0)
-	if (escTask <= 0)
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", "task_id 非法")
-
-	codeCol := Msfx_GetTaskCodeColumnName()
-	sql := ""
-		. "SELECT "
-		. "  tc.seq, tc." codeCol ", COALESCE(tc.staging_id, 0), "
-		. "  COALESCE(s.source_code_level_1, ''), "
-		. "  COALESCE(s.source_code_level_2, ''), "
-		. "  COALESCE(s.source_code_level_3, ''), "
-		. "  COALESCE(s.source_code_level_4, ''), "
-		. "  COALESCE(s.source_code_level_5, '') "
-		. "FROM msfx_inject_task_code tc "
-		. "LEFT JOIN msfx_code_staging s ON s.id = tc.staging_id "
-		. "WHERE tc.task_id = " escTask " "
-		. "  AND tc.status = 'PENDING' "
-		. "ORDER BY tc.seq, tc." codeCol ";"
-	r := DB_Query(sql)
-	if !r["ok"] {
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", r["err"])
-	}
-
-	rows := []
-	for _, row in r["rows"] {
-		rows.Push(Map(
-			"seq", Util_ToInt(row[1]),
-			"leaf_code", row[2],
-			"staging_id", Util_ToInt(row[3]),
-			"l1", row[4],
-			"l2", row[5],
-			"l3", row[6],
-			"l4", row[7],
-			"l5", row[8]
-		))
-	}
-	return Map("ok", true, "rows", rows)
-}
-
-Msfx_SelectInjectCode(item, policy := "MAX_LEVEL") {
-	pol := StrUpper(Trim(policy))
-	if (pol = "MIN_LEVEL") {
-		for _, key in ["l1", "l2", "l3", "l4", "l5"] {
-			v := item.Has(key) ? Trim(item[key]) : ""
-			if (v != "")
-				return v
-		}
-	} else {
-		for _, key in ["l5", "l4", "l3", "l2", "l1"] {
-			v := item.Has(key) ? Trim(item[key]) : ""
-			if (v != "")
-				return v
-		}
-	}
-	return item.Has("leaf_code") ? Trim(item["leaf_code"]) : ""
-}
-
-Msfx_NormalizeCode(v) {
-	s := Trim("" v)
-	s := StrReplace(s, "`r", "")
-	s := StrReplace(s, "`n", "")
-	s := StrReplace(s, " ", "")
-	digits := RegExReplace(s, "\D")
-	if (digits != "" && StrLen(digits) >= 8)
-		s := digits
-	return s
-}
-
-Msfx_GroupLeafCodes(items) {
-	out := []
-	seen := Map()
-	for _, item in items {
-		c := item.Has("leaf_code") ? Msfx_NormalizeCode(item["leaf_code"]) : ""
-		if (c = "" || seen.Has(c))
-			continue
-		seen[c] := true
-		out.Push(c)
-	}
-	return out
-}
-
-Msfx_GroupStagingIds(items) {
-	out := []
-	seen := Map()
-	for _, item in items {
-		sid := item.Has("staging_id") ? Util_ToInt(item["staging_id"], 0) : 0
-		if (sid <= 0 || seen.Has(sid))
-			continue
-		seen[sid] := true
-		out.Push(sid)
-	}
-	return out
-}
-
-Msfx_BatchUpdateTaskCodes(taskId, leafCodes, status, verifyResult := "", errMsg := "") {
-	escTask := Util_ToInt(taskId, 0)
-	if (escTask <= 0)
-		return Map("ok", false, "err", "task_id 非法")
-	if !IsObject(leafCodes) || (leafCodes.Length = 0)
-		return Map("ok", true)
-
-	codeCol := Msfx_GetTaskCodeColumnName()
-	inList := Msfx_SqlListQuoted(leafCodes)
-	if (inList = "")
-		return Map("ok", true)
-
-	escStatus := Util_EscapeSQL(status)
-	escVerify := Util_EscapeSQL(verifyResult)
-	escErr := Util_EscapeSQL(errMsg)
-	sql := ""
-		. "UPDATE msfx_inject_task_code "
-		. "SET status='" escStatus "', "
-		. "    injected_at = CASE WHEN '" escStatus "' = 'INJECTED' THEN now() ELSE injected_at END, "
-		. "    verify_result = NULLIF('" escVerify "', ''), "
-		. "    err_msg = NULLIF('" escErr "', '') "
-		. "WHERE task_id=" escTask " AND " codeCol " IN (" inList ");"
-	return DB_Exec(sql)
-}
-
-Msfx_BatchUpdateStagingCodes(stagingIds, codeStatus, errMsg := "") {
-	if !IsObject(stagingIds) || (stagingIds.Length = 0)
-		return Map("ok", true)
-
-	inList := Msfx_SqlListInts(stagingIds)
-	if (inList = "")
-		return Map("ok", true)
-
-	escStatus := Util_EscapeSQL(codeStatus)
-	escErr := Util_EscapeSQL(errMsg)
-	sql := ""
-		. "UPDATE msfx_code_staging "
-		. "SET code_status='" escStatus "', "
-		. "    verified_at = CASE WHEN '" escStatus "' = 'VERIFIED' THEN now() ELSE verified_at END, "
-		. "    err_msg = NULLIF('" escErr "', ''), "
-		. "    updated_at = now() "
-		. "WHERE id IN (" inList ");"
-	return DB_Exec(sql)
-}
-
-Msfx_SqlListQuoted(items) {
-	out := []
-	seen := Map()
-	for _, x in items {
-		v := Msfx_NormalizeCode(x)
-		if (v = "" || seen.Has(v))
-			continue
-		seen[v] := true
-		out.Push("'" Util_EscapeSQL(v) "'")
-	}
-	return out.Length > 0 ? Msfx_Join(out, ",") : ""
-}
-
-Msfx_SqlListInts(items) {
-	out := []
-	seen := Map()
-	for _, x in items {
-		n := Util_ToInt(x, 0)
-		if (n <= 0 || seen.Has(n))
-			continue
-		seen[n] := true
-		out.Push(n)
-	}
-	return out.Length > 0 ? Msfx_Join(out, ",") : ""
-}
-
-Msfx_Join(arr, sep := ",") {
-	if !IsObject(arr) || (arr.Length = 0)
-		return ""
-	s := ""
-	for i, v in arr
-		s .= (i = 1 ? "" : sep) v
-	return s
-}
-
-Msfx_UpdateTaskCode(taskId, leafCode, status, verifyResult := "", errMsg := "") {
-	escTask := Util_ToInt(taskId, 0)
-	escLeaf := Util_EscapeSQL(leafCode)
-	escStatus := Util_EscapeSQL(status)
-	escVerify := Util_EscapeSQL(verifyResult)
-	escErr := Util_EscapeSQL(errMsg)
-
-	codeCol := Msfx_GetTaskCodeColumnName()
-	sql := ""
-		. "UPDATE msfx_inject_task_code "
-		. "SET status='" escStatus "', "
-		. "    injected_at = CASE WHEN '" escStatus "' = 'INJECTED' THEN now() ELSE injected_at END, "
-		. "    verify_result = NULLIF('" escVerify "', ''), "
-		. "    err_msg = NULLIF('" escErr "', '') "
-		. "WHERE task_id=" escTask " AND " codeCol "='" escLeaf "';"
-	return DB_Exec(sql)
-}
-
-Msfx_UpdateStagingCodeStatus(stagingId, codeStatus, errMsg := "") {
-	sid := Util_ToInt(stagingId, 0)
-	if (sid <= 0)
-		return Map("ok", true)
-
-	escStatus := Util_EscapeSQL(codeStatus)
-	escErr := Util_EscapeSQL(errMsg)
-	sql := ""
-		. "UPDATE msfx_code_staging "
-		. "SET code_status='" escStatus "', "
-		. "    verified_at = CASE WHEN '" escStatus "' = 'VERIFIED' THEN now() ELSE verified_at END, "
-		. "    err_msg = NULLIF('" escErr "', ''), "
-		. "    updated_at = now() "
-		. "WHERE id=" sid ";"
-	return DB_Exec(sql)
-}
-
-Msfx_InsertEvent(taskId, stage, level, msg, leafCode := "") {
-	tid := Util_ToInt(taskId, 0)
-	if (tid <= 0)
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", "task_id 非法")
-
-	escStage := Util_EscapeSQL(stage)
-	escLevel := Util_EscapeSQL(level)
-	escMsg := Util_EscapeSQL(msg)
-	escLeaf := Util_EscapeSQL(leafCode)
-
-	codeCol := Msfx_GetEventCodeColumnName()
-	sql := ""
-		. "INSERT INTO msfx_inject_event(task_id, " codeCol ", stage, level, message) "
-		. "VALUES ("
-		. tid ", "
-		. "NULLIF('" escLeaf "', ''), "
-		. "'" escStage "', "
-		. "'" escLevel "', "
-		. "'" escMsg "'"
-		. ");"
-	return DB_Exec(sql)
-}
-
-Msfx_FinalizeInjectTask(taskId, errMsg := "", warehouseBillNo := "", rowFingerprint := "") {
-	tid := Util_ToInt(taskId, 0)
-	if (tid <= 0)
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", "task_id 非法")
-
-	escErr := Util_EscapeSQL(errMsg)
-	escBill := Util_EscapeSQL(warehouseBillNo)
-	escFp := Util_EscapeSQL(rowFingerprint)
-	sql := ""
-		. "SELECT task_id, task_status, success_codes, failed_codes, total_codes "
-		. "FROM msfx_finalize_inject_task(" tid ", NULLIF('" escErr "', ''), NULLIF('" escBill "', ''), NULLIF('" escFp "', ''));"
-	r := DB_Query(sql)
-	if !r["ok"]
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", r["err"])
-	return Map("ok", true, "rows", r["rows"])
-}
-
-Msfx_GetTaskCodeColumnName() {
-	global __MSFX_COL
-	if (__MSFX_COL.Has("task_code_col"))
-		return __MSFX_COL["task_code_col"]
-
-	col := Msfx_DetectColumn("msfx_inject_task_code", "leaf_code") ? "leaf_code" : "trace_code"
-	__MSFX_COL["task_code_col"] := col
-	return col
-}
-
-Msfx_GetEventCodeColumnName() {
-	global __MSFX_COL
-	if (__MSFX_COL.Has("event_code_col"))
-		return __MSFX_COL["event_code_col"]
-
-	col := Msfx_DetectColumn("msfx_inject_event", "leaf_code") ? "leaf_code" : "trace_code"
-	__MSFX_COL["event_code_col"] := col
-	return col
-}
-
-Msfx_DetectColumn(tableName, colName) {
-	escTable := Util_EscapeSQL(tableName)
-	escCol := Util_EscapeSQL(colName)
-	sql := ""
-		. "SELECT 1 "
-		. "FROM information_schema.columns "
-		. "WHERE table_schema='public' "
-		. "  AND table_name='" escTable "' "
-		. "  AND column_name='" escCol "' "
-		. "LIMIT 1;"
-	r := DB_Query(sql)
-	return (r["ok"] && r["rows"].Length > 0)
 }

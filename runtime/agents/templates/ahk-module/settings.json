@@ -9,5 +9,9 @@
   "Features": {
     "Heartbeat": 1,
     "Debug": 0
-  }
+  },
+  "LogEnabled": true,
+  "LogMinimumLevel": "Error",
+  "LogRetentionDays": 14,
+  "LogMaxFileSizeMb": 20
 }

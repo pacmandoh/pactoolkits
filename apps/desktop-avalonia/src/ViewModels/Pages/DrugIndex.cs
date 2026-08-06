@@ -1715,14 +1715,14 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     private void OnUnlockTimerTick(object? sender, EventArgs e)
         => RefreshOpsUnlock();
 
-    public override void Dispose()
+    protected override void DisposeCore()
     {
         Items.CollectionChanged -= OnItemsCollectionChanged;
         _unlockService.StateChanged -= OnUnlockChanged;
         StopUnlockTimer();
         _unlockStatusTimer.Tick -= OnUnlockTimerTick;
         _keywordSearchDebouncer.Dispose();
-        base.Dispose();
+        base.DisposeCore();
     }
 
 }

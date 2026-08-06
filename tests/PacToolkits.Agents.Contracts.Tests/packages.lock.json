@@ -165,6 +165,9 @@
       },
       "pactoolkits.agents.contracts": {
         "type": "Project"
+      },
+      "pactoolkits.logger": {
+        "type": "Project"
       }
     }
   }

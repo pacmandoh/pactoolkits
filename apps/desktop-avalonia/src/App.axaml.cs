@@ -26,7 +26,7 @@ public partial class App : global::Avalonia.Application
     private IAgentsManager? _agentsManager;
     private IAppLogger? _logger;
     private UnlockActivity? _unlockActivity;
-    private bool _forceExit;
+    private bool _shutdownCleanupDone;
     private UnhandledExceptionEventHandler? _appDomainUnhandledHandler;
     private EventHandler<UnobservedTaskExceptionEventArgs>? _taskUnhandledHandler;
     private DispatcherUnhandledExceptionEventHandler? _uiUnhandledHandler;
@@ -84,19 +84,18 @@ public partial class App : global::Avalonia.Application
         Program.Instance?.SetActivationHandler(ActivateMainWindow);
         try
         {
-            BuildTrayIcon(_mainWindow, desktop);
+            BuildTrayIcon(_mainWindow);
         }
         catch
         {
             _trayIcon = null;
         }
-        desktop.Exit += OnDesktopExit;
         _logger.Info("App", "app.ready", "Main window initialized");
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private void BuildTrayIcon(MainWindow window, IClassicDesktopStyleApplicationLifetime desktop)
+    private void BuildTrayIcon(MainWindow window)
     {
         if (!TryGetResource("TrayMenu", null, out var menuResource) || menuResource is not NativeMenu menu)
         {
@@ -137,11 +136,8 @@ public partial class App : global::Avalonia.Application
             }, DispatcherPriority.Background);
         };
 
-        exitItem.Click += (_, _) =>
-        {
-            _forceExit = true;
-            desktop.Shutdown();
-        };
+        // 不走 desktop.Shutdown：Avalonia HandleClosed 拆树会踩 #13497/#14437
+        exitItem.Click += (_, _) => RequestProcessExit();
 
         _trayIcon = new TrayIcon
         {
@@ -217,35 +213,56 @@ public partial class App : global::Avalonia.Application
 
     private void OnMainWindowClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (_forceExit ||
-            e.CloseReason is WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown)
+        var allowClose = e.CloseReason is WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown
+            || _uiBehavior?.Current.MinimizeToTrayOnClose != true
+            || _trayIcon is null;
+
+        if (!allowClose)
         {
+            if (sender is MainWindow window)
+            {
+                e.Cancel = true;
+                window.Hide();
+            }
+
             return;
         }
 
-        if (_uiBehavior?.Current.MinimizeToTrayOnClose != true)
-        {
-            return;
-        }
-
-        if (_trayIcon is null)
-        {
-            return;
-        }
-
-        if (sender is MainWindow window)
-        {
-            e.Cancel = true;
-            window.Hide();
-        }
+        // 取消原生关窗拆树，改为清理后 Environment.Exit（规避 Avalonia #13497/#14437）
+        e.Cancel = true;
+        RequestProcessExit();
     }
 
-    private void OnDesktopExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
+    // 业务清理后结束进程，跳过 TopLevel.HandleClosed 的 VisualTree 拆卸
+    private void RequestProcessExit()
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        try
         {
-            desktop.Exit -= OnDesktopExit;
+            RunShutdownCleanup();
         }
+        catch (Exception ex)
+        {
+            try
+            {
+                _logger?.Warn("App", "shutdown.cleanup_fail", "Shutdown cleanup failed before process exit", ex);
+            }
+            catch
+            {
+                // 退出路径：日志失败也必须继续 Exit
+            }
+        }
+
+        Environment.Exit(0);
+    }
+
+    private void RunShutdownCleanup()
+    {
+        if (_shutdownCleanupDone)
+        {
+            return;
+        }
+
+        _shutdownCleanupDone = true;
 
         _mainWindow?.Closing -= OnMainWindowClosing;
 

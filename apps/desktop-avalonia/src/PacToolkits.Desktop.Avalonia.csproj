@@ -42,7 +42,7 @@
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" Condition="'$(Configuration)' == 'Debug'" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" Version="2.1.0-dev-292" />
-        <PackageReference Include="Lucide.Avalonia" Version="0.2.15" />
+        <PackageReference Include="Lucide.Avalonia" Version="0.2.16" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
@@ -56,5 +56,6 @@
       <ProjectReference Include="..\..\..\packages\application\PacToolkits.Application.csproj" />
       <ProjectReference Include="..\..\..\packages\infrastructure\PacToolkits.Infrastructure.csproj" />
       <ProjectReference Include="..\..\..\packages\agents-contracts\PacToolkits.Agents.Contracts.csproj" />
+      <ProjectReference Include="..\..\..\packages\logger\PacToolkits.Logger.csproj" />
     </ItemGroup>
 </Project>

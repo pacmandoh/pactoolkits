@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Logger;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -17,20 +17,13 @@ public sealed class AppLogger : IAppLogger, IDisposable
 {
     private readonly ILoggingSettingsService _settings;
     private readonly IReleaseVersionService _releaseVersion;
+    private readonly JsonLogWriter _writer = new();
     private readonly SemaphoreSlim _ioGate = new(1, 1);
-    // SingleReader 后台刷盘；写失败只 Debug，不拖垮业务
+    // SingleReader 后台刷盘；写失败只 Debug 不拖垮业务
     private readonly Channel<PendingLog> _queue = Channel.CreateUnbounded<PendingLog>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
     private readonly CancellationTokenSource _workerCts = new();
     private readonly Task _worker;
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
-    };
-
-    private DateTimeOffset _lastCleanupAt = DateTimeOffset.MinValue;
 
     public AppLogger(ILoggingSettingsService settings, IReleaseVersionService releaseVersion)
     {
@@ -40,7 +33,17 @@ public sealed class AppLogger : IAppLogger, IDisposable
     }
 
     public string LogDirectory => ResolveLogDirectory(_settings.Current);
-    public string CurrentLogPath => BuildLogPath(DateTimeOffset.Now, 0);
+
+    public string CurrentLogPath
+    {
+        get
+        {
+            var dir = LogDirectory;
+            var now = DateTimeOffset.Now;
+            var suffix = LogFiles.ResolveSuffix(dir, now, _settings.Current.MaxFileSizeMb);
+            return LogFiles.BuildDailyPath(dir, now, suffix);
+        }
+    }
 
     public void Debug(string module, string eventName, string message, object? context = null, string? traceId = null)
         => Write(AppLogLevel.Debug, module, eventName, message, null, context, traceId);
@@ -138,12 +141,12 @@ public sealed class AppLogger : IAppLogger, IDisposable
             return;
         }
 
-        if (level < ParseLevel(settings.MinimumLevel))
+        if (!LogLevel.ShouldWrite(level.ToString(), settings.MinimumLevel))
         {
             return;
         }
 
-        var record = new AppLogRecord
+        var record = new JsonLogRecord
         {
             Ts = DateTimeOffset.Now,
             Level = level.ToString(),
@@ -153,38 +156,53 @@ public sealed class AppLogger : IAppLogger, IDisposable
             TraceId = string.IsNullOrWhiteSpace(traceId) ? null : traceId.Trim(),
             Version = _releaseVersion.Current.DesktopVersion,
             Context = context,
-            Exception = ex is null ? null : new AppExceptionRecord
-            {
-                Type = ex.GetType().FullName ?? ex.GetType().Name,
-                Message = ex.Message,
-                StackTrace = ex.StackTrace
-            }
+            Exception = ex is null
+                ? null
+                : new JsonLogException
+                {
+                    Type = ex.GetType().FullName ?? ex.GetType().Name,
+                    Message = ex.Message,
+                    StackTrace = ex.StackTrace,
+                },
         };
+
+        // Fatal 常伴随进程即将终止；异步队列来不及刷盘，同步落盘保证能看见
+        if (level == AppLogLevel.Fatal)
+        {
+            try
+            {
+                WriteRecordAsync(record, settings).GetAwaiter().GetResult();
+            }
+            catch (Exception writeEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"Fatal log write failed: {writeEx}");
+            }
+
+            return;
+        }
 
         if (!_queue.Writer.TryWrite(new PendingLog(record, settings)))
         {
-            // Channel 已关闭时丢弃，只 Debug 不抛
             System.Diagnostics.Debug.WriteLine("Log queue write failed: channel is closed");
         }
     }
 
-    private async Task WriteRecordAsync(AppLogRecord record, LoggingOptions settings)
+    private async Task WriteRecordAsync(JsonLogRecord record, LoggingOptions settings)
     {
-        var payload = JsonSerializer.Serialize(record, _jsonOptions);
-
         await _ioGate.WaitAsync().ConfigureAwait(false);
         try
         {
-            Directory.CreateDirectory(LogDirectory);
-
-            var path = BuildLogPath(record.Ts, ResolveSuffix(record.Ts, settings.MaxFileSizeMb));
-            await File.AppendAllTextAsync(path, payload + Environment.NewLine).ConfigureAwait(false);
-
-            if (DateTimeOffset.Now - _lastCleanupAt > TimeSpan.FromHours(6))
-            {
-                CleanupExpiredFiles(settings.RetentionDays);
-                _lastCleanupAt = DateTimeOffset.Now;
-            }
+            _writer.Write(
+                ResolveLogDirectory(settings),
+                record,
+                new JsonLogWriteOptions
+                {
+                    Enabled = settings.Enabled,
+                    MinimumLevel = settings.MinimumLevel,
+                    RetentionDays = settings.RetentionDays,
+                    MaxFileSizeMb = settings.MaxFileSizeMb,
+                    CleanupPatterns = ["*.log"],
+                });
         }
         finally
         {
@@ -192,72 +210,20 @@ public sealed class AppLogger : IAppLogger, IDisposable
         }
     }
 
-    private int ResolveSuffix(DateTimeOffset now, int maxFileSizeMb)
-    {
-        var maxBytes = maxFileSizeMb * 1024L * 1024L;
-
-        for (var i = 0; i < 10; i++)
-        {
-            var path = BuildLogPath(now, i);
-            if (!File.Exists(path))
-            {
-                return i;
-            }
-
-            var size = new FileInfo(path).Length;
-            if (size < maxBytes)
-            {
-                return i;
-            }
-        }
-
-        return 9;
-    }
-
-    private void CleanupExpiredFiles(int retentionDays)
-    {
-        var thresholdUtc = DateTime.UtcNow.Date.AddDays(-retentionDays);
-
-        foreach (var pattern in new[] { "desktop-*.log", "ui-*.log" })
-        {
-            foreach (var file in Directory.EnumerateFiles(LogDirectory, pattern, SearchOption.TopDirectoryOnly))
-            {
-                try
-                {
-                    var info = new FileInfo(file);
-                    if (info.LastWriteTimeUtc < thresholdUtc)
-                    {
-                        info.Delete();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Log cleanup failed: {ex}");
-                }
-            }
-        }
-    }
-
     private IEnumerable<string> GetCandidateFiles(DateTimeOffset cutoff)
     {
+        var dir = LogDirectory;
         var start = cutoff.Date;
         var end = DateTimeOffset.Now.Date;
 
         for (var d = start; d <= end; d = d.AddDays(1))
         {
-            for (var suffix = 0; suffix < 10; suffix++)
+            foreach (var path in LogFiles.EnumerateDailyPaths(dir, d))
             {
-                var path = BuildLogPath(d, suffix);
-                if (File.Exists(path))
-                {
-                    yield return path;
-                }
+                yield return path;
             }
         }
     }
-
-    private string BuildLogPath(DateTime at, int suffix)
-        => BuildLogPath(new DateTimeOffset(at), suffix);
 
     private static bool TryReadTimestamp(string line, out DateTimeOffset value)
     {
@@ -285,51 +251,10 @@ public sealed class AppLogger : IAppLogger, IDisposable
         }
     }
 
-    private string BuildLogPath(DateTimeOffset at, int suffix)
-    {
-        var baseName = $"desktop-{at:yyyy-MM-dd}";
-        var name = suffix == 0 ? $"{baseName}.log" : $"{baseName}.{suffix}.log";
-        return Path.Combine(LogDirectory, name);
-    }
-
-    private static AppLogLevel ParseLevel(string? level)
-    {
-        var raw = (level ?? string.Empty).Trim().ToLowerInvariant();
-        return raw switch
-        {
-            "debug" => AppLogLevel.Debug,
-            "info" => AppLogLevel.Info,
-            "warn" => AppLogLevel.Warn,
-            "error" => AppLogLevel.Error,
-            "fatal" => AppLogLevel.Fatal,
-            _ => AppLogLevel.Info
-        };
-    }
-
     private static string ResolveLogDirectory(LoggingOptions options)
         => Common.LogDirectory.Resolve(options.LogDirectory).RuntimeDirectory;
 
-    private sealed class AppLogRecord
-    {
-        public DateTimeOffset Ts { get; set; }
-        public string Level { get; set; } = string.Empty;
-        public string Module { get; set; } = string.Empty;
-        public string Event { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public string? TraceId { get; set; }
-        public string Version { get; set; } = string.Empty;
-        public object? Context { get; set; }
-        public AppExceptionRecord? Exception { get; set; }
-    }
-
-    private sealed class AppExceptionRecord
-    {
-        public string Type { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public string? StackTrace { get; set; }
-    }
-
-    private readonly record struct PendingLog(AppLogRecord Record, LoggingOptions Settings);
+    private readonly record struct PendingLog(JsonLogRecord Record, LoggingOptions Settings);
 
     private async Task ProcessQueueAsync(CancellationToken ct)
     {

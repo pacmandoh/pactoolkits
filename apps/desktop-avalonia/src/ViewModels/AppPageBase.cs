@@ -1013,7 +1013,22 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         }
     }
 
-    public virtual void Dispose()
+    private int _disposeGate;
+
+    // 同一 Page 以 TPage + AppPageBase 各注册一次（供具体注入与 IEnumerable）；MS DI 会对同一实例 Dispose 两次，故门闩保证幂等
+    protected bool IsDisposed => Volatile.Read(ref _disposeGate) != 0;
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposeGate, 1) != 0)
+        {
+            return;
+        }
+
+        DisposeCore();
+    }
+
+    protected virtual void DisposeCore()
     {
         if (_cachedDbMonitor is not null && _dbMonitorEventsHooked)
         {

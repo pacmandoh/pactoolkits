@@ -43,17 +43,58 @@ public sealed class ModuleSettingsStore : IModuleSettingsStore
         try
         {
             var userPath = UserSettingsPath(id);
-            if (File.Exists(userPath))
+            var defaultPath = AgentsPaths.ModuleDefaultSettingsPath(agentsDir, id);
+            if (!File.Exists(userPath))
             {
+                AtomicFile.CopyNew(defaultPath, userPath);
                 return;
             }
 
-            var defaultPath = AgentsPaths.ModuleDefaultSettingsPath(agentsDir, id);
-            AtomicFile.CopyNew(defaultPath, userPath);
+            // schema 新增键时补齐用户配置，避免校验失败
+            MergeMissingFromDefault(userPath, defaultPath);
         }
         finally
         {
             _ioGate.Release();
+        }
+    }
+
+    private static void MergeMissingFromDefault(string userPath, string defaultPath)
+    {
+        if (!File.Exists(defaultPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var user = JsonNode.Parse(File.ReadAllText(userPath)) as JsonObject;
+            var defaults = JsonNode.Parse(File.ReadAllText(defaultPath)) as JsonObject;
+            if (user is null || defaults is null)
+            {
+                return;
+            }
+
+            var changed = false;
+            foreach (var kv in defaults)
+            {
+                if (string.IsNullOrWhiteSpace(kv.Key) || user.ContainsKey(kv.Key))
+                {
+                    continue;
+                }
+
+                user[kv.Key] = kv.Value?.DeepClone();
+                changed = true;
+            }
+
+            if (changed)
+            {
+                AtomicFile.WriteAllText(userPath, user.ToJsonString(JsonOptions));
+            }
+        }
+        catch
+        {
+            // 合并失败不阻断启动；校验阶段仍会表面问题
         }
     }
 

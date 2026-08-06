@@ -33,6 +33,48 @@ public sealed class AppUpdatePolicyTests
             AppUpdatePolicy.ResolveFeedUrl("https://updates.example/pactoolkits", "nightly"));
 
     [Fact]
+    public void Local_feed_path_combines_channel_directory()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "pactoolkits-feed-root");
+        var resolved = AppUpdatePolicy.ResolveFeedUrl(root, "beta");
+        Assert.Equal(Path.Combine(root.TrimEnd('/', '\\'), "beta"), resolved);
+    }
+
+    [Fact]
+    public void Local_feed_strips_existing_channel_suffix()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "pactoolkits-feed", "stable");
+        var resolved = AppUpdatePolicy.ResolveFeedUrl(root, "beta");
+        Assert.Equal(
+            Path.Combine(Path.Combine(Path.GetTempPath(), "pactoolkits-feed"), "beta"),
+            resolved);
+    }
+
+    [Fact]
+    public void File_uri_feed_resolves_to_local_path()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "pactoolkits-file-uri-feed");
+        var uri = new Uri(
+            (dir.EndsWith(Path.DirectorySeparatorChar) ? dir : dir + Path.DirectorySeparatorChar)
+            ).AbsoluteUri.TrimEnd('/');
+        Assert.True(AppUpdatePolicy.TryGetLocalFeedPath(uri, out _));
+        Assert.Equal(
+            Path.Combine(dir.TrimEnd('/', '\\'), "stable"),
+            AppUpdatePolicy.ResolveFeedUrl(uri, "stable"));
+    }
+
+    [Fact]
+    public void Unc_style_feed_keeps_share_root_and_appends_channel()
+    {
+        const string unc = @"\\fileserver\releases\pactoolkits";
+        Assert.True(AppUpdatePolicy.TryGetLocalFeedPath(unc, out _));
+        Assert.Equal(
+            Path.Combine(unc, "beta"),
+            AppUpdatePolicy.ResolveFeedUrl(unc, "beta"));
+        Assert.False(AppUpdatePolicy.TryGetLocalFeedPath("https://updates.example/feed", out _));
+    }
+
+    [Fact]
     public void Ignored_release_is_not_reported_as_update()
     {
         var decision = AppUpdatePolicy.EvaluateRelease("1.2.3", "1.2.3");

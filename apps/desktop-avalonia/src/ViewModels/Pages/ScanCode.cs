@@ -1168,7 +1168,7 @@ public sealed partial class ScanCode : AppPageBase
         RecalcCodeStats(TraceCodesText);
     }
 
-    public override void Dispose()
+    protected override void DisposeCore()
     {
         _statsDebouncer.Dispose();
         _poolCheckCts?.Cancel();
@@ -1176,7 +1176,7 @@ public sealed partial class ScanCode : AppPageBase
         _traceCodeRule.Changed -= OnTraceCodeRuleChanged;
         RecentRuns.CollectionChanged -= OnRecentRunsChanged;
         RetryQueue.CollectionChanged -= OnRetryQueueChanged;
-        base.Dispose();
+        base.DisposeCore();
     }
 
     private static string BuildSubmitToastSummary(

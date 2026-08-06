@@ -14,6 +14,7 @@
     "规格||药品规格",
     "数量",
     "?单位",
+    "?库存数量",
     "?拆零标签||拆零"
   ],
   "IntCols": [
@@ -31,5 +32,9 @@
     "应扫次数"
   ],
   "CodePickPolicy": "MAX_LEVEL",
-  "WarehouseTaskIdentifier": "单据号||当前编号"
+  "WarehouseTaskIdentifier": "单据号||当前编号",
+  "LogEnabled": true,
+  "LogMinimumLevel": "Error",
+  "LogRetentionDays": 14,
+  "LogMaxFileSizeMb": 20
 }

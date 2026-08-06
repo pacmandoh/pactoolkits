@@ -1,7 +1,10 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
-#Include "%A_ScriptDir%\..\src\ui_txn.ahk"
-#Include "%A_ScriptDir%\..\src\utils.ahk"
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\JSON.ahk"
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\path.ahk"
+#Include "%A_ScriptDir%\..\src\util_misc.ahk"
+#Include "%A_ScriptDir%\..\src\util_scene.ahk"
+#Include "%A_ScriptDir%\..\src\ui_focus.ahk"
 Persistent
 SetTitleMatchMode 2
 
