@@ -10,7 +10,7 @@ namespace PacToolkits.Desktop.Avalonia.Common;
 
 /// <summary>
 /// TopLevel 内打开中的 Popup / 下拉 light-dismiss
-/// 命中打开中的候选面时不关，避免与选中手势竞态
+/// 不强制关 ACB（由控件自身 light-dismiss + SelectionGuard 收口）
 /// </summary>
 internal static class PopupDismissHelper
 {
@@ -30,17 +30,18 @@ internal static class PopupDismissHelper
             return false;
         }
 
+        // 候选面优先：Overlay 下命中源偶发落在 LightDismissOverlayLayer
+        if (IsInsideOpenDropdownSurface(visual))
+        {
+            return true;
+        }
+
         if (IsLightDismissOverlay(visual))
         {
             return false;
         }
 
-        if (IsInsideMenuPointerTarget(visual))
-        {
-            return true;
-        }
-
-        return IsInsideOpenDropdownSurface(visual);
+        return IsInsideMenuPointerTarget(visual);
     }
 
     public static void DismissOpenPopups(TopLevel topLevel)
@@ -55,13 +56,16 @@ internal static class PopupDismissHelper
                 case CalendarDatePicker picker when picker.IsDropDownOpen:
                     picker.IsDropDownOpen = false;
                     break;
-                case AutoCompleteBox autoComplete when autoComplete.IsDropDownOpen:
-                    autoComplete.IsDropDownOpen = false;
-                    break;
                 case ContextMenu contextMenu when contextMenu.IsOpen:
                     contextMenu.Close();
                     break;
                 case Popup popup when popup.IsOpen && popup.IsLightDismissEnabled:
+                    // 不关 Combo/ACB/DatePicker 的 PART_Popup（再关会走 CloseDropDown）
+                    if (IsSelectorDropDownPopup(popup))
+                    {
+                        break;
+                    }
+
                     popup.IsOpen = false;
                     break;
             }
@@ -74,7 +78,7 @@ internal static class PopupDismissHelper
     {
         foreach (var popup in topLevel.GetVisualDescendants().OfType<Popup>())
         {
-            if (!popup.IsOpen)
+            if (!popup.IsOpen || IsSelectorDropDownPopup(popup))
             {
                 continue;
             }
@@ -89,6 +93,12 @@ internal static class PopupDismissHelper
             }
         }
     }
+
+    /// <summary>模板下拉 Popup（关它等于走控件 CloseDropDown）</summary>
+    private static bool IsSelectorDropDownPopup(Popup popup)
+        => popup.Name is "PART_Popup"
+           || popup.TemplatedParent is AutoCompleteBox or ComboBox or CalendarDatePicker
+           || popup.PlacementTarget is AutoCompleteBox or ComboBox or CalendarDatePicker;
 
     private static bool IsLightDismissOverlay(Visual visual)
         => visual.GetSelfAndVisualAncestors().Any(static ancestor =>
@@ -110,7 +120,27 @@ internal static class PopupDismissHelper
                 case AutoCompleteBox autoComplete when autoComplete.IsDropDownOpen:
                 case CalendarDatePicker picker when picker.IsDropDownOpen:
                     return true;
+                // 候选行在 Overlay 上；无 PopupRoot 名时 ListBoxItem 仍属下拉宿主
+                case ListBoxItem or ComboBoxItem or TreeViewItem
+                    when !underContextMenu && IsUnderOpenDropdownHost(ancestor):
+                    return true;
                 case PopupRoot or OverlayPopupHost when !underContextMenu:
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsUnderOpenDropdownHost(Visual itemContainer)
+    {
+        foreach (var ancestor in itemContainer.GetSelfAndVisualAncestors())
+        {
+            switch (ancestor)
+            {
+                case PopupRoot or OverlayPopupHost:
+                case ComboBox combo when combo.IsDropDownOpen:
+                case AutoCompleteBox autoComplete when autoComplete.IsDropDownOpen:
                     return true;
             }
         }

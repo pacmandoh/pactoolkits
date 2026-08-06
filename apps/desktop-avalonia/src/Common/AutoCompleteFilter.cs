@@ -7,12 +7,16 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>统一 AutoCompleteBox 候选过滤，并在控件回调期间安全替换候选集合</summary>
+/// <summary>
+/// 药品 AutoComplete 候选过滤与排序回填
+/// 回填集合后对齐选择模型（Avalonia #6128）
+/// </summary>
 public static class AutoCompleteFilter
 {
     public static void AttachDrugOptionFilter(AutoCompleteBox box)
     {
-        AttachPinyinFilter(box);
+        // None：展示 ItemsSource 原样；过滤/排序只走 Ranker 回填，避免与 ItemFilter 双轨
+        box.FilterMode = AutoCompleteFilterMode.None;
         AutoCompleteCommit.ConfigureDrugBox(box);
     }
 
@@ -26,9 +30,7 @@ public static class AutoCompleteFilter
     {
         if (IsCurrentCandidateText(target, searchText))
         {
-            // AutoCompleteBox 会在 SelectionModel 事务未结束时把高亮候选项写回 Text
-            // 此时替换绑定集合会让 Avalonia 12.0.2 残留旧视图的 selected index，
-            // commit/close 时可能崩溃
+            // 选中写回 Text 时再 Replace 会留下旧 SelectedIndex
             return;
         }
 
@@ -37,7 +39,13 @@ public static class AutoCompleteFilter
             searchText,
             static item => item.Raw,
             static item => item.Display);
-        OptionCollectionHelper.Replace(target, visible, StringComparison.Ordinal);
+
+        if (!OptionCollectionHelper.Replace(target, visible, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        AutoCompleteSelectionGuard.AlignForItemsSource(target);
     }
 
     internal static bool IsCurrentCandidateText(
@@ -60,20 +68,5 @@ public static class AutoCompleteFilter
         }
 
         return false;
-    }
-
-    private static void AttachPinyinFilter(AutoCompleteBox box)
-    {
-        box.ItemFilter = static (search, item) =>
-        {
-            if (item is OptionItem option)
-            {
-                return PinyinInitialMatcher.IsMatch(search, option.Raw) ||
-                       PinyinInitialMatcher.IsMatch(search, option.Display);
-            }
-
-            return item is not null &&
-                   PinyinInitialMatcher.IsMatch(search, item.ToString());
-        };
     }
 }

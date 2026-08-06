@@ -8,7 +8,6 @@ using global::Avalonia.Controls;
 using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
-using global::Avalonia.LogicalTree;
 using global::Avalonia.Threading;
 using global::Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -31,6 +30,7 @@ public static class AutoCompleteCommit
         state.DrugAutoCompleteConfigured = true;
         state.Box = box;
         box.IsTextCompletionEnabled = false;
+        AutoCompleteSelectionGuard.Register(box);
         box.Populated += state.OnPopulated;
     }
 
@@ -172,7 +172,6 @@ public static class AutoCompleteCommit
     private static void CommitSuggestInput(AutoCompleteBox box)
     {
         TryApplyActiveOrFirstMatch(box);
-        box.IsDropDownOpen = false;
         InputFocusHelper.CommitAutoCompleteInput(box);
     }
 
@@ -195,7 +194,7 @@ public static class AutoCompleteCommit
 
     private static OptionItem? ResolveActiveOrFirstMatch(AutoCompleteBox box)
     {
-        if (FindPopupListBox(box) is { SelectedItem: OptionItem highlighted })
+        if (AutoCompleteSelectionGuard.FindSelector(box) is { SelectedItem: OptionItem highlighted })
         {
             return highlighted;
         }
@@ -263,33 +262,14 @@ public static class AutoCompleteCommit
         box.DropDownClosed += state.OnDropDownClosed;
     }
 
-    private static ListBox? FindPopupListBox(AutoCompleteBox box)
-    {
-        var popup = box.GetLogicalDescendants()
-                        .OfType<Popup>()
-                        .FirstOrDefault(static candidate => candidate.Name == "PART_Popup")
-                    ?? box.GetVisualDescendants()
-                        .OfType<Popup>()
-                        .FirstOrDefault(static candidate => candidate.Name == "PART_Popup");
-        if (popup?.Child is not Control popupContent)
-        {
-            return null;
-        }
-
-        return popupContent as ListBox
-               ?? popupContent.GetVisualDescendants()
-                   .OfType<ListBox>()
-                   .FirstOrDefault(static listBox => listBox.Name == "PART_SelectingItemsControl");
-    }
-
     private static void ResetSuggestionScrollToTop(AutoCompleteBox box)
     {
-        if (!box.IsDropDownOpen || FindPopupListBox(box) is not { } listBox)
+        if (!box.IsDropDownOpen || AutoCompleteSelectionGuard.FindSelector(box) is not { } selector)
         {
             return;
         }
 
-        var scrollViewer = listBox.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+        var scrollViewer = selector.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
         scrollViewer?.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(0, 0));
         Dispatcher.UIThread.Post(
             () => scrollViewer?.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(0, 0)),

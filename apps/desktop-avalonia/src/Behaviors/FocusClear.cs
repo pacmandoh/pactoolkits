@@ -126,7 +126,7 @@ public class FocusClear
 
         if (!string.IsNullOrWhiteSpace(owner.Text))
         {
-            // Commit 内会关下拉；空白文本的关闭由 PopupDismissHelper 统一做
+            // 外侧空白：Commit 关下拉；空文本依赖 Popup 原生 light-dismiss
             AutoCompleteCommit.CommitPendingInput(owner);
         }
     }
