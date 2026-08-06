@@ -393,8 +393,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         return new DbSchemaVersionContext(
             version.DesktopMinDbSchema,
             version.DesktopMaxDbSchema,
-            version.AgentsMinDbSchema,
-            version.AgentsMaxDbSchema,
             version.DbSchemaVersion);
     }
 

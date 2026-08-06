@@ -15,8 +15,8 @@
     },
     "agents": {
       "version": "0.1.2",
-      "minDbSchema": "1.2.25",
-      "maxDbSchema": "1.2.25",
+      "minDesktop": "1.0.2-beta.8",
+      "maxDesktop": "1.0.2-beta.8",
       "artifact": {
         "windows-x64": "Agents.exe",
         "installDir": "."

@@ -14,9 +14,9 @@ public interface IAgentsRuntime : IDisposable
 
     IReadOnlyList<ModuleDescriptor> Modules { get; }
 
-    string MinDbSchema { get; }
+    string MinDesktop { get; }
 
-    string MaxDbSchema { get; }
+    string MaxDesktop { get; }
 
     AgentsRunState HostState { get; }
 

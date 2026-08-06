@@ -48,8 +48,6 @@ public sealed class PostgresIntegrationTests
             new DbSchemaVersionContext(
                 DesktopMinDbSchema: "1.2.20",
                 DesktopMaxDbSchema: "1.2.25",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.25",
                 TargetDbSchemaVersion: "1.2.25"),
             options,
             CancellationToken.None);

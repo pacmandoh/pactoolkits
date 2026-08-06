@@ -28,6 +28,7 @@ public sealed record ModulePackage(
 
 /// <summary>
 /// 已验证的模块描述及其源码或安装目录
+/// RequiresDatabase：运行是否依赖 Postgres；manifest 顶层字段，缺省 true
 /// </summary>
 public sealed record ModuleDescriptor(
     string Id,
@@ -38,7 +39,8 @@ public sealed record ModuleDescriptor(
     string Directory,
     string ManifestPath,
     ModuleDesktop Desktop,
-    ModulePackage Package);
+    ModulePackage Package,
+    bool RequiresDatabase = true);
 
 /// <summary>
 /// <c>module.json</c> 支持的运行时标识

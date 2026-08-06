@@ -357,6 +357,9 @@ public static class AgentsPath
             return null;
         }
 
+        // 顶层契约：模块运行是否依赖库；与 desktop 展示无关；缺省 true
+        var requiresDatabase = ReadBool(root, "requiresDatabase") ?? true;
+
         string directory;
         try
         {
@@ -381,7 +384,8 @@ public static class AgentsPath
             directory,
             manifestPath,
             desktop,
-            package);
+            package,
+            requiresDatabase);
     }
 
     private static ModuleDesktop? TryParseDesktop(JsonElement root)
@@ -398,8 +402,8 @@ public static class AgentsPath
 
         var active = ReadRequiredString(icons, "active");
         var inactive = ReadRequiredString(icons, "inactive");
-        var bottomStatusBar = ReadRequiredBool(desktop, "bottomStatusBar");
-        var topStatusPills = ReadRequiredBool(desktop, "topStatusPills");
+        var bottomStatusBar = ReadBool(desktop, "bottomStatusBar");
+        var topStatusPills = ReadBool(desktop, "topStatusPills");
         var order = ReadRequiredInt(desktop, "order");
         if (active is null
             || inactive is null
@@ -463,7 +467,7 @@ public static class AgentsPath
         return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
     }
 
-    private static bool? ReadRequiredBool(JsonElement parent, string name)
+    private static bool? ReadBool(JsonElement parent, string name)
     {
         if (!parent.TryGetProperty(name, out var value))
         {

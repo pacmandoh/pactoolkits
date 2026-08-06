@@ -120,12 +120,51 @@ public sealed class AgentsPathTests : IDisposable
         Assert.True(module.Desktop.BottomStatusBar);
         Assert.True(module.Desktop.TopStatusPills);
         Assert.Equal(10, module.Desktop.Order);
+        Assert.True(module.RequiresDatabase);
         Assert.Equal("Sample.exe", module.EntryWinX64);
         Assert.Equal(ModuleBuilders.Ahk2Exe, module.Package.Builder);
         Assert.Equal("assets/agents-sample.ico", module.Package.Ahk2Exe.Icon);
         Assert.Equal(
             Path.GetFullPath(iconPath),
             AgentsPath.TryResolveAhk2ExeIconPath(module));
+    }
+
+    [Fact]
+    public void TryReadModule_defaults_requires_database_true_when_omitted()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "DefaultDb");
+        Directory.CreateDirectory(moduleDir);
+        var assetsDir = Path.Combine(moduleDir, "assets");
+        Directory.CreateDirectory(assetsDir);
+        File.WriteAllText(Path.Combine(assetsDir, "ico.ico"), string.Empty);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(manifestPath, FullManifestJson("DefaultDb", "DefaultDb.exe", order: 1, icon: "assets/ico.ico"));
+
+        var module = AgentsPath.TryReadModule(manifestPath);
+
+        Assert.NotNull(module);
+        Assert.True(module.RequiresDatabase);
+    }
+
+    [Fact]
+    public void TryReadModule_parses_requires_database_false()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "NoDb");
+        Directory.CreateDirectory(moduleDir);
+        var assetsDir = Path.Combine(moduleDir, "assets");
+        Directory.CreateDirectory(assetsDir);
+        File.WriteAllText(Path.Combine(assetsDir, "ico.ico"), string.Empty);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(
+            manifestPath,
+            FullManifestJson("NoDb", "NoDb.exe", order: 2, icon: "assets/ico.ico", requiresDatabase: false));
+
+        var module = AgentsPath.TryReadModule(manifestPath);
+
+        Assert.NotNull(module);
+        Assert.False(module.RequiresDatabase);
     }
 
     [Fact]
@@ -252,16 +291,22 @@ public sealed class AgentsPathTests : IDisposable
         string active = "Puzzle",
         string inactive = "Box",
         string version = "1.0.0",
-        string icon = "assets/agents-injector.ico")
+        string icon = "assets/agents-injector.ico",
+        bool? requiresDatabase = null)
     {
         var name = displayName ?? id;
+        var requiresField = requiresDatabase is bool flag
+            ? $",\"requiresDatabase\":{(flag ? "true" : "false")}"
+            : string.Empty;
         return
             "{"
             + $"\"id\":\"{id}\","
             + $"\"version\":\"{version}\","
             + "\"runtime\":\"ahk\","
             + $"\"displayName\":\"{name}\","
-            + $"\"entry\":{{\"win-x64\":\"{entry}\"}},"
+            + $"\"entry\":{{\"win-x64\":\"{entry}\"}}"
+            + requiresField
+            + ","
             + "\"desktop\":{"
             + $"\"icons\":{{\"active\":\"{active}\",\"inactive\":\"{inactive}\"}},"
             + "\"bottomStatusBar\":true,"

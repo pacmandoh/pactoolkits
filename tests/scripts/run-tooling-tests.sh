@@ -39,7 +39,9 @@ jq '
     if (.components.desktop.avalonia.version | test("-beta\\.")) then
       (.components.desktop.avalonia.version | sub("-beta\\.[0-9]+$"; ""))
     else .components.desktop.avalonia.version end
-  )
+  ) |
+  .components.agents.minDesktop = .components.desktop.avalonia.version |
+  .components.agents.maxDesktop = .components.desktop.avalonia.version
 ' "$ROOT_DIR/release-manifest.json" > "$stable_fixture_manifest"
 validate_manifest_v2 "$stable_fixture_manifest"
 
@@ -76,17 +78,23 @@ rm -f "$invalid_channel_manifest"
 
 beta_manifest="$(mktemp)"
 trap 'rm -f "$beta_manifest"' EXIT
-jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.avalonia.version = "0.17.1-beta.1"' "$stable_fixture_manifest" > "$beta_manifest"
+jq '
+  .release.channel = "beta" |
+  .product.version = "0.17.1-beta.1" |
+  .components.desktop.avalonia.version = "0.17.1-beta.1" |
+  .components.agents.minDesktop = "0.17.1-beta.1" |
+  .components.agents.maxDesktop = "0.17.1-beta.1"
+' "$stable_fixture_manifest" > "$beta_manifest"
 validate_manifest_v2 "$beta_manifest"
 db_version="$(jq -r '.components.database.postgres.version' "$beta_manifest")"
 desktop_min_db="$(jq -r '.components.desktop.avalonia.minDbSchema' "$beta_manifest")"
-agent_min_db="$(jq -r '.components["agents"].minDbSchema' "$beta_manifest")"
+agent_min_desktop="$(jq -r '.components["agents"].minDesktop' "$beta_manifest")"
 [[ "$desktop_min_db" == "$db_version" ]] || {
   echo "ERROR: beta channel desktop.minDbSchema must track database.postgres.version" >&2
   exit 1
 }
-[[ "$agent_min_db" == "$db_version" ]] || {
-  echo "ERROR: beta channel agent minDbSchema must track database.postgres.version" >&2
+[[ -n "$agent_min_desktop" ]] || {
+  echo "ERROR: beta channel agents.minDesktop must be present" >&2
   exit 1
 }
 if validate_release_tag_matches_product_version "v0.17.1-beta.1" "$beta_manifest"; then
@@ -158,9 +166,13 @@ if validate_manifest_v2 "$invalid_db_compat_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Windows/MSYS2 jq 输出 CRLF 时，带 CR 的 agents id 曾表现为 " requires minDbSchema..."
-validate_component_db_bounds "$ROOT_DIR/release-manifest.json" $'agents\r' || {
-  echo "ERROR: validate_component_db_bounds should accept agents id with trailing CR" >&2
+# Windows/MSYS2 jq 输出 CRLF 时，带 CR 的 desktop id 仍应通过
+validate_component_db_bounds "$ROOT_DIR/release-manifest.json" $'desktop\r' || {
+  echo "ERROR: validate_component_db_bounds should accept desktop id with trailing CR" >&2
+  exit 1
+}
+validate_agents_desktop_bounds "$ROOT_DIR/release-manifest.json" || {
+  echo "ERROR: validate_agents_desktop_bounds should accept release-manifest agents min/max Desktop" >&2
   exit 1
 }
 
@@ -218,7 +230,9 @@ beta_db_follow_legacy_manifest="$(mktemp)"
 jq '
   .release.channel = "beta" |
   .product.version = "0.18.0-beta.1" |
-  .components.desktop.avalonia.version = "0.18.0-beta.1"
+  .components.desktop.avalonia.version = "0.18.0-beta.1" |
+  .components.agents.minDesktop = "0.18.0-beta.1" |
+  .components.agents.maxDesktop = "0.18.0-beta.1"
 ' "$stable_fixture_manifest" > "$beta_db_follow_legacy_manifest"
 ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_follow_legacy_manifest" \
@@ -232,10 +246,10 @@ jq \
   .release.channel = "beta" |
   .product.version = "0.18.0-beta.1" |
   .components.desktop.avalonia.version = "0.18.0-beta.1" |
+  .components.agents.minDesktop = "0.18.0-beta.1" |
+  .components.agents.maxDesktop = "0.18.0-beta.1" |
   .components.desktop.avalonia.minDbSchema = $db |
   .components.desktop.avalonia.maxDbSchema = $db |
-  .components["agents"].minDbSchema = $db |
-  .components["agents"].maxDbSchema = $db |
   .components.database.postgres.version = $db
 ' "$stable_fixture_manifest" > "$beta_db_upgrade_manifest"
 ./scripts/validate-database-policy.sh \
@@ -288,7 +302,9 @@ git -C "$legacy_reloc_git_dir" mv pactoolkits-db/sql/migrations/V1_2_0__baseline
 jq '
   .release.channel = "beta" |
   .product.version = "1.0.0-beta.1" |
-  .components.desktop.avalonia.version = "1.0.0-beta.1"
+  .components.desktop.avalonia.version = "1.0.0-beta.1" |
+  .components.agents.minDesktop = "1.0.0-beta.1" |
+  .components.agents.maxDesktop = "1.0.0-beta.1"
 ' "$stable_fixture_manifest" > "$legacy_reloc_git_dir/release-manifest.json"
 git -C "$legacy_reloc_git_dir" add .
 git -C "$legacy_reloc_git_dir" commit -qm monorepo-reloc
@@ -313,7 +329,9 @@ beta_new_migration_base_ref="$(git -C "$beta_new_migration_git_dir" rev-parse HE
 jq '
   .release.channel = "beta" |
   .product.version = "0.18.0-beta.1" |
-  .components.desktop.avalonia.version = "0.18.0-beta.1"
+  .components.desktop.avalonia.version = "0.18.0-beta.1" |
+  .components.agents.minDesktop = "0.18.0-beta.1" |
+  .components.agents.maxDesktop = "0.18.0-beta.1"
 ' "$database_policy_base_manifest" > "$beta_new_migration_git_dir/release-manifest.json"
 printf '%s\n' 'select 1;' \
   > "$beta_new_migration_git_dir/database/postgres/migrations/V9_9_9__policy_probe.sql"
@@ -333,6 +351,8 @@ target_beta_manifest="$(mktemp)"
 jq '
   .product.version = "0.18.0-beta.1" |
   .components.desktop.avalonia.version = "0.18.0-beta.1" |
+  .components.agents.minDesktop = "0.18.0-beta.1" |
+  .components.agents.maxDesktop = "0.18.0-beta.1" |
   .release.channel = "beta"
 ' "$stable_fixture_manifest" > "$target_beta_manifest"
 validate_manifest_v2 "$target_beta_manifest"

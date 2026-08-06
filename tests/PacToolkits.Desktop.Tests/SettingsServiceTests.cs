@@ -110,8 +110,6 @@ public sealed class SettingsServiceTests
         => new(
             DesktopMinDbSchema: minimum,
             DesktopMaxDbSchema: maximum,
-            AgentsMinDbSchema: minimum,
-            AgentsMaxDbSchema: maximum,
             TargetDbSchemaVersion: maximum);
 
     private static SettingsService CreateService(

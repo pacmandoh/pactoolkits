@@ -96,17 +96,13 @@ public sealed class SettingsService : ISettingsService
     {
         var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMinDbSchema, schemaContext.TargetDbSchemaVersion);
         var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentsMin = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentsMax = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        var requiredMin = DbSchemaCompat.GetRequiredMin(uiMin, agentsMin);
-        var requiredMax = DbSchemaCompat.GetRequiredMax(uiMax, agentsMax);
         var localTarget = DbSchemaCompat.NormalizeBound(
             schemaContext.TargetDbSchemaVersion,
             schemaContext.TargetDbSchemaVersion);
         var schema = connectionOptions is null
             ? await _schemaVersion.TryReadSchemaVersionAsync(ct).ConfigureAwait(false)
             : await _schemaVersion.TryReadSchemaVersionAsync(connectionOptions, ct).ConfigureAwait(false);
-        var compatibility = BuildCompatibility(schema, requiredMin, requiredMax);
+        var compatibility = BuildCompatibility(schema, uiMin, uiMax);
 
         if (MatchesLocalDb(connectionOptions))
         {
@@ -119,8 +115,8 @@ public sealed class SettingsService : ISettingsService
             CurrentVersion: current,
             Reason: schema.Ok ? null : schema.Reason ?? "读取失败",
             TargetVersion: localTarget,
-            RequiredMinVersion: requiredMin,
-            RequiredMaxVersion: requiredMax,
+            RequiredMinVersion: uiMin,
+            RequiredMaxVersion: uiMax,
             Compatibility: compatibility.Status,
             Satisfied: compatibility.IsCompatible,
             IncompatibleMessage: null);
@@ -220,18 +216,12 @@ public sealed class SettingsService : ISettingsService
     {
         var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMinDbSchema, schemaContext.TargetDbSchemaVersion);
         var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentsMin = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentsMax = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMaxDbSchema, schemaContext.TargetDbSchemaVersion);
         return DbSchemaCompat.BuildIncompatibleMessage(
             snapshot.SchemaOk,
             snapshot.CurrentVersion,
             snapshot.Reason,
             uiMin,
-            agentsMin,
-            uiMax,
-            agentsMax,
-            snapshot.RequiredMinVersion,
-            snapshot.RequiredMaxVersion);
+            uiMax);
     }
 
     private static string ExtractMachine(string? raw)

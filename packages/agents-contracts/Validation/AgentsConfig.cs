@@ -3,7 +3,7 @@ using PacToolkits.Agents.Contracts.Commands;
 namespace PacToolkits.Agents.Contracts.Validation;
 
 /// <summary>
-/// 校验 Host 启动所需的 Desktop 配置和数据库连接参数，不校验模块业务配置
+/// Host 启停前校验：config schema 与 Postgres 字段完整性（供依赖库的模块消费），不探测 DB 是否可达
 /// </summary>
 public static class AgentsConfigValidator
 {
