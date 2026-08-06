@@ -5,10 +5,40 @@
 ```text
 runtime/agents/
   host/                  .NET Host，发布为 Agents.exe
+  lib/ahk/               AHK 模块共用源码（编译期 #Include，不随包发布；库内互引用 A_LineFile，勿裸文件名）
+                         args / ready / log / ui / path / JSON / startup
   modules/               参与发布构建的模块源码
   templates/ahk-module/  新建 AHK 模块的起始模板
-  docs/                   模块说明
+  docs/                  模块说明
 ```
+
+## 日志
+
+Host 与 AHK 模块写入 JSON Lines，目录与 Desktop 共用根路径：
+
+```text
+%AppData%/PacToolkits/logs/   # macOS/Linux：Application Support / .config
+  desktop/YYYY-MM-DD.log
+  agents/host/YYYY-MM-DD.log
+  agents/modules/<Id>/YYYY-MM-DD.log
+```
+
+字段对齐 Desktop：`ts`、`level`、`module`、`event`、`message`、`version`、`context?`、`exception?`。
+
+| 字段 | 含义 |
+| --- | --- |
+| `level` | 严重度，仅 `Debug` / `Info` / `Warn` / `Error` / `Fatal`（PascalCase，与 Desktop 一致） |
+| `event` | 事件分类短名（原 Injector 结果里的 `type` / `[预留错误]` 一类归这里，用英文短名如 `reserve.fail`） |
+| `message` | 人类可读正文（原 `why`） |
+| `context` | 结构化附加字段（窗口、txn、数量等） |
+| `exception` | 可选；真实异常时的 type / message / stackTrace |
+
+控制面：
+
+- **Desktop + Host**：`PacToolkits.Desktop.config.json` → `Logging.Enabled` / `MinimumLevel` / `RetentionDays` / `MaxFileSizeMb`（设置页「日志与诊断」）；落盘经 `packages/logger`（`JsonLogWriter`）
+- **模块**：各模块用户 `settings.json` → `LogEnabled` / `LogMinimumLevel` / `LogRetentionDays` / `LogMaxFileSizeMb`（设置页「模块配置」；AHK `Log_ApplySettings` → `lib/ahk/log.ahk`）
+- 文件名一致：`YYYY-MM-DD[.N].log`（靠目录区分 Desktop / Host / 模块）
+- Host 关键生命周期：`host.ready` / `host.quit` / `host.shutdown`；模块 `host.module.start` / `host.module.stop` / `host.module.exited`（另有 `discovered` / `removed`）
 
 ## 运行模型
 
@@ -59,6 +89,8 @@ Desktop 还会监视正在运行的入口二进制：
 ```bash
 ./scripts/run-desktop-with-agents.sh --configuration Release --stage-only
 ```
+
+Windows（Git Bash / MSYS）上若探测到本机 `Ahk2Exe.exe` 与 `AutoHotkey64.exe`，会对 AHK 模块做真实编译并写入 staging（同时刷新 `artifacts/agents/win-x64/Modules/`）。可用 `AHK2EXE_PATH` / `AHK_BASE_PATH` 覆盖路径。未找到编译器时回退到 artifacts 或模块目录下已有入口文件。
 
 macOS 和 Linux 无法编译或运行 Windows AHK 模块；脚本仍会复制 Host、模块描述文件、默认设置和 schema，用于验证发现与设置页行为。
 

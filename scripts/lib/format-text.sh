@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 PRETTIER_VERSION="${PRETTIER_VERSION:-3.5.3}"
 SHFMT="${SHFMT:-shfmt}"
 TEXT_FORMAT_PATHS=(scripts docs .github/workflows)
@@ -50,36 +48,121 @@ require_text_format_tools() {
   }
 }
 
-find_script_shell_files() {
-  find scripts -name '*.sh' -type f -print0
+format_text_is_prettier_file() {
+  case "$1" in
+    *.md | *.yml | *.yaml | *.json | *.js | *.mjs | *.cjs | *.ts | *.tsx | *.css | *.html | *.htm)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+format_text_under_paths() {
+  local file="$1"
+  local root
+  for root in "${TEXT_FORMAT_PATHS[@]}"; do
+    case "$file" in
+      "$root" | "$root"/*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# 收集 scripts 下 .sh（FORMAT_CHANGED 时仅 git 变更）
+collect_shell_format_files() {
+  local file
+  if format_changed_enabled; then
+    while IFS= read -r file; do
+      [[ "$file" == scripts/* && "$file" == *.sh ]] || continue
+      printf '%s\n' "$file"
+    done < <(format_collect_changed_files)
+  else
+    find scripts -name '*.sh' -type f -print
+  fi
+}
+
+# 收集 TEXT_FORMAT_PATHS 下 prettier 可解析文件（仅 FORMAT_CHANGED）
+collect_prettier_format_files() {
+  local file
+  while IFS= read -r file; do
+    format_text_under_paths "$file" || continue
+    format_text_is_prettier_file "$file" || continue
+    printf '%s\n' "$file"
+  done < <(format_collect_changed_files)
 }
 
 format_text_apply() {
   require_text_format_tools
 
-  local shell_files=()
-  while IFS= read -r -d '' file; do
+  local -a shell_files=()
+  local file
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
     shell_files+=("$file")
-  done < <(find_script_shell_files)
+  done < <(collect_shell_format_files)
 
   if ((${#shell_files[@]} > 0)); then
+    if format_changed_enabled; then
+      echo "shfmt: ${#shell_files[@]} changed .sh file(s) (FORMAT_CHANGED=1)"
+    fi
     "$SHFMT" "${SHFMT_FLAGS[@]}" -w "${shell_files[@]}"
+  elif format_changed_enabled; then
+    echo "shfmt: no changed .sh files (FORMAT_CHANGED=1); skip"
   fi
 
-  npx --yes "prettier@${PRETTIER_VERSION}" --write "${TEXT_FORMAT_PATHS[@]}"
+  if format_changed_enabled; then
+    local -a prettier_files=()
+    while IFS= read -r file; do
+      [[ -n "$file" ]] || continue
+      prettier_files+=("$file")
+    done < <(collect_prettier_format_files)
+
+    if ((${#prettier_files[@]} > 0)); then
+      echo "prettier: ${#prettier_files[@]} changed file(s) (FORMAT_CHANGED=1)"
+      npx --yes "prettier@${PRETTIER_VERSION}" --write "${prettier_files[@]}"
+    else
+      echo "prettier: no changed text files (FORMAT_CHANGED=1); skip"
+    fi
+  else
+    npx --yes "prettier@${PRETTIER_VERSION}" --write "${TEXT_FORMAT_PATHS[@]}"
+  fi
 }
 
 format_text_check() {
   require_text_format_tools
 
-  local shell_files=()
-  while IFS= read -r -d '' file; do
+  local -a shell_files=()
+  local file
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
     shell_files+=("$file")
-  done < <(find_script_shell_files)
+  done < <(collect_shell_format_files)
 
   if ((${#shell_files[@]} > 0)); then
+    if format_changed_enabled; then
+      echo "shfmt: ${#shell_files[@]} changed .sh file(s) (FORMAT_CHANGED=1)"
+    fi
     "$SHFMT" "${SHFMT_FLAGS[@]}" -d "${shell_files[@]}"
+  elif format_changed_enabled; then
+    echo "shfmt: no changed .sh files (FORMAT_CHANGED=1); skip"
   fi
 
-  npx --yes "prettier@${PRETTIER_VERSION}" --check "${TEXT_FORMAT_PATHS[@]}"
+  if format_changed_enabled; then
+    local -a prettier_files=()
+    while IFS= read -r file; do
+      [[ -n "$file" ]] || continue
+      prettier_files+=("$file")
+    done < <(collect_prettier_format_files)
+
+    if ((${#prettier_files[@]} > 0)); then
+      echo "prettier: ${#prettier_files[@]} changed file(s) (FORMAT_CHANGED=1)"
+      npx --yes "prettier@${PRETTIER_VERSION}" --check "${prettier_files[@]}"
+    else
+      echo "prettier: no changed text files (FORMAT_CHANGED=1); skip"
+    fi
+  else
+    npx --yes "prettier@${PRETTIER_VERSION}" --check "${TEXT_FORMAT_PATHS[@]}"
+  fi
 }

@@ -797,6 +797,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     private static UpdateManager CreateUpdateManager(PacToolkits.Application.Abstractions.UpdateOptions options)
     {
         var feedChannel = AppUpdatePolicy.NormalizeChannel(options.Channel);
+        // ResolveFeedUrl：HTTP(S) 保持 URL；file/UNC/盘符归一为文件系统路径，供 Velopack SimpleFileSource
         var feed = AppUpdatePolicy.ResolveFeedUrl(options.FeedUrl, feedChannel);
         var updateOptions = new Velopack.UpdateOptions
         {

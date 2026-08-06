@@ -9,62 +9,30 @@
 ;@Ahk2Exe-SetInternalName ModuleTemplate
 ;@Ahk2Exe-SetOrigFilename ModuleTemplate.exe
 ;@Ahk2Exe-SetMainIcon assets\module.ico
+#Include "%A_ScriptDir%\..\..\lib\ahk\ready.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\log.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\ui.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\startup.ahk"
 
-global ModuleSettingsPath := GetArgValue("--module-settings")
+global ModuleSettingsPath := ""
 global ModuleSettingsJson := ""
 
-ClearReady()
-OnExit(ClearReady)
+; 复制模板后改 module.json 的 id / displayName / version 即可
+global VersionInfo := Module_ReadVersion()
+Log_Startup(Module_LogId(), VersionInfo["moduleVersion"])
+Ready_Install()
+Settings_RequireJson(&ModuleSettingsPath, &ModuleSettingsJson, Module_UiTitle("启动自检"))
 
-if (ModuleSettingsPath = "" || !FileExist(ModuleSettingsPath)) {
-	MsgBox("缺少有效的 --module-settings 参数", "模块模板 - 启动自检", "Iconx")
-	ExitApp
-}
-
-try ModuleSettingsJson := FileRead(ModuleSettingsPath, "UTF-8")
-catch as err {
-	MsgBox("读取模块配置失败：`n" err.Message, "模块模板 - 启动自检", "Iconx")
-	ExitApp
-}
-
-if (Trim(ModuleSettingsJson) = "") {
-	MsgBox("模块配置不能为空", "模块模板 - 启动自检", "Iconx")
-	ExitApp
-}
-
-MarkReady()
-ToolTip("AHK 模块模板已启动`n按 Ctrl+Alt+F8 测试")
-SetTimer(() => ToolTip(), -1800)
+Ready_Mark()
+UI_Tip("AHK " Module_UiTitle() " 已启动`n按 Ctrl+Alt+F8 测试", 1800)
+Log_Info("startup.ready", Module_UiTitle() " 自检通过")
 
 ^!F8:: {
 	global ModuleSettingsPath, ModuleSettingsJson
 	summary := SubStr(ModuleSettingsJson, 1, 500)
 	MsgBox(
-		"模块运行正常`n`n配置路径：`n" ModuleSettingsPath "`n`n配置摘要：`n" summary,
-		"模块模板测试",
+		Module_UiTitle() " 运行正常`n`n配置路径：`n" ModuleSettingsPath "`n`n配置摘要：`n" summary,
+		Module_UiTitle() " 测试",
 		"Iconi"
 	)
-}
-
-GetArgValue(name) {
-	for index, arg in A_Args {
-		if (arg = name && index < A_Args.Length)
-			return A_Args[index + 1]
-
-		prefix := name "="
-		if (InStr(arg, prefix) = 1)
-			return SubStr(arg, StrLen(prefix) + 1)
-	}
-
-	return ""
-}
-
-MarkReady() {
-	path := A_ScriptDir "\module.ready"
-	try FileDelete(path)
-	FileAppend("ok`n", path, "UTF-8")
-}
-
-ClearReady(*) {
-	try FileDelete(A_ScriptDir "\module.ready")
 }

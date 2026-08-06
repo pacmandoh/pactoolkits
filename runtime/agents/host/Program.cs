@@ -26,11 +26,13 @@ internal static class Program
     {
         try
         {
+            // 与 Desktop Logging 门控共用同一配置文件
+            HostLog.Init(GetArgValue(args, "--config"));
             return Run(args);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(ex.Message);
+            HostLog.Error("host.crash", ex.Message);
             return 1;
         }
     }
@@ -51,6 +53,8 @@ internal static class Program
             quit.Set();
         };
 
+        HostLog.Info("host.ready", "Agents Host control loop started");
+
         // Host 不根据 Enabled 推断启动意图，模块生命周期仅由 Desktop 控制命令驱动
         while (!quit.IsSet)
         {
@@ -61,6 +65,11 @@ internal static class Program
             {
                 if (slot.Process is not null && slot.Process.HasExited)
                 {
+                    var exitCode = slot.Process.ExitCode;
+                    HostLog.Info(
+                        "host.module.exited",
+                        $"Module process exited: {slot.Id}",
+                        new { moduleId = slot.Id, exitCode });
                     slot.Process.Dispose();
                     slot.Process = null;
                 }
@@ -72,6 +81,7 @@ internal static class Program
                 TryDelete(hostControlPath);
                 if (hostCommand == "quit")
                 {
+                    HostLog.Info("host.quit", "Host quit requested");
                     StopAll(slots);
                     return 0;
                 }
@@ -99,11 +109,18 @@ internal static class Program
                             {
                                 slot.Process?.Dispose();
                                 slot.Process = StartModule(slot, childArgs);
+                                HostLog.Info(
+                                    "host.module.start",
+                                    $"Module started: {slot.Id}",
+                                    new { moduleId = slot.Id, pid = slot.Process?.Id });
                             }
                         }
                         catch (Exception ex)
                         {
-                            Console.Error.WriteLine($"Module start failed ({slot.Id}): {ex.Message}");
+                            HostLog.Error(
+                                "host.module_start.fail",
+                                ex.Message,
+                                new { moduleId = slot.Id });
                             slot.Process = null;
                         }
 
@@ -114,6 +131,7 @@ internal static class Program
             quit.Wait(ControlPoll);
         }
 
+        HostLog.Info("host.shutdown", "Host control loop ending");
         StopAll(slots);
         return 0;
     }
@@ -133,13 +151,16 @@ internal static class Program
             var entryPath = AgentsPath.TryResolveModuleEntryPath(agentsDir, module.Id);
             if (entryPath is null)
             {
-                Console.Error.WriteLine($"Invalid module entry: {module.Id}");
+                HostLog.Error("host.module_entry.invalid", $"Invalid module entry: {module.Id}", new { moduleId = module.Id });
                 continue;
             }
 
             if (!File.Exists(entryPath))
             {
-                Console.Error.WriteLine($"Missing module entry: {entryPath}");
+                HostLog.Error(
+                    "host.module_entry.missing",
+                    $"Missing module entry: {entryPath}",
+                    new { moduleId = module.Id, entryPath });
                 continue;
             }
 
@@ -165,7 +186,7 @@ internal static class Program
                 ModuleDir = module.Directory,
                 ControlPath = controlPath,
             });
-            Console.WriteLine($"Module discovered: {module.Id}");
+            HostLog.Info("host.module.discovered", $"Module discovered: {module.Id}", new { moduleId = module.Id });
         }
 
         for (var i = slots.Count - 1; i >= 0; i--)
@@ -178,7 +199,7 @@ internal static class Program
 
             StopModule(slot);
             slots.RemoveAt(i);
-            Console.WriteLine($"Module removed: {slot.Id}");
+            HostLog.Info("host.module.removed", $"Module removed: {slot.Id}", new { moduleId = slot.Id });
         }
     }
 
@@ -257,6 +278,7 @@ internal static class Program
             return;
         }
 
+        var pid = slot.Process.Id;
         try
         {
             TryKill(slot.Process);
@@ -265,6 +287,10 @@ internal static class Program
         {
             slot.Process.Dispose();
             slot.Process = null;
+            HostLog.Info(
+                "host.module.stop",
+                $"Module stopped: {slot.Id}",
+                new { moduleId = slot.Id, pid });
         }
     }
 

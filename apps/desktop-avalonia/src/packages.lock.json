@@ -56,9 +56,9 @@
       },
       "Lucide.Avalonia": {
         "type": "Direct",
-        "requested": "[0.2.15, )",
-        "resolved": "0.2.15",
-        "contentHash": "lpn4YbnafcwJerXAu7GlNEV9wKmhGRuSVLy3MYBxpXJCBqlQGhRlXD+Cghwwftu5PYKbtySJfQnSQp6s6KeLtA==",
+        "requested": "[0.2.16, )",
+        "resolved": "0.2.16",
+        "contentHash": "+Lo68MEzRqL/QXrMaFyYRC0JedMMOEwXDqF42oe3bU8ghacHVjv10uPu2vLXaI7W5BqR5HDBSuKkIN0jseYx7w==",
         "dependencies": {
           "Avalonia": "11.3.17"
         }
@@ -458,6 +458,9 @@
           "PacToolkits.Application": "[1.0.0, )",
           "PacToolkits.Core": "[1.0.0, )"
         }
+      },
+      "pactoolkits.logger": {
+        "type": "Project"
       }
     }
   }

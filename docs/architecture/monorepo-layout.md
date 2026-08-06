@@ -12,7 +12,8 @@ pactoolkits/
     core/                     纯领域模型与跨层工具（无 I/O）
     application/              用例层：DTO、服务接口、应用服务
     infrastructure/           外部实现：PostgreSQL、仓储实现
-    agents-contracts/         Desktop ↔ Agents（Host + Modules）共享协议
+    agents-contracts/         Desktop ↔ Agents 共享协议
+    logger/                   共享 JSON Lines 文件日志（级别、滚动、写盘）
   runtime/
     agents/
       host/                   Host（Agents.exe，.NET 入口）
@@ -31,17 +32,18 @@ pactoolkits/
 
 ## 各区域职责
 
-| 路径                        | 角色            | 说明                                              |
-| --------------------------- | --------------- | ------------------------------------------------- |
-| `apps/desktop-avalonia`     | **Desktop**     | 业务 UI、配置、更新、诊断以及 Agents 运行控制     |
-| `runtime/agents/host`       | **Agents Host** | `Agents.exe`；处理控制文件并监管模块进程          |
-| `runtime/agents/modules`    | **Agents 模块** | 独立自动化进程及其描述文件、默认配置和设置 schema |
-| `runtime/agents/templates`  | **模块模板**    | 新模块的开发起点，不参与运行时模块发现与打包      |
-| `database/postgres`         | **数据库**      | SQL 与部署脚本；schema 演进与校验                 |
-| `packages/core`             | **纯业务核心**  | 无数据库、文件、日志、配置、桌面端依赖            |
-| `packages/application`      | **用例层**      | 页面/功能对应的应用服务与抽象                     |
-| `packages/infrastructure`   | **基础设施**    | Npgsql、仓储、DB 连接与 schema 版本读取           |
-| `packages/agents-contracts` | **Agents 协议** | 配置模型、路径、运行时抽象；Host 与 Desktop 共用  |
+| 路径                        | 角色            | 说明                                                                 |
+| --------------------------- | --------------- | -------------------------------------------------------------------- |
+| `apps/desktop-avalonia`     | **Desktop**     | 业务 UI、配置、更新、诊断以及 Agents 运行控制                        |
+| `runtime/agents/host`       | **Agents Host** | `Agents.exe`；处理控制文件并监管模块进程                             |
+| `runtime/agents/modules`    | **Agents 模块** | 独立自动化进程及其描述文件、默认配置和设置 schema                    |
+| `runtime/agents/templates`  | **模块模板**    | 新模块的开发起点，不参与运行时模块发现与打包                         |
+| `database/postgres`         | **数据库**      | SQL 与部署脚本；schema 演进与校验                                    |
+| `packages/core`             | **纯业务核心**  | 无数据库、文件、日志、配置、桌面端依赖                               |
+| `packages/application`      | **用例层**      | 页面/功能对应的应用服务与抽象                                        |
+| `packages/infrastructure`   | **基础设施**    | Npgsql、仓储、DB 连接与 schema 版本读取                              |
+| `packages/agents-contracts` | **Agents 协议** | 配置模型、路径、运行时抽象；Host 与 Desktop 共用                     |
+| `packages/logger`           | **共享日志**    | JSON Lines 记录规格、级别规范化、按日滚动与写盘；Desktop / Host 共用 |
 
 ## .NET 解决方案
 
@@ -52,6 +54,7 @@ pactoolkits/
 - `PacToolkits.Application`
 - `PacToolkits.Infrastructure`
 - `PacToolkits.Agents.Contracts`
+- `PacToolkits.Logger`
 - `PacToolkits.Agents.Host`
 - `PacToolkits.Desktop.Tests`
 - `PacToolkits.Desktop.UiTests`

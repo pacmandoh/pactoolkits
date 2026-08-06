@@ -143,7 +143,7 @@
           "key": "ColSpecs",
           "type": "stringList",
           "label": "ColSpecs",
-          "description": "解析列规格，每行一条"
+          "description": "解析列规格，每行一条；门诊拆零闩锁建议含可选列「?库存数量」"
         },
         {
           "key": "IntCols",
@@ -151,6 +151,46 @@
           "label": "IntCols",
           "description": "按整数解析的列名，每行一条",
           "allowEmpty": true
+        }
+      ]
+    },
+    {
+      "title": "日志",
+      "fields": [
+        {
+          "key": "LogEnabled",
+          "type": "bool",
+          "label": "启用模块日志",
+          "description": "关闭后本模块不再写入日志文件"
+        },
+        {
+          "key": "LogMinimumLevel",
+          "type": "enum",
+          "label": "最小级别",
+          "description": "低于该级别的日志将被丢弃",
+          "options": [
+            "Debug",
+            "Info",
+            "Warn",
+            "Error",
+            "Fatal"
+          ]
+        },
+        {
+          "key": "LogRetentionDays",
+          "type": "int",
+          "label": "保留天数",
+          "description": "超过保留天数的日志文件将被自动清理",
+          "min": 1,
+          "max": 180
+        },
+        {
+          "key": "LogMaxFileSizeMb",
+          "type": "int",
+          "label": "单文件上限(MB)",
+          "description": "单个日志文件的最大体积，超出后滚动到新文件",
+          "min": 1,
+          "max": 200
         }
       ]
     }

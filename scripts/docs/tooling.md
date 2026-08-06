@@ -18,7 +18,7 @@
 
 ## 本地开发
 
-- `run-desktop-with-agents.sh` — 构建 Desktop 与 Host，在 Desktop 输出目录生成 Agents 安装布局；`--stage-only` 仅生成布局
+- `run-desktop-with-agents.sh` — 构建 Desktop 与 Host，在 Desktop 输出目录生成 Agents 安装布局；`--stage-only` 仅生成布局。Windows 上优先用本机 Ahk2Exe 编译模块（见 `scripts/lib/compile-ahk-modules-win.sh`），否则回退 artifacts
 
 ## Windows 部署与同步
 

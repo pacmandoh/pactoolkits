@@ -56,19 +56,44 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
         ChannelManifest manifest;
         try
         {
-            using var response = await _http.GetAsync(manifestUrl, ct).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            if (AppUpdatePolicy.TryGetLocalFeedPath(baseFeedUrl, out _))
             {
-                return Failed(channel, targetFeedUrl, manifestUrl,
-                    $"目标更新源不可用：HTTP {(int)response.StatusCode}");
+                manifest = await ReadLocalManifestAsync(manifestUrl, ct).ConfigureAwait(false);
             }
+            else
+            {
+                using var response = await _http.GetAsync(manifestUrl, ct).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Failed(channel, targetFeedUrl, manifestUrl,
+                        $"目标更新源不可用：HTTP {(int)response.StatusCode}");
+                }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            manifest = ReadManifest(stream);
+                await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+                manifest = ReadManifest(stream);
+            }
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             return Failed(channel, targetFeedUrl, manifestUrl, "目标更新源检查超时");
+        }
+        catch (FileNotFoundException)
+        {
+            return Failed(channel, targetFeedUrl, manifestUrl, "目标更新源不可用：未找到 release-manifest.json");
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return Failed(channel, targetFeedUrl, manifestUrl, "目标更新源不可用：更新源目录不存在");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Failed(channel, targetFeedUrl, manifestUrl, "目标更新源不可用：无权限读取更新源");
+        }
+        catch (IOException ex)
+        {
+            _logger.Warn("ReleaseManifestProbe", "update.channel.feed_probe_fail",
+                "Failed probing local release channel feed", ex, new { channel, manifestUrl });
+            return Failed(channel, targetFeedUrl, manifestUrl, $"目标更新源不可用：{ex.Message}");
         }
         catch (Exception ex)
         {
@@ -128,9 +153,35 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
         }
 
         var feedUrl = AppUpdatePolicy.ResolveFeedUrl(baseFeedUrl, normalizedChannel);
-        return string.IsNullOrWhiteSpace(feedUrl)
-            ? string.Empty
+        if (string.IsNullOrWhiteSpace(feedUrl))
+        {
+            return string.Empty;
+        }
+
+        return AppUpdatePolicy.TryGetLocalFeedPath(baseFeedUrl, out _)
+            ? Path.Combine(feedUrl, "release-manifest.json")
             : $"{feedUrl}/release-manifest.json";
+    }
+
+    private static async Task<ChannelManifest> ReadLocalManifestAsync(string manifestPath, CancellationToken ct)
+    {
+        if (!File.Exists(manifestPath))
+        {
+            throw new FileNotFoundException("release-manifest.json not found", manifestPath);
+        }
+
+        await using var stream = new FileStream(
+            manifestPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
+        timeoutCts.Token.ThrowIfCancellationRequested();
+        // JsonDocument.Parse 为同步 API；超时令牌覆盖打开与解析阶段
+        return ReadManifest(stream);
     }
 
     private static ChannelManifest ReadManifest(Stream stream)

@@ -102,10 +102,23 @@ public partial class Settings
         }
 
         ReloadClientAliasesIfVisible("client_alias.reload.tab_enter_fail");
-        if (tabIndex == (int)Tab.ModuleSettings)
+        if (tabIndex != (int)Tab.ModuleSettings)
         {
-            ApplyPendingModuleSelection();
+            return;
         }
+
+        // disk/stale 对齐后 soft apply；仍 pending 且可重建时才整表 syncModules（内带 discard）
+        ReloadModuleSettingsIfVisible();
+        ApplyPendingModuleSelection();
+        if (string.IsNullOrWhiteSpace(_pendingModuleSettingsId)
+            || IsModuleSettingsDirty()
+            || HasModuleAutoSaves
+            || IsAgentsToggling)
+        {
+            return;
+        }
+
+        SyncAgentsConfig(syncHost: false, syncModules: true);
     }
 
     // discardIfMissing：完整重建后再找不到则作废 deep-link；否则编辑器未就绪时保留
@@ -379,7 +392,10 @@ public partial class Settings
         var options = _loggingSettings.Current;
         return LoggingRetentionDays != options.RetentionDays
                || LoggingMaxFileSizeMb != options.MaxFileSizeMb
-               || !string.Equals(LoggingDirectory ?? string.Empty, _logger.LogDirectory, StringComparison.Ordinal);
+               || !string.Equals(
+                   LoggingDirectory ?? string.Empty,
+                   LogDirectory.Resolve(options.LogDirectory).BrowseDirectory,
+                   StringComparison.Ordinal);
     }
 
     private bool IsMsfxApiDirty()
@@ -475,6 +491,7 @@ public partial class Settings
 
         if (!_disposed)
         {
+            // 等手动打开/导出结束再写；IsLoggingBusy 不再被静默保存占用
             while (IsLoggingBusy)
             {
                 try

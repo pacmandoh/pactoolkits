@@ -1,3 +1,4 @@
+using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Tests;
@@ -5,52 +6,34 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class LogDirectoryTests
 {
     [Fact]
-    public void Resolve_EmptyConfigured_UsesDefaultDesktopDirectory()
+    public void Resolve_EmptyConfigured_UsesDefaultLayout()
     {
         var resolution = LogDirectory.Resolve(string.Empty);
 
         Assert.Equal(string.Empty, resolution.StoredDirectory);
-        Assert.Equal(LogDirectory.GetDefaultDirectory(), resolution.RuntimeDirectory);
+        Assert.Equal(AgentsLogPaths.DesktopDir(null), resolution.RuntimeDirectory);
+        Assert.Equal(AgentsLogPaths.DefaultLogsRoot(), resolution.BrowseDirectory);
     }
 
     [Fact]
-    public void Resolve_ConfiguredPath_UsesStoredPathAsIs()
+    public void Resolve_CustomRoot_DesktopWritesUnderRoot()
     {
-        var configured = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "PacToolkits",
-            "logs",
-            "ui");
+        var root = Path.Combine(Path.GetTempPath(), "pac-ui-logs-root");
 
-        var resolution = LogDirectory.Resolve(configured);
+        var resolution = LogDirectory.Resolve(root);
 
-        Assert.Equal(configured, resolution.StoredDirectory);
-        Assert.Equal(Path.GetFullPath(configured), resolution.RuntimeDirectory);
+        Assert.Equal(Path.GetFullPath(root), resolution.StoredDirectory);
+        Assert.Equal(AgentsLogPaths.DesktopDir(root), resolution.RuntimeDirectory);
+        Assert.Equal(Path.GetFullPath(root), resolution.BrowseDirectory);
     }
 
     [Fact]
-    public void Resolve_CurrentDesktopDirectory_UsesConfiguredPath()
+    public void Resolve_DefaultLogsRootPath_StoresEmpty()
     {
-        var configured = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "PacToolkits",
-            "logs",
-            "desktop");
+        var resolution = LogDirectory.Resolve(AgentsLogPaths.DefaultLogsRoot());
 
-        var resolution = LogDirectory.Resolve(configured);
-
-        Assert.Equal(configured, resolution.StoredDirectory);
-        Assert.Equal(Path.GetFullPath(configured), resolution.RuntimeDirectory);
-    }
-
-    [Fact]
-    public void Resolve_CustomDirectory_UsesConfiguredPath()
-    {
-        var configured = Path.Combine(Path.GetTempPath(), "custom-desktop-logs");
-
-        var resolution = LogDirectory.Resolve(configured);
-
-        Assert.Equal(configured, resolution.StoredDirectory);
-        Assert.Equal(Path.GetFullPath(configured), resolution.RuntimeDirectory);
+        Assert.Equal(string.Empty, resolution.StoredDirectory);
+        Assert.Equal(AgentsLogPaths.DesktopDir(null), resolution.RuntimeDirectory);
+        Assert.Equal(AgentsLogPaths.DefaultLogsRoot(), resolution.BrowseDirectory);
     }
 }

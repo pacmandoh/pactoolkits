@@ -1,8 +1,10 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\JSON.ahk"
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\path.ahk"
 #Include "%A_ScriptDir%\..\src\pg_exec.ahk"
 #Include "%A_ScriptDir%\..\src\db_txn.ahk"
-#Include "%A_ScriptDir%\..\src\utils.ahk"
+#Include "%A_ScriptDir%\..\src\util_misc.ahk"
 
 global Cfg := IsSet(Cfg) ? Cfg : Map()
 global Cfg := Util_LoadDotEnv(A_ScriptDir "\..\.env.local")
@@ -56,7 +58,7 @@ Main() {
 		ExitApp 1
 	}
 	if (r.Has("skip") && r["skip"]) {
-		MsgBox "[信息] Reserve 被跳过（本次无法验证自愈）`nwhy=" (r.Has("why") ? r["why"] : "")
+		MsgBox "[信息] Reserve 被跳过（本次无法验证自愈）`nmessage=" (r.Has("message") ? r["message"] : "")
 		ExitApp 1
 	}
 

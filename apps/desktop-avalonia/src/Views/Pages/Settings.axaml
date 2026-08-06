@@ -641,7 +641,7 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="更新源地址" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="留空使用默认更新源" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="HTTP(S) 或内网共享/本地目录；留空使用默认更新源" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -747,13 +747,20 @@
             </Border>
 
             <Border Classes="Field">
+              <TextBlock
+                Classes="Caption Muted"
+                Text="本页控制启用、最小级别、保留天数与单文件上限。模块日志不在此控制，请到「模块配置」。"
+                TextWrapping="Wrap" />
+            </Border>
+
+            <Border Classes="Field">
               <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="启用日志" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="开启后将按配置写入本地日志文件" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="关闭后不再写入日志文件" />
                 </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"
@@ -828,7 +835,7 @@
                   <TextBlock Classes="FieldTitle" Text="日志目录" />
                   <TextBlock
                     Classes="Caption Muted FieldDesc"
-                    Text="默认目录：ApplicationData/PacToolkits/logs/desktop；建议保持默认，便于部署和故障回溯"
+                    Text="默认目录：ApplicationData/PacToolkits/logs；建议保持默认，便于部署和故障回溯"
                     TextWrapping="Wrap" />
                 </StackPanel>
                 <TextBox
@@ -1449,6 +1456,7 @@
                     Text="模块配置" />
                   <controls:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
                   <TabControl
+                    x:Name="ModuleEditorsTabs"
                     shad:TabControlBehaviors.UseSlidingPill="False"
                     Classes="ContentHeaderTabs"
                     ItemsSource="{Binding ModuleEditors}"
@@ -1498,7 +1506,7 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <ContentControl Content="{Binding SelectedModuleEditor}">
+            <ContentControl x:Name="ModuleSettingsEditorHost" Content="{Binding SelectedModuleEditor}">
               <ContentControl.ContentTemplate>
                 <DataTemplate x:DataType="vm:ModuleSettingsEditor">
                   <StackPanel>

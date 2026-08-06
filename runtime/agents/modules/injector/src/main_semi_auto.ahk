@@ -6,6 +6,8 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
 	flowT0 := A_TickCount
 	win := Util_NormalizeWin(win)
 	cls := WinGetClass(win)
+	ttl := ""
+	try ttl := WinGetTitle(win)
 	clientId := (IsSet(RuntimeInfo) && Type(RuntimeInfo) = "Map" && RuntimeInfo.Has("clientId"))
 		? RuntimeInfo["clientId"]
 		: A_ComputerName
@@ -16,123 +18,166 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
 	} else if (cls = opt) {
 		mode := "门诊"
 	} else {
-		return Map("ok", false, "level", "WARN", "type", "[界面错误]", "why", "当前窗口不在允许场景内`nclass=" cls)
+		Log_Debug("semi_auto.scene_miss", "窗口不在允许场景", Map("cls", cls, "ttl", ttl, "opt", opt, "ipt", ipt))
+		return Map("ok", false, "level", "Warn", "message", "[界面错误]`n当前窗口不在允许场景内`nclass=" cls)
 	}
 
 	parseGridClassNN := (cls = ipt) ? iptParseGridClassNN : optParseGridClassNN
 	verifyGridClassNN := (cls = ipt) ? iptVerifyGridClassNN : optVerifyGridClassNN
 	inputClassNN := (cls = ipt) ? iptInputClassNN : optInputClassNN
 
+	Log_Debug("semi_auto.start", "半自动开始", Map(
+		"mode", mode, "cls", cls, "ttl", ttl,
+		"parseNn", parseGridClassNN, "verifyNn", verifyGridClassNN, "inputNn", inputClassNN,
+		"timeoutMs", timeoutMs, "clientId", clientId
+	))
+
 	p := Parse_TargetInfo(colSpecs, ipt, intCols, "", win, parseGridClassNN)
 
 	if !p["ok"] {
+		Log_Debug("semi_auto.parse_fail", p["message"], Map(
+			"mode", mode, "reason", p.Has("reason") ? p["reason"] : "",
+			"elapsedMs", A_TickCount - flowT0
+		))
 		return p
 	}
 
 	by := p["bySpec"]
 	drugId := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
 	spec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
+	splitFlag := by.Has("拆零标签||拆零") ? Trim(by["拆零标签||拆零"]) : ""
+	qtyVal := by.Has("数量") ? by["数量"] : ""
+	stockSnap := Util_OptRemStockFromBy(by)
+	Log_Debug("semi_auto.fields", "关键字段", Map(
+		"mode", mode, "drugId", drugId, "spec", spec, "split", splitFlag, "qty", qtyVal, "stock", stockSnap
+	))
 	if (drugId = "" || spec = "") {
-		return Map("ok", false, "level", "WARN", "type", "[解析错误]", "why", "解析结果缺少关键字段`n药品名称=" drugId " 规格=" spec)
+		Log_Debug("semi_auto.fields_miss", "缺药品名或规格", Map("drugId", drugId, "spec", spec))
+		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n解析结果缺少关键字段`n药品名称=" drugId " 规格=" spec)
 	}
 
 	txnId := Util_TxnId()
+	Log_Debug("semi_auto.reserve", "开始预留", Map("txn", txnId, "drugId", drugId, "spec", spec, "mode", mode))
 
-	r := Txn_ReservePick(txnId, clientId, drugId, spec, 0, opt, ipt, by, cls)
+	; 门诊：读已扫；拆零进度与 rem_done 闩锁由预留侧判断
+	alreadyScanned := 0
+	if (mode = "门诊") {
+		alreadyScanned := UI_ReadOptScannedCount(verifyGridClassNN, win, ipt, parseGridClassNN)
+		if (alreadyScanned < 0) {
+			Log_Debug("semi_auto.scanned_unread", "无法读取已扫数量", Map(
+				"txn", txnId, "verifyNn", verifyGridClassNN, "elapsedMs", A_TickCount - flowT0
+			))
+			return Map("ok", false, "level", "Warn",
+				"message", "[界面错误]`n无法读取门诊「已扫 N 码」，已中止以免超量注入")
+		}
+		Log_Debug("semi_auto.scanned", "门诊已扫基数", Map(
+			"txn", txnId, "alreadyScanned", alreadyScanned
+		))
+	}
+
+	r := Txn_ReservePick(txnId, clientId, drugId, spec, 0, opt, ipt, by, cls, alreadyScanned)
 
 	if !r["ok"] {
+		Log_Debug("semi_auto.reserve_fail", r.Has("message") ? r["message"] : "预留失败", Map(
+			"txn", txnId, "reason", r.Has("reason") ? r["reason"] : "",
+			"elapsedMs", A_TickCount - flowT0
+		))
 		return r
 	}
 	if (r["skip"]) {
+		Log_Debug("semi_auto.skip", r.Has("message") ? r["message"] : "跳过", Map(
+			"txn", txnId, "elapsedMs", A_TickCount - flowT0
+		))
 		; 跳过原因和焦点恢复由模块入口统一处理，避免重复提示
-		return Map("ok", true, "skip", true, "type", r["type"], "why", r["why"], "focusClassNN", inputClassNN)
+		return Map("ok", true, "skip", true, "level", r["level"], "message", r["message"], "focusClassNN", inputClassNN)
 	}
 
 	codes := r.Has("codes") ? r["codes"] : []
 	if (codes.Length = 0) {
+		Log_Debug("semi_auto.codes_empty", "预留成功但码为空", Map("txn", txnId))
 		Txn_Rollback(txnId)
-		return Map("ok", false, "level", "ERR", "type", "[预留错误]", "why", "预留成功但追溯码异常并且为空")
+		return Map("ok", false, "level", "Error", "message", "[预留错误]`n预留成功但追溯码异常并且为空")
 	}
 
-	debugOptMulti := (cls = opt && codes.Length > 1)
-	if (debugOptMulti) {
-		Util_LogLine(
-			"OPT_MULTI"
-			. " | start"
-			. " | txn=" txnId
-			. " | t=" (A_TickCount - flowT0) "ms"
-			. " | drug=" drugId
-			. " | spec=" spec
-			. " | codes=" codes.Length
-			. " | input=" inputClassNN
-			. " | verify=" verifyGridClassNN
-		)
-	}
+	tails := []
+	for _, c in codes
+		tails.Push((StrLen(c) <= 4) ? c : SubStr(c, -3))
+	Log_Debug("semi_auto.codes", "预留码就绪", Map(
+		"txn", txnId, "count", codes.Length, "codeTails", tails,
+		"drugId", drugId, "spec", spec
+	))
 
+	; 住院贴码后「信息不匹配」的 force 须带入校验，否则用户秒关窗会误回滚
+	iptSawForce := false
 	for i, code in codes {
-		if (debugOptMulti) {
-			Util_LogLine(
-				"OPT_MULTI"
-				. " | paste_begin"
-				. " | txn=" txnId
-				. " | idx=" i "/" codes.Length
-				. " | t=" (A_TickCount - flowT0) "ms"
-				. " | len=" StrLen(code)
-			)
-		}
+		Log_Debug("semi_auto.paste", "粘贴追溯码", Map(
+			"txn", txnId, "idx", i, "codes", codes.Length,
+			"codeLen", StrLen(code), "codeTail", (StrLen(code) <= 4) ? code : SubStr(code, -3)
+		))
 		pr := UI_Paste_ByPolicy(code, opt, ipt, optInputClassNN, iptInputClassNN, win)
 		if (!pr["ok"]) {
-			if (debugOptMulti) {
-				Util_LogLine(
-					"OPT_MULTI"
-					. " | paste_fail"
-					. " | txn=" txnId
-					. " | idx=" i "/" codes.Length
-					. " | t=" (A_TickCount - flowT0) "ms"
-					. " | why=" StrReplace(pr["why"], "`n", " | ")
-				)
-			}
+			Log_Debug("semi_auto.paste_fail", pr.Has("message") ? pr["message"] : "贴码失败", Map(
+				"txn", txnId, "idx", i, "elapsedMs", A_TickCount - flowT0
+			))
 			; 库存已经预留，注入失败时必须执行事务回滚
 			Txn_Rollback(txnId)
-			return Map("ok", false, "level", "ERR", "type", pr["type"], "why", "注入失败（第" i "条）：`n" pr["why"])
+			return Map("ok", false, "level", pr["level"], "message", "注入失败（第" i "条）：`n" pr["message"])
 		}
-		if (debugOptMulti) {
-			Util_LogLine(
-				"OPT_MULTI"
-				. " | paste_ok"
-				. " | txn=" txnId
-				. " | idx=" i "/" codes.Length
-				. " | t=" (A_TickCount - flowT0) "ms"
-			)
+		; 住院贴码后常立刻弹出「信息不匹配」，先强制「是」再进校验
+		if (mode = "住院") {
+			dlg := UI_PollIptDialogs(450)
+			if (dlg = "abort") {
+				Log_Debug("semi_auto.paste_dialog_abort", "贴码后失败弹窗", Map("txn", txnId, "idx", i))
+				Txn_Rollback(txnId)
+				return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
+			}
+			if (dlg = "force")
+				iptSawForce := true
 		}
 	}
 
-	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win)
-	if (debugOptMulti) {
-		Util_LogLine(
-			"OPT_MULTI"
-			. " | final_confirm"
-			. " | txn=" txnId
-			. " | t=" (A_TickCount - flowT0) "ms"
-			. " | ok=" (wc["ok"] ? 1 : 0)
-			. (wc["ok"] ? "" : (" | why=" StrReplace(wc["why"], "`n", " | ")))
-		)
-	}
+	; 用户秒关住院窗不得跳过校验；贴码阶段 force 须传入，避免误回滚
+	optTarget := alreadyScanned + codes.Length
+	Log_Debug("semi_auto.confirm_begin", "进入录入校验", Map(
+		"txn", txnId, "codes", codes.Length, "alreadyScanned", alreadyScanned,
+		"optTargetScanned", optTarget, "iptSawForce", iptSawForce,
+		"timeoutMs", timeoutMs, "verifyNn", verifyGridClassNN
+	))
+	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win, optTarget, iptSawForce)
+	Log_Debug("semi_auto.confirm", wc["ok"] ? "校验通过" : "校验失败", Map(
+		"txn", txnId,
+		"ok", wc["ok"],
+		"message", wc.Has("message") ? wc["message"] : "",
+		"codes", codes.Length,
+		"optTargetScanned", optTarget,
+		"elapsedMs", A_TickCount - flowT0
+	))
 
 	if !wc["ok"] {
+		Log_Debug("semi_auto.rollback", "校验失败回滚", Map("txn", txnId))
 		Txn_Rollback(txnId)
 		return wc
 	}
 
 	rc := Txn_Commit(txnId)
 	if !(rc is Map) {
-		return Map("ok", false, "level", "ERR", "type", "[提交错误]", "why", "未知执行错误")
+		Log_Debug("semi_auto.commit_bad", "提交返回异常", Map("txn", txnId))
+		return Map("ok", false, "level", "Error", "message", "[提交错误]`n未知执行错误")
 	}
 
 	if (!rc["ok"]) {
+		Log_Debug("semi_auto.commit_fail", rc.Has("message") ? rc["message"] : "提交失败", Map("txn", txnId))
 		return rc
 	}
 
+	; 门诊拆零提交成功后上闩（药|规|量|库存）；无库存快照则跳过上闩以免三元组误锁
+	if (mode = "门诊")
+		Util_OptRemDone_Set(Util_OptRemKey(drugId, spec, Util_ToInt(qtyVal, 0), stockSnap))
+
+	Log_Info("semi_auto.done", "半自动完成", Map(
+		"txn", txnId, "mode", mode, "drugId", drugId, "spec", spec, "stock", stockSnap,
+		"codes", codes.Length, "elapsedMs", A_TickCount - flowT0
+	))
 	UI_Tip("[半自动注入完成] " drugId " / " spec "（" mode "）", 1500)
 	return Map("ok", true)
 }

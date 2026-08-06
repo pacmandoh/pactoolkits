@@ -9,74 +9,94 @@
 ;@Ahk2Exe-SetInternalName Injector
 ;@Ahk2Exe-SetOrigFilename Injector.exe
 ;@Ahk2Exe-SetMainIcon assets\agents-injector.ico
+#Include "%A_ScriptDir%\..\..\lib\ahk\args.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\ready.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\log.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\ui.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\path.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\startup.ahk"
+#Include "%A_ScriptDir%\src\util_misc.ahk"
+#Include "%A_ScriptDir%\src\util_rem.ahk"
+#Include "%A_ScriptDir%\src\util_config.ahk"
+#Include "%A_ScriptDir%\src\util_scene.ahk"
+#Include "%A_ScriptDir%\src\ui_focus.ahk"
+#Include "%A_ScriptDir%\src\ui_paste.ahk"
+#Include "%A_ScriptDir%\src\ui_confirm.ahk"
 #Include "%A_ScriptDir%\src\parse_clipboard.ahk"
 #Include "%A_ScriptDir%\src\db_txn.ahk"
 #Include "%A_ScriptDir%\src\pg_exec.ahk"
-#Include "%A_ScriptDir%\src\ui_txn.ahk"
-#Include "%A_ScriptDir%\src\json.ahk"
-#Include "%A_ScriptDir%\src\utils.ahk"
 #Include "%A_ScriptDir%\src\main_semi_auto.ahk"
+#Include "%A_ScriptDir%\src\msfx_code.ahk"
+#Include "%A_ScriptDir%\src\msfx_sql.ahk"
 #Include "%A_ScriptDir%\src\msfx_task.ahk"
 
 ; Injector 追溯码录入模块入口
 
-; ODBC/Postgres 与打包基底要求 64 位；32 位进程无法正确连接
-if (A_PtrSize = 4) {
-	if (A_IsCompiled) {
-		UI_Err("当前为 32 位打包程序，无法运行`n请使用 64 位 AutoHotkey 基底重新打包后再启动", "追溯码自动化 - 启动自检")
-		ExitApp
-	}
-	Run('"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe" "' A_ScriptFullPath '"')
-	ExitApp
-}
-
 global Cfg := IsSet(Cfg) ? Cfg : Map()
-Util_ClearModuleReady()
+global VersionInfo := Module_ReadVersion()
+; 尽早对齐日志根、版本与模块门控，使后续 UI_Fail / Log_Error 也带 version
+Log_Startup(Module_LogId(), VersionInfo["moduleVersion"])
+Log_TryApplyModuleSettingsArg()
+Arch_Require64(Module_UiTitle("启动自检"))
+
+Ready_Install()
 cfgPath := Util_GetConfigArg()
 if (cfgPath = "") {
-	UI_Err("启动参数缺失：`n请使用 --config " Chr(34) "<配置文件绝对路径>" Chr(34) " 启动", "追溯码自动化 - 启动自检")
+	UI_Fail(
+		"startup.config_arg_missing",
+		"启动参数缺失：`n请使用 --config " Chr(34) "<配置文件绝对路径>" Chr(34) " 启动",
+		Module_UiTitle("启动自检")
+	)
 	ExitApp
 }
 
 cfgLoad := Util_LoadUnifiedConfig(cfgPath)
 if !(cfgLoad.Has("ok") && cfgLoad["ok"]) {
-	t := cfgLoad.Has("type") ? cfgLoad["type"] : "[配置错误]"
-	w := cfgLoad.Has("why") ? cfgLoad["why"] : (cfgLoad.Has("err") ? cfgLoad["err"] : "未知错误")
-	UI_Err(t " " w, "追溯码自动化 - 启动自检")
+	msg := cfgLoad.Has("message") ? cfgLoad["message"] : (cfgLoad.Has("err") ? cfgLoad["err"] : "未知错误")
+	UI_Fail("startup.config_load_fail", msg, Module_UiTitle("启动自检"))
 	ExitApp
 }
 global Cfg := cfgLoad["cfg"]
-global VersionInfo := Util_ReadVersionFile()
 global RuntimeInfo := Util_InitRuntimeInfo(VersionInfo)
-UI_Tip("Injector v" VersionInfo["moduleVersion"], 1600)
+UI_Tip(Module_UiTitle() " v" VersionInfo["moduleVersion"], 1600)
 
-; 关键配置缺失时终止启动，避免模块在配置不完整的状态下执行自动化
-_missing := []
-for _, k in ["PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL", "OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN", "OPT_VERIFY_GRID_CLASSNN", "IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN", "COL_SPECS", "INT_COLS", "CONFIRM_TIMEOUT_MS", "APP_WIN"] {
-	if !Cfg.Has(k) {
-		_missing.Push(k)
-		continue
-	}
-	v := Cfg[k]
-	if (!IsObject(v) && Trim("" v) = "")
-		_missing.Push(k)
-}
-if (_missing.Length > 0) {
-	join := ""
-	for i, kk in _missing
-		join .= (i = 1 ? kk : "`n - " kk)
-	UI_Err("配置缺失：`n - " join "`n`n请检查 --config 指向的统一配置文件", "追溯码自动化 - 启动自检")
-	ExitApp
-}
+Cfg_RequireKeys(Cfg, [
+	"PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL",
+	"OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN", "OPT_VERIFY_GRID_CLASSNN",
+	"IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN",
+	"COL_SPECS", "INT_COLS", "CONFIRM_TIMEOUT_MS", "APP_WIN"
+], Module_UiTitle("启动自检"))
 
-Util_MarkModuleReady()
+Ready_Mark()
+Log_Info("startup.ready", Module_UiTitle() " 自检通过")
+apps := []
+for exe, _ in Cfg["APP_WIN"]
+	apps.Push(exe)
+Log_Debug("startup.cfg", "目标门控配置", Map(
+	"appWin", apps,
+	"optClass", Cfg["OPT_WINDOW_CLASS"],
+	"iptClass", Cfg["IPT_WINDOW_CLASS"],
+	"optParseNn", Cfg["OPT_PARSE_GRID_CLASSNN"],
+	"optVerifyNn", Cfg["OPT_VERIFY_GRID_CLASSNN"],
+	"optInputNn", Cfg["OPT_INPUT_CLASSNN"],
+	"iptParseNn", Cfg["IPT_PARSE_GRID_CLASSNN"],
+	"iptVerifyNn", Cfg["IPT_VERIFY_GRID_CLASSNN"],
+	"iptInputNn", Cfg["IPT_INPUT_CLASSNN"],
+	"warehouse", !!Cfg["WAREHOUSE_ENABLED"],
+	"confirmMs", Cfg["CONFIRM_TIMEOUT_MS"],
+	"codePick", Cfg.Has("CODE_PICK_POLICY") ? Cfg["CODE_PICK_POLICY"] : "",
+	"logLevel", Cfg.Has("LogMinimumLevel") ? Cfg["LogMinimumLevel"] : "",
+	"logOn", Cfg.Has("LogEnabled") ? !!Cfg["LogEnabled"] : true
+))
 
 ; 启动时恢复超时的 PENDING 事务，避免异常退出后库存长期占用
 global _CLEANUP_BUSY := false
 try {
 	rr := Txn_CleanupPending(10, 200)
-	if (IsObject(rr) && rr.Has("ok") && rr["ok"] && rr.Has("cleaned") && rr["cleaned"] > 0)
+	if (IsObject(rr) && rr.Has("ok") && rr["ok"] && rr.Has("cleaned") && rr["cleaned"] > 0) {
+		Log_Info("startup.cleanup_pending", "已回滚超时 PENDING", Map("cleaned", rr["cleaned"]))
 		UI_Tip("已自动回滚超时预留事务：" rr["cleaned"] " 条", 1500)
+	}
 }
 
 ; 以低频周期检查 PENDING 事务，降低恢复任务对注入主流程的性能影响
@@ -97,15 +117,30 @@ global _LAST_RUN := 0
 #HotIf Util_HotIf_TargetApp()
 ~RButton::
 {
+	t0 := A_TickCount
 	ctx := Util_CaptureWin("A")
+	MouseGetPos(, , , &ctrlHwnd, 2)
+	ptrNn := ""
+	try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
 	parseGridClassNN := (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
-	if !UI_MouseOnClassNN(parseGridClassNN)
+	Log_Debug("hot.rbutton", "右键入口", Map(
+		"cls", ctx["cls"], "ttl", ctx["ttl"],
+		"needNn", parseGridClassNN, "ptrNn", ptrNn
+	))
+	if !UI_MouseOnClassNN(parseGridClassNN) {
+		Log_Debug("hot.rbutton.miss_grid", "右键未落在解析网格", Map(
+			"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - t0
+		))
 		return
+	}
 
 	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
 		ck := Util_WarehouseSoftCheck(ctx["win"])
+		Log_Debug("hot.rbutton.warehouse_check", ck["ok"] ? "仓库特征通过" : "仓库特征失败", Map(
+			"ok", ck["ok"], "message", ck.Has("message") ? ck["message"] : ""
+		))
 		if !ck["ok"] {
-			UI_Err(ck["type"] " " ck["why"])
+			UI_Fail("warehouse.check_fail", ck["message"], Module_UiTitle())
 			return
 		}
 		UI_Tip("[仓库模式] 列特征校验通过")
@@ -113,11 +148,18 @@ global _LAST_RUN := 0
 	}
 
 	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_WINDOW_CLASS"], Cfg["INT_COLS"], "", ctx["win"], parseGridClassNN)
+	Log_Debug("hot.rbutton.parse", p["ok"] ? "解析成功" : "解析失败", Map(
+		"ok", p["ok"],
+		"level", p.Has("level") ? p["level"] : "",
+		"reason", p.Has("reason") ? p["reason"] : "",
+		"elapsedMs", A_TickCount - t0,
+		"rawLen", p.Has("raw") ? StrLen(p["raw"]) : 0
+	))
 	if (!p["ok"]) {
-		UI_Err(p["type"] " " p["why"])
+		UI_Fail("parse.fail", p["message"], Module_UiTitle())
 		return
 	}
-	UI_Tip("[解析成功]" p["why"])
+	UI_Tip(p["message"])
 }
 
 ~LButton:: {
@@ -129,8 +171,18 @@ global _LAST_RUN := 0
 	catch
 		activeCls := ""
 	parseGridClassNN := (activeCls = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
-	if !UI_MouseOnClassNN(parseGridClassNN)
+	MouseGetPos(, , , &ctrlHwnd, 2)
+	ptrNn := ""
+	try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
+	Log_Debug("hot.lbutton", "左键入口", Map(
+		"activeCls", activeCls, "needNn", parseGridClassNN, "ptrNn", ptrNn
+	))
+	if !UI_MouseOnClassNN(parseGridClassNN) {
+		Log_Debug("hot.lbutton.miss_grid", "左键未落在解析网格", Map(
+			"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - hookT0
+		))
 		return
+	}
 	clickAnchor := ""
 	warehouseMode := (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
 	if warehouseMode {
@@ -141,28 +193,36 @@ global _LAST_RUN := 0
 	Critical
 	KeyWait("LButton")
 
-	if (_BUSY)
+	if (_BUSY) {
+		Log_Debug("hot.lbutton.busy", "忙碌中忽略", Map("elapsedMs", A_TickCount - hookT0))
 		return UI_Tip("忙碌中…已忽略重复触发", 800)
+	}
 
 	now := A_TickCount
-	if (now - _LAST_RUN < 400)
+	if (now - _LAST_RUN < 400) {
+		Log_Debug("hot.lbutton.throttle", "触发过快忽略", Map("deltaMs", now - _LAST_RUN))
 		return UI_Tip("触发过快，已忽略", 600)
+	}
 
 	_LAST_RUN := now
 
 	_BUSY := true
 
 	ctx := Util_CaptureWin("A")
+	Log_Debug("hot.lbutton.run", "开始半自动/仓库流程", Map(
+		"warehouse", warehouseMode,
+		"cls", ctx["cls"], "ttl", ctx["ttl"],
+		"elapsedMs", A_TickCount - hookT0
+	))
 	if !warehouseMode {
 		try {
 			if (ctx["cls"] = Cfg["OPT_WINDOW_CLASS"]) {
-				Util_LogLine(
-					"OPT_HOOK"
-					. " | t=" (A_TickCount - hookT0) "ms"
-					. " | activeCls=" activeCls
-					. " | ctxCls=" ctx["cls"]
-					. " | ttl=" StrReplace(ctx["ttl"], "`n", " ")
-				)
+				Log_Info("opt_hook", "门诊热键触发", Map(
+					"elapsedMs", A_TickCount - hookT0,
+					"activeCls", activeCls,
+					"cls", ctx["cls"],
+					"ttl", ctx["ttl"]
+				))
 			}
 		}
 	}
@@ -195,8 +255,16 @@ global _LAST_RUN := 0
 			)
 		}
 
+		Log_Debug("hot.lbutton.result", msa.Has("ok") && msa["ok"] ? "流程结束-成功" : "流程结束-失败/跳过", Map(
+			"ok", msa.Has("ok") ? msa["ok"] : false,
+			"skip", msa.Has("skip") ? msa["skip"] : false,
+			"level", msa.Has("level") ? msa["level"] : "",
+			"message", msa.Has("message") ? msa["message"] : "",
+			"elapsedMs", A_TickCount - hookT0
+		))
+
 		if (msa.Has("skip") && msa["skip"]) {
-			UI_Tip(msa["type"] " " msa["why"])
+			UI_Tip(msa["message"])
 			if (msa.Has("focusClassNN"))
 				UI_FocusClassNN(msa["focusClassNN"], ctx["win"])
 			return true
@@ -204,12 +272,17 @@ global _LAST_RUN := 0
 
 		if (!msa["ok"]) {
 
-			if (msa["level"] = "WARN") {
-				UI_Tip(msa["type"] " " msa["why"])
+			if (msa["level"] = "Warn") {
+				Log_Warn("semi_auto.warn", msa["message"], Map("cls", cls))
+				UI_Tip(msa["message"])
 			}
-			if (msa["level"] = "ERR") {
-				Util_LogLine("ERR | " msa["type"] " | " StrReplace(msa["why"], "`n", " | ") " | cls=" cls " | ttl=" ctx["ttl"])
-				UI_Err(msa["type"] " " msa["why"])
+			if (msa["level"] = "Error") {
+				UI_Fail(
+					"semi_auto.fail",
+					msa["message"],
+					Module_UiTitle(),
+					Map("cls", cls, "ttl", ctx["ttl"])
+				)
 			}
 
 			if (cls = Cfg["IPT_WINDOW_CLASS"]) {
@@ -222,7 +295,7 @@ global _LAST_RUN := 0
 		}
 
 		if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
-			UI_Tip(msa["type"] " " msa["why"], 1500)
+			UI_Tip(msa["message"], 1500)
 
 		if (cls = Cfg["IPT_WINDOW_CLASS"]) {
 			UI_FocusClassNN(Cfg["IPT_INPUT_CLASSNN"], ctx["win"])
