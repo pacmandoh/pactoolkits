@@ -64,9 +64,8 @@ public partial class MainWindowViewModel
     private int RunningBottomModuleCount
         => AgentsMenuModules.Count(m => m.IsRunning);
 
-    /// <summary>底栏运行模块数图标（0→CircleSlash2，1–6→Dice，≥7→Dices）</summary>
     public string RunningModuleCountIcon
-        => MapCountIcon(RunningBottomModuleCount);
+        => $"rosette-number-{Math.Clamp(RunningBottomModuleCount, 0, 9)}";
 
     /// <summary>底栏/标题 Host tip：主机态 + 底栏模块数</summary>
     public string AgentsBarTip
@@ -630,19 +629,6 @@ public partial class MainWindowViewModel
         NotifyAgentsCommands();
         AgentsChromeUpdated?.Invoke();
     }
-
-    private static string MapCountIcon(int count)
-        => count switch
-        {
-            <= 0 => "CircleSlash2",
-            1 => "Dice1",
-            2 => "Dice2",
-            3 => "Dice3",
-            4 => "Dice4",
-            5 => "Dice5",
-            6 => "Dice6",
-            _ => "Dices"
-        };
 
     private bool IsHostMenuActive
         => Agents.IsHostRunning || Agents.HostState == AgentsRunState.Starting;
