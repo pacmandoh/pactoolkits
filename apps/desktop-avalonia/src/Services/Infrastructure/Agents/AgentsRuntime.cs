@@ -778,6 +778,13 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     return SetHostError("已触发启动，但未检测到 Agents 进程");
                 }
 
+                // mountOnly：本轮成功挂载记账（勿再用 Poll 态猜结果）
+                HashSet<string>? mountOnlyOk = null;
+                if (mountOnly is not null)
+                {
+                    mountOnlyOk = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                }
+
                 foreach (var moduleId in mountIds)
                 {
                     // 依赖库且当前断连：不挂载，记入 paused 待重连拉取
@@ -807,6 +814,8 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     {
                         _pausedForDatabase.Remove(moduleId);
                     }
+
+                    mountOnlyOk?.Add(moduleId);
                 }
 
                 lock (_gate)
@@ -819,6 +828,25 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
                 RefreshState();
                 RaiseChanged();
+
+                if (mountOnly is not null && mountOnlyOk is not null)
+                {
+                    foreach (var id in mountOnly)
+                    {
+                        if (mountOnlyOk.Contains(id))
+                        {
+                            continue;
+                        }
+
+                        if (ModuleRequiresDatabase(id) && !IsDatabaseConnected)
+                        {
+                            return SetModuleError(id, $"数据库未连接，无法启动 {id}");
+                        }
+
+                        return SetModuleError(id, $"Host 已启动，但 {id} 未挂载");
+                    }
+                }
+
                 var mounted = mountIds.Count > 0;
                 return new AgentsCommandResult(
                     true,
@@ -1116,13 +1144,9 @@ public sealed class AgentsRuntime : IAgentsRuntime
             {
                 var boot = await ExecuteStartOrRestartAsync(ct, mountOnly: [moduleId])
                     .ConfigureAwait(false);
-                if (!boot.Ok)
-                {
-                    // 门禁/断库等：沿用挂载语义文案，勿冒充 Host 通用失败即可
-                    return boot;
-                }
-
-                return new AgentsCommandResult(true, $"{moduleId} 已启动");
+                return boot.Ok
+                    ? new AgentsCommandResult(true, $"{moduleId} 已启动")
+                    : boot;
             }
 
             var mount = await MountModuleAsync(options, moduleId, ct).ConfigureAwait(false);
