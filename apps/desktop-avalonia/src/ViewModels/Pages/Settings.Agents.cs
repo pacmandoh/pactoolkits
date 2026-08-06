@@ -900,6 +900,7 @@ public partial class Settings
                                                string.Equals(editor.ModuleId, selectedModuleId, StringComparison.Ordinal))
                                            ?? ModuleEditors.FirstOrDefault();
                     _moduleEditorsStale = false;
+                    ApplyPendingModuleSelection(discardIfMissing: true);
                 }
 
                 var current = BuildCurrentSnapshot();

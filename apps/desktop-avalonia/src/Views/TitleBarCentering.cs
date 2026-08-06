@@ -27,6 +27,8 @@ internal sealed class TitleBarCentering : IDisposable
         _content.PropertyChanged += OnTrackedPropertyChanged;
         _anchor.PropertyChanged += OnTrackedPropertyChanged;
         _surface.PropertyChanged += OnTrackedPropertyChanged;
+        // 右栏展开模块等改变两侧占位后，仅靠 Bounds 有时漏触发
+        _surface.LayoutUpdated += OnLayoutUpdated;
         Update();
     }
 
@@ -35,11 +37,15 @@ internal sealed class TitleBarCentering : IDisposable
         _content.PropertyChanged -= OnTrackedPropertyChanged;
         _anchor.PropertyChanged -= OnTrackedPropertyChanged;
         _surface.PropertyChanged -= OnTrackedPropertyChanged;
+        _surface.LayoutUpdated -= OnLayoutUpdated;
         if (_capturedBaseMargin)
         {
             _content.Margin = _baseMargin;
         }
     }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e)
+        => Update();
 
     private void OnTrackedPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
@@ -56,6 +62,11 @@ internal sealed class TitleBarCentering : IDisposable
 
     private void Update()
     {
+        if (_updating)
+        {
+            return;
+        }
+
         if (_anchor.Bounds.Width <= 0 || _surface.Bounds.Width <= 0)
         {
             return;

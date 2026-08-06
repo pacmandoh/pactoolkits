@@ -4,9 +4,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
-/// <summary>
-/// 将模块描述和运行状态投影为 Desktop 顶栏与状态栏展示模型
-/// </summary>
+/// <summary>模块在标题栏胶囊与底栏 Agents 菜单中的展示投影</summary>
 public sealed partial class ModuleChrome : ObservableObject
 {
     public ModuleChrome(ModuleDescriptor module)
@@ -26,9 +24,10 @@ public sealed partial class ModuleChrome : ObservableObject
     private RuntimeVisualState _visualState = RuntimeVisualState.Inactive;
 
     [ObservableProperty]
-    private string _statusText = "未知";
+    private bool _isRunning;
 
-    public string ItemText => $"{DisplayName}：{StatusText}";
+    [ObservableProperty]
+    private string _tip = string.Empty;
 
     public void ApplyDescriptor(ModuleDescriptor module)
     {
@@ -40,27 +39,24 @@ public sealed partial class ModuleChrome : ObservableObject
         OnPropertyChanged(nameof(DisplayName));
         OnPropertyChanged(nameof(ActiveIcon));
         OnPropertyChanged(nameof(InactiveIcon));
-        OnPropertyChanged(nameof(ItemText));
     }
 
     public void Apply(AgentsRunState state)
     {
+        // 三态仅反映进程：Running 绿 / Starting 黄 / 其余红；断库由 Runtime 停模块后自然变红
         VisualState = state switch
         {
             AgentsRunState.Running => RuntimeVisualState.Active,
             AgentsRunState.Starting => RuntimeVisualState.Transitioning,
             _ => RuntimeVisualState.Inactive,
         };
-        StatusText = state switch
+        IsRunning = state is AgentsRunState.Running or AgentsRunState.Starting;
+        Tip = state switch
         {
-            AgentsRunState.Running => "运行中",
-            AgentsRunState.Starting => "启动中",
-            AgentsRunState.Failed => "启动失败",
-            AgentsRunState.Stopped => "未启动",
-            _ => "未知",
+            AgentsRunState.Running => $"{DisplayName} · 运行中",
+            AgentsRunState.Starting => $"{DisplayName} · 启动中",
+            AgentsRunState.Failed => $"{DisplayName} · 失败",
+            _ => $"{DisplayName} · 未启动",
         };
     }
-
-    partial void OnStatusTextChanged(string value)
-        => OnPropertyChanged(nameof(ItemText));
 }

@@ -11,7 +11,7 @@ public static class Theme
 {
     private static readonly Dictionary<ThemeMode, string> IconKinds = new()
     {
-        { ThemeMode.System, "Monitor" },
+        { ThemeMode.System, "SunMoon" },
         { ThemeMode.Light, "Sun" },
         { ThemeMode.Dark, "Moon" },
     };
