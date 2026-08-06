@@ -57,6 +57,7 @@ public static class InputFocusHelper
 
     public static void CommitAutoCompleteInput(AutoCompleteBox box)
     {
+        // DropDownClosing（SelectionGuard）对齐失步后再 CloseDropDown
         box.IsDropDownOpen = false;
 
         var tb = FindDescendant<TextBox>(box);

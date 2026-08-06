@@ -53,7 +53,7 @@ DataGrid 控件自身的 `SelectedItem` / 行高亮是 **原生选中**，不是
 | ---- | ---- | ------ |
 | `FocusClear`（MainWindow `Enable`） | 空白抬 K、表外清原生选中、表内清 peer；与 `SkipPopupDismiss` 对齐后不抢候选面 | 业务 reload/W；表单 Tab；下拉 light-dismiss（交 `PopupDismissHelper`） |
 | `SuppressGridClear` | 声明子树不参与壳层原生表清选 | 代替页内 W 策略 |
-| `PopupDismissHelper` | TopLevel 内 light-dismiss 打开中的下拉/Popup | 业务选中、键盘环 |
+| `PopupDismissHelper` | TopLevel 内 light-dismiss Combo/日历/菜单/普通 Popup；**不强制关 ACB**（选区护栏见 `AutoCompleteSelectionGuard`，外侧靠原生 light-dismiss） | 业务选中、键盘环、ACB 强制 CloseDropDown |
 | `DataGridInteractionHelper` | 原生 selection / currency / 翻页高亮 API | 页面业务规则 |
 | `TabScope` + `InputFocusHelper` | 表单 Tab/Enter 输入环（K） | 空白点击、W |
 | 页 ViewModel | W 的生命周期（reload、保存 reselect、详情关闭清行等） | 全局 pointer 策略 |
