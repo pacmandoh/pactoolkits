@@ -150,7 +150,7 @@ public static class AgentsPath
                 continue;
             }
 
-            // 控制文件路径以目录名为模块 ID，因此描述文件 ID 必须完全匹配目录名
+            // 目录名为模块 ID，描述文件 id 必须与之完全匹配
             if (!string.Equals(module.Id, folderName, StringComparison.Ordinal))
             {
                 continue;
