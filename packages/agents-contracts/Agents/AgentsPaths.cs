@@ -12,16 +12,16 @@ public static class AgentsPaths
 
     public const string HostProcessName = "Agents";
 
-    // 模块仅在自检完成后创建该文件，Desktop 将其与进程状态共同作为就绪条件
+    // 模块仅在自检完成后创建该文件；Host 读入并写入 host.status.json
     public const string ModuleReadyFileName = "module.ready";
 
     public const string ModuleManifestFileName = "module.json";
 
-    // 模块控制文件一次承载一条 start 或 stop 命令，Host 读取后删除
-    public const string ModuleControlFileName = "module.control";
+    // Host 周期发布的运行快照（IPC 推送 + 诊断落盘）
+    public const string HostStatusFileName = "host.status.json";
 
-    // Host 控制文件当前仅支持 quit，独立于模块控制文件
-    public const string HostControlFileName = "host.control";
+    // 期望挂载集合（IPC desired 热路径；文件为诊断/冷启动镜像）
+    public const string HostDesiredFileName = "host.desired.json";
 
     public const string ModulesDirectoryName = "Modules";
 
@@ -43,11 +43,11 @@ public static class AgentsPaths
     public static string ModuleDir(string agentsDir, string moduleId)
         => Path.Combine(ModulesDir(agentsDir), moduleId);
 
-    public static string ModuleControlPath(string agentsDir, string moduleId)
-        => Path.Combine(ModuleDir(agentsDir, moduleId), ModuleControlFileName);
+    public static string HostStatusPath(string agentsDir)
+        => Path.Combine(agentsDir, HostStatusFileName);
 
-    public static string HostControlPath(string agentsDir)
-        => Path.Combine(agentsDir, HostControlFileName);
+    public static string HostDesiredPath(string agentsDir)
+        => Path.Combine(agentsDir, HostDesiredFileName);
 
     public static string ModuleReadyPath(string agentsDir, string moduleId)
         => Path.Combine(ModuleDir(agentsDir, moduleId), ModuleReadyFileName);

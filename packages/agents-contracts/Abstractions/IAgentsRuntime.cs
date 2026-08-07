@@ -4,10 +4,14 @@ using PacToolkits.Agents.Contracts.Commands;
 namespace PacToolkits.Agents.Contracts.Abstractions;
 
 /// <summary>
-/// 定义单个 Agents Host 及其模块的生命周期控制与状态查询契约
+/// Desktop 侧单个 Host 入口：OS 启停 Host、会话 desired、UI 投影
+///
+/// 链路（管道）由实现内部组合 <see cref="IAgentsClient"/>，不在本契约暴露
+/// 模块运维与 catalog 真相在 Host Snapshot
 /// </summary>
 public interface IAgentsRuntime : IDisposable
 {
+    /// <summary>UI 刷新（含 Snapshot 与 Host 生命周期）</summary>
     event Action? StatusChanged;
 
     AgentsDescriptor Descriptor { get; }
@@ -31,7 +35,7 @@ public interface IAgentsRuntime : IDisposable
     void Reload();
 
     /// <summary>
-    /// 根据入口进程和 <c>module.ready</c> 获取模块运行状态，不考虑模块启用配置
+    /// 根据 Host 发布状态与会话意图获取模块运行状态（不读启用位）
     /// </summary>
     AgentsRunState GetModuleState(string moduleId);
 
