@@ -1,6 +1,6 @@
 # 分层与依赖规则
 
-PacToolkits 按 Desktop、Application、Infrastructure、Core、Agents.Contracts 和 Logger 划分职责。Agents Host 与模块位于 `runtime/agents/`，通过 `packages/agents-contracts` 与 Desktop 共享文件布局和模块描述协议；JSON Lines 落盘经 `packages/logger` 统一规格。
+PacToolkits 按 Desktop、Application、Infrastructure、Core、Agents.Contracts 和 Logger 划分职责。Agents Host 与模块位于 `runtime/agents/`：共享 `packages/agents-contracts`（IPC / Snapshot / 路径）；JSON Lines 经 `packages/logger`。
 
 ## 依赖方向
 
@@ -24,7 +24,7 @@ flowchart TB
     INF --> APP
     INF --> CORE
     APP --> CORE
-    DESKTOP -.->|启停 Host / module.control| HOST
+    DESKTOP -.->|启停 Host / IPC desired| HOST
     HOST -.->|启动和停止| MODULE
 ```
 
@@ -67,11 +67,10 @@ flowchart TB
 
 ### `packages/agents-contracts`
 
-- Desktop 与 Agents（Host 和模块）共享的配置、路径与运行时抽象
-- `AgentsOptions`、`ModuleOptions`、`AgentsConfigValidator`、`ModuleSettingsValidator`、`AgentsPaths`、`AgentsPath`
-- `IAgentsRuntime` 和 `IAgentsManager`；Desktop 提供实现，Host 仅使用路径与协议常量
-- 该包描述跨进程文件布局和模块元数据，不限定模块实现语言
-- 模块通过命令行参数和文件协议参与运行时，不直接引用该 C# 包
+- Desktop ↔ Host 协议：路径、`module.json`、desired/status IPC、Snapshot 模型（**零依赖**）
+- 运行时：`IAgentsRuntime`（Desktop UI/OS Host，**不**继承 Client）、`IAgentsClient`（管道链路）、`IAgentsManager`
+- 配置校验：`AgentsOptions` / `ModuleOptions` / `AgentsConfigValidator` / `ModuleSettingsValidator`
+- Host 只引用路径与协议类型；模块不引本包（命令行 + 文件）
 
 进程模型见 [Agents 运行时架构](./agents.md)。
 
@@ -79,9 +78,9 @@ flowchart TB
 
 - Views、ViewModels、Avalonia 样式与行为（ShadUI）
 - **桌面专属**服务：Toast、Dialog、更新、剪贴板、UiBehavior 等
-- 通过 DI 组装 Application 与 Infrastructure；`AgentsRuntime` 控制 Host 和模块
-- 页面连接、可用性和空状态的分层模型见 [desktop-state.md](./desktop-state.md)
-- 键盘焦点、临时 UI 与业务工作集见 [focus-model.md](../../apps/desktop-avalonia/docs/focus-model.md)
+- DI 组装 Application / Infrastructure；`AgentsRuntime`：**OS 启停 Host** + 会话 **desired** + Snapshot 投影（模块进程在 Host）
+- 页面连接、可用性和空状态见 [desktop-state.md](./desktop-state.md)
+- 焦点与工作集见 [focus-model.md](../../apps/desktop-avalonia/docs/focus-model.md)
 
 ## 典型请求路径（示例）
 
@@ -98,10 +97,11 @@ DashboardViewModel
 **Agents 启停：**
 
 ```text
-Settings / MainWindow
+Settings / MainWindow shell
   → IAgentsManager.GetRequired(AgentsIds.Agents)
     → AgentsRuntime
-      → Process.Start(Agents.exe) + module.control / module.ready
+      → CreateProcess(Agents.exe) / quit + Kill Host 进程树
+      → pipe desired / Snapshot（host.desired|status 仅镜像）
       → AgentsConfigValidator (agents-contracts)
 ```
 

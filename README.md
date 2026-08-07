@@ -74,7 +74,7 @@ Primary repository areas:
 
 - Unified desktop + automation + database architecture in one repository
 - Avalonia-based business client with update and diagnostics capabilities
-- Agents runtime with a resident .NET Host and independently controlled module processes
+- Agents runtime: resident .NET Host (module supervision + Snapshot); Desktop owns Host lifecycle / desired
 - PostgreSQL migration-based schema lifecycle with compatibility gates
 - Versioned release pipeline for Desktop, Agents, and DB schema compatibility
 - Operational visibility for inventory, mapping, MSFX linkage, and execution queues
@@ -94,7 +94,7 @@ flowchart LR
     CI[".github/workflows\nBuild + Release Automation"]
 
     DESKTOP --> PKG
-    DESKTOP -->|start Host / module.control| HOST
+    DESKTOP -->|start Host / IPC desired| HOST
     HOST -->|child process| INJ
     INJ -->|task claim / state sync / event logs| DB
     PKG --> DB

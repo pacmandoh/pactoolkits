@@ -1,22 +1,30 @@
 # Agents 运行时架构
 
-Agents 是独立部署的自动化运行时，由常驻 Host 与一个或多个可执行模块组成。Desktop 负责配置、运行控制和状态展示；Host 负责模块进程监管；模块实现具体业务自动化。
+Agents 是独立部署的自动化运行时，由常驻 Host 与一个或多个模块进程组成。边界只有三条：
+
+1. **Contracts**（`packages/agents-contracts`）— IPC 与 Snapshot 模型；零依赖
+2. **Host**（`runtime/agents/host`，`Agents.exe`）— 发现、desired reconcile、模块启停/崩溃/ready/模块热更、发布 StatusSnapshot
+3. **Desktop 薄客户端**（`AgentsRuntime` 等）— UI、OS 级 Host 进程树、会话 desired、投影 Snapshot
+
+Desktop **不**枚举/Kill 模块 PID（启停 Host 闸门的入口孤儿扫杀除外）、**不**轮询扫盘 catalog、**不**写 `module.ready`。DB 策略挂/卸模块只改 **desired**。
 
 当前模块包括：
 
-- **Injector**：生产业务模块，负责目标系统解析、追溯码注入、结果验证和任务状态回写
+- **Injector**：生产业务模块（解析、注入、回写）
 - **Scanner**：模块开发与交付链路的验证模块
 
-相关实现位于 `runtime/agents/`、`packages/agents-contracts/`，Desktop 侧入口为 `AgentsRuntime` 与 `AgentsManager`。
+实现：`runtime/agents/`、`packages/agents-contracts/`；Desktop 入口 `IAgentsRuntime` / `AgentsManager`（内部用 `IAgentsClient` 链路，契约不继承）。
 
 ## 术语
 
-| 术语        | 定义                                                                |
-| ----------- | ------------------------------------------------------------------- |
-| **Agents**  | Host、模块及发布清单组成的部署单元，默认安装在 `Agents/`            |
-| **Host**    | `Agents.exe`，负责接收控制命令、维护模块目录和监管模块进程          |
-| **Module**  | `Modules/<Id>/` 下的独立进程，由 `module.json` 描述入口和桌面元数据 |
-| **Desktop** | 配置与控制端，负责启动 Host、下发模块命令、展示运行状态             |
+| 术语         | 定义                                                                           |
+| ------------ | ------------------------------------------------------------------------------ |
+| **Agents**   | Host + 模块 + 发布清单，默认安装在 `Agents/`                                   |
+| **Host**     | `Agents.exe`：desired reconcile、模块进程监管、Snapshot / moduleFailed         |
+| **Module**   | `Modules/<Id>/` 独立进程；`module.json` 描述入口与桌面元数据                   |
+| **Desktop**  | 配置与 UI；CreateProcess/超时强杀 **Host 树**；会话 **desired**；展示 Snapshot |
+| **desired**  | 期望挂载的模块 ID 集合（持续意图，非一次性 start 命令）                        |
+| **Snapshot** | Host 发布的 status schema v2（管道热路径 + 磁盘镜像）                          |
 
 ## 部署布局
 
@@ -24,22 +32,56 @@ Agents 是独立部署的自动化运行时，由常驻 Host 与一个或多个�
 Agents/
   Agents.exe
   ReleaseManifest.json
-  host.control
+  host.desired.json      # 镜像：冷启种子 / 诊断（非第二控制决策）
+  host.status.json       # 镜像：观测（管道优先）
   Modules/
     <Id>/
       module.json
       settings.json
       settings.schema.json
-      module.control
-      module.ready
+      module.ready       # 模块自检完成；仅 Host 读取
       <Entry>.exe
 ```
 
-`module.control`、`module.ready` 和 `host.control` 是运行期控制文件，不属于模块发布元数据。
+**控制面 = 命名管道**（`desired` / `quit` / status 推送 / `moduleFailed`）。  
+`host.desired.json` / `host.status.json` / `module.ready` 是协议文件镜像，不是 Desktop 与 Host 的双写控制协议。无旧 control-file（`host.control` / `module.control`）与 status schema v1。
+
+## 控制与观测
+
+```mermaid
+flowchart LR
+  UI["Desktop UI"] --> Runtime["AgentsRuntime"]
+  Runtime -->|"CreateProcess / Kill tree"| Host["Agents.exe"]
+  Runtime -->|"pipe: desired / quit"| Pipe["Named pipe"]
+  Pipe --> Host
+  Runtime -->|"mirror desired/status"| Files["host.desired / host.status"]
+  Files -.->|"冷启种子 / 观测"| Host
+  Host --> Module["Module"]
+  Module --> Ready["module.ready"]
+  Ready --> Host
+  Host -->|"pipe: Snapshot"| Runtime
+```
+
+| 能力     | Desktop                                                           | Host                                               |
+| -------- | ----------------------------------------------------------------- | -------------------------------------------------- |
+| 控制     | 管道 `desired` / `quit`；文件只镜像                               | 管道服务；未收过 IPC 时可用 desired 文件种子       |
+| Snapshot | 管道缓存优先；文件观测镜像；本地 CreateProcess 失败优先 Failed    | 合成 state / LastError / catalog，schema **仅 v2** |
+| catalog  | 只吃 Snapshot；不轮询扫盘                                         | 扫 `Modules/*/module.json` 并入 Snapshot           |
+| 启模块   | desired 加入 id                                                   | reconcile 启动；ready/失败写入 Snapshot            |
+| 停模块   | desired 去掉 id                                                   | reconcile 停止                                     |
+| 停 Host  | desired=[] + quit；超时 **Kill Host 进程树**                      | quit → StopAll 子模块                              |
+| 模块 PID | **运行时监管无**；**Host 启停闸门**可按入口路径清残留（防双实例） | 子进程树 Kill / 热更重启                           |
+| DB 断连  | 库依赖模块 pause desired；重连 resume                             | 仅响应 desired 变化                                |
+
+**UI 开关**：Host/模块「开」仅 **Running**（Starting/Failed 用 tip/灯色，与 Settings 一致）。
+
+desired 在会话内是**持续意图**：非 0 退出或未 ready 失败记 sticky Failed，不再热循环；ready 后正常 exit 0 且仍在 desired 时可再起（监督语义）。
+
+新增目录可被 Host 动态发现，**发现 ≠ 启动**。Desktop 起 Host 后按启用集挂 desired；运行中新模块须用户显式启。
 
 ## 日志
 
-Host 与 AHK 模块与 Desktop 共用同一日志根目录（默认 AppData，可由 Desktop `Logging.LogDirectory` 自定义），格式为 JSON Lines：
+Host 与 AHK 模块与 Desktop 共用日志根（默认 AppData，可由 `Logging.LogDirectory` 自定义），JSON Lines：
 
 ```text
 {logsRoot}/
@@ -48,117 +90,85 @@ Host 与 AHK 模块与 Desktop 共用同一日志根目录（默认 AppData，�
   agents/modules/<Id>/YYYY-MM-DD[.N].log
 ```
 
-路径常量见 `AgentsLogPaths`（`ResolveRoot` / `DesktopDir` / `HostDir` / `ModuleDir`）；.NET 落盘见 `packages/logger`；AHK 侧见 `runtime/agents/lib/ahk/log.ahk`（经 `--config` 读日志根目录）。文件名仅日期，靠目录区分来源。单文件达到 `MaxFileSizeMb` 后递增 `N`（`YYYY-MM-DD.N.log`，无固定上界）；过期由 `RetentionDays` 清理。
+路径见 `AgentsLogPaths`；.NET 见 `packages/logger`；AHK 见 `runtime/agents/lib/ahk/log.ahk`。单文件 `MaxFileSizeMb` 后递增 `N`；`RetentionDays` 清理。
 
-字段与 Desktop 对齐：`ts`、`level`、`module`、`event`、`message`、`version`、`context?`、`exception?`。`level` 仅使用 `Debug` / `Info` / `Warn` / `Error` / `Fatal`。
+字段：`ts`、`level`、`module`、`event`、`message`、`version`、`context?`、`exception?`。`level` 仅 `Debug` / `Info` / `Warn` / `Error` / `Fatal`。
 
-控制面：Desktop `Logging.Enabled` / `MinimumLevel` / `RetentionDays` / `MaxFileSizeMb` / `LogDirectory`（根目录）作用于 Desktop 落盘与 Agents Host（Host 读 `--config`，可按配置 mtime 热更新根目录）；模块进程在启动时经 `--config` 解析根目录，长驻模块改根后需重启才切换落盘路径。各模块用户 `settings.json` 的 `LogEnabled` 等门控经 `Log_ApplySettings` 应用，在设置页「模块配置」中编辑。
+日志策略：Desktop `Logging.*` 作用于 Desktop 与 Host（Host 读 `--config`）；模块用户 `settings.json` 门控经 AHK `Log_ApplySettings`。
 
 ## 配置所有权
 
-Agents 配置分为三类，生命周期和写入方不同：
+| 配置                  | 位置                                            | 说明                                       |
+| --------------------- | ----------------------------------------------- | ------------------------------------------ |
+| Host 路径与模块启用   | `PacToolkits.Desktop.config.json`               | Desktop 维护；`Agents.Modules[id].Enabled` |
+| 模块默认与表单 schema | `Agents/Modules/<Id>/settings.*`                | 随模块发布                                 |
+| 模块用户配置          | `{ConfigDir}/agents/modules/<Id>/settings.json` | 首次从默认复制；升级不覆盖                 |
 
-| 配置                   | 位置                                                        | 所有者与用途                                                     |
-| ---------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
-| Host 与模块启用状态    | `PacToolkits.Desktop.config.json`                           | Desktop 维护 Host 路径、进程名和 `Agents.Modules[id].Enabled`    |
-| 模块默认配置与表单定义 | `Agents/Modules/<Id>/settings.json`、`settings.schema.json` | 随模块发布，提供初始值和设置页结构                               |
-| 模块用户配置           | `{ConfigDir}/agents/modules/<Id>/settings.json`             | Desktop 首次使用时从默认配置复制，此后作为该模块的持久化业务配置 |
+`AppConfigStore` **不再**按磁盘模块目录扩/删 `Agents.Modules` 键；catalog 与启用扩容由 Runtime 吃 Snapshot 后 merge。  
+Host 启动模块时 `--module-settings` 传用户配置路径。
 
-模块升级不会覆盖已经存在的用户配置。Host 启动模块时通过 `--module-settings` 传入用户配置路径；模块不直接读取 Desktop 的模块设置表单状态。
+## 模块描述与发现
 
-## 模块描述文件
+`module.json` 至少含 `id`、`version`、`runtime`、`displayName`、`entry.win-x64`、`desktop.*`、`package.builder`。  
+模块 ID 与目录名一致；首字符字母或数字，其余 ASCII 字母数字 `.` `_` `-`。
 
-`module.json` 是模块发现和打包的统一元数据源，至少包含：
+Host 扫目录；Desktop 设置页无 catalog 时为空（须路径正确并在**支持平台**成功起 Host 拿到 Snapshot）。闸门清孤儿时 catalog 可为空，退化为扫盘一次。
 
-- `id`、`version`、`runtime`、`displayName`
-- `entry.win-x64`
-- `desktop.icons`、状态栏显示策略和排序值
-- `package.builder` 及构建器参数
+## 配置保存与生效
 
-模块 ID 必须与发布目录名完全一致。首字符为 ASCII 字母或数字，其余字符仅允许 ASCII 字母、数字、`.`、`_`、`-`。
-
-## 发现、控制与观测
-
-```mermaid
-flowchart LR
-  Disk["Modules/*/module.json"] --> DesktopCatalog["Desktop module catalog"]
-  Disk --> HostSlots["Host module slots"]
-  DesktopCatalog --> DesktopUI["Settings and shell status"]
-  DesktopUI --> Control["host.control / module.control"]
-  Control --> Host["Agents.exe"]
-  Host --> Module["Module process"]
-  Module --> Ready["module.ready"]
-  Ready --> DesktopState["Desktop runtime state"]
-  Module --> DesktopState
-```
-
-| 能力     | Desktop                                                | Host                                           |
-| -------- | ------------------------------------------------------ | ---------------------------------------------- |
-| 模块发现 | 约每秒扫描一次，并同步模块列表、版本和启用状态         | 约每 250 ms 对模块槽位执行一次增删与元数据同步 |
-| 运行控制 | 启动或停止 Host；向单个模块写入 `start` / `stop`       | 消费控制文件并启动、停止对应模块               |
-| 状态观测 | 根据 Host 进程、模块进程和 `module.ready` 计算运行状态 | 不向 Desktop 提供额外状态服务                  |
-
-新增模块目录会被动态发现，但不会因“发现”而直接启动。Desktop 启动 Host 后，仅挂载启用的模块；运行期间新发现的模块须由用户或控制流程显式启动。
-
-模块移除时，Host 会先停止对应进程再删除槽位。模块入口在运行期间发生元数据变化时，Host 保持当前进程与原入口关联，待进程停止后采用新入口。
-
-## 配置保存与生效范围
-
-设置页根据 `settings.schema.json` 生成模块表单。schema 或用户配置无效时，页面显示模块级错误，不生成不完整表单。
-
-配置生效遵循最小影响原则：
-
-- 布尔值和枚举值在修改后自动保存；同一模块的连续修改合并为一个保存批次
-- 文本、整数和集合字段随设置页统一保存
-- 运行中模块的业务配置变化只重启该模块
-- Host 可执行路径或进程名变化才重启 Host
-- 未运行模块的配置只写入磁盘，不触发启动
-
-模块命令由 Desktop 串行执行，避免多个模块同时使用控制文件时出现竞态。新的自动保存批次会取代尚未执行的旧批次，旧批次不会触发额外重启。
+- schema/用户配置无效 → 模块级错误，不生成残缺表单
+- 布尔/枚举自动保存（模块内合并批次）；文本等随页保存
+- 运行中模块业务配置变化 → 重启**该模块**（desired 热更）
+- Host 路径/进程名变化才重启 Host
+- 未运行模块只写盘不启动
+- Desktop 模块命令串行；自动保存新批次取代未执行的旧批次
 
 ## 二进制更新
 
-Desktop 监视 Host 与模块入口文件的长度和最后写入时间。文件状态连续两次观测一致后，才将变化视为完整更新，以避免在复制过程中启动不完整二进制。
+双次稳定观测（长度 + mtime）后再认变更。
 
-- 运行中或启动中的 Host 发生稳定变化时，Desktop 重启 Host，并重新挂载启用模块
-- 运行中模块发生稳定变化时，Desktop 只重启该模块
-- 未运行模块发生变化时，仅更新观测基线，不自动启动
-- 重启失败时不接受新基线，延迟后继续检测和重试
+| 目标       | 监视方  | 行为                                                  |
+| ---------- | ------- | ----------------------------------------------------- |
+| Host.exe   | Desktop | Host 活跃时稳定变化 → 重启 Host，再按启用集发 desired |
+| 模块入口   | Host    | 运行中模块热更；Desktop 不碰模块 PID                  |
+| 未运行模块 | —       | 文件变化不自动启动                                    |
 
-该机制提供运行时二进制替换后的自动恢复，不负责下载、版本选择或回滚。后续模块自更新应在独立更新流程中完成版本校验和原子部署。
+不负责下载、选版、回滚。失败不接新基线，延迟重试。
 
 ## 进程参数
 
-1. Desktop 以 `--config <Desktop 配置绝对路径>` 启动 Host
-2. Host 将非控制参数转发给模块
-3. Host 为每个模块追加 `--module-settings <模块用户配置绝对路径>`
-4. 模块自检成功后创建 `module.ready`
+1. Desktop：`Agents.exe --config <Desktop 配置绝对路径>`
+2. Host 转发非本机参数，并为每模块追加 `--module-settings <用户配置绝对路径>`
+3. 模块 ready → `module.ready`
+4. Host 不解析 Desktop 配置内容；职责为 desired、监管、Snapshot
 
-Host 不解析 Desktop 配置内容；其职责仅限于参数转发、控制文件处理和进程监管。
+## 契约分层（packages/agents-contracts）
 
-## 分层边界
+| 类型                                                              | 职责                                                                     |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `IAgentsRuntime`                                                  | Desktop Host OS 启停、会话 desired、状态查询；**不**继承 `IAgentsClient` |
+| `IAgentsClient`                                                   | 管道 Connect / desired / quit / Snapshot / ModuleFailed                  |
+| `AgentsStatus` / `AgentsDesired` / `AgentsIpc*` / `AgentsObserve` | Snapshot v2、desired、管道帧、状态合成纯函数                             |
+| `AgentsPath` / `AgentsPaths`                                      | 路径解析、描述文件、Host 侧目录扫描                                      |
+| `IModuleSettingsStore` 相关契约                                   | 由 Desktop 实现：默认复制 / 用户配置 / schema                            |
 
-| 类型                   | 职责                                                 |
-| ---------------------- | ---------------------------------------------------- |
-| `IAgentsRuntime`       | Desktop 侧 Host/模块控制与状态查询契约               |
-| `IModuleSettingsStore` | 模块默认配置复制、用户配置读写和 schema 读取         |
-| `AgentsPath`           | Host 路径解析、模块描述文件读取和模块目录扫描        |
-| `AgentsPaths`          | Desktop 与 Host 共享的目录名、文件名和命令行参数常量 |
+该包零依赖。Host 引用路径与协议类型；模块不引 C# 包，走命令行与文件。
 
-`packages/agents-contracts` 不依赖 Desktop 或 Host 实现。Host 只引用该包中的路径和描述文件契约；模块进程通过文件和命令行参数参与协议。
+Desktop 实现侧（`Services/Infrastructure/Agents/`）组合：`AgentsLink`、`AgentsHostLauncher`、`AgentsDesiredSession`、`AgentsSnapshotProjection` 等——组装细节非第四公共层。
 
 ## 构建与发布
 
-| 产物     | 构建方式                                                   |
-| -------- | ---------------------------------------------------------- |
-| Host     | .NET framework-dependent single-file，输出 `Agents.exe`    |
-| AHK 模块 | Ahk2Exe 编译 `main.ahk`，输出 `entry.win-x64` 指定的文件名 |
+| 产物     | 方式                                                |
+| -------- | --------------------------------------------------- |
+| Host     | .NET framework-dependent single-file → `Agents.exe` |
+| AHK 模块 | Ahk2Exe → `entry.win-x64` 文件名                    |
 
-CI 根据 `runtime/agents/modules/*/module.json` 发现源码模块，并要求其 ID、版本和发布目录与 `release-manifest.json` 完全一致。详细流程见 [发布流程](../operations/release-flow.md)。
+CI 以 `runtime/agents/modules/*/module.json` 对齐 `release-manifest.json`。详见 [发布流程](../operations/release-flow.md)。
 
 ## 相关文档
 
 - [Agents 运行说明](../../runtime/agents/README.md)
 - [Injector 模块](../../runtime/agents/docs/injector.md)
 - [分层与依赖规则](./layering.md)
+- [Monorepo 布局](./monorepo-layout.md)
 - [发布流程](../operations/release-flow.md)

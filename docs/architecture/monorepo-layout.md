@@ -32,18 +32,18 @@ pactoolkits/
 
 ## 各区域职责
 
-| 路径                        | 角色            | 说明                                                                 |
-| --------------------------- | --------------- | -------------------------------------------------------------------- |
-| `apps/desktop-avalonia`     | **Desktop**     | 业务 UI、配置、更新、诊断以及 Agents 运行控制                        |
-| `runtime/agents/host`       | **Agents Host** | `Agents.exe`；处理控制文件并监管模块进程                             |
-| `runtime/agents/modules`    | **Agents 模块** | 独立自动化进程及其描述文件、默认配置和设置 schema                    |
-| `runtime/agents/templates`  | **模块模板**    | 新模块的开发起点，不参与运行时模块发现与打包                         |
-| `database/postgres`         | **数据库**      | SQL 与部署脚本；schema 演进与校验                                    |
-| `packages/core`             | **纯业务核心**  | 无数据库、文件、日志、配置、桌面端依赖                               |
-| `packages/application`      | **用例层**      | 页面/功能对应的应用服务与抽象                                        |
-| `packages/infrastructure`   | **基础设施**    | Npgsql、仓储、DB 连接与 schema 版本读取                              |
-| `packages/agents-contracts` | **Agents 协议** | 配置模型、路径、运行时抽象；Host 与 Desktop 共用                     |
-| `packages/logger`           | **共享日志**    | JSON Lines 记录规格、级别规范化、按日滚动与写盘；Desktop / Host 共用 |
+| 路径                        | 角色            | 说明                                                               |
+| --------------------------- | --------------- | ------------------------------------------------------------------ |
+| `apps/desktop-avalonia`     | **Desktop**     | 业务 UI、配置、更新；Agents：**OS Host** + desired + Snapshot 投影 |
+| `runtime/agents/host`       | **Agents Host** | `Agents.exe`：desired reconcile、模块监管、Snapshot / moduleFailed |
+| `runtime/agents/modules`    | **Agents 模块** | 独立自动化进程、描述文件、默认配置与 settings schema               |
+| `runtime/agents/templates`  | **模块模板**    | 新模块起点；不参与运行时发现与打包                                 |
+| `database/postgres`         | **数据库**      | SQL 与部署脚本；schema 演进与校验                                  |
+| `packages/core`             | **纯业务核心**  | 无数据库、文件、日志、配置、桌面端依赖                             |
+| `packages/application`      | **用例层**      | 页面/功能对应的应用服务与抽象                                      |
+| `packages/infrastructure`   | **基础设施**    | Npgsql、仓储、DB 连接与 schema 版本读取                            |
+| `packages/agents-contracts` | **Agents 协议** | IPC/Snapshot/路径；`IAgentsRuntime` ≠ `IAgentsClient`；零依赖      |
+| `packages/logger`           | **共享日志**    | JSON Lines；Desktop / Host 共用                                    |
 
 ## .NET 解决方案
 
@@ -62,10 +62,11 @@ pactoolkits/
 
 ## 配置与版本
 
-- Desktop 全局配置由 `AppConfigStore` 读写，包含 PostgreSQL、Host 路径和模块启用状态
-- 模块业务配置独立存放在 `{ConfigDir}/agents/modules/<Id>/settings.json`
-- Desktop 启动 Host 时传入 `--config <绝对路径>`；Host 将参数转发给模块，但不解析配置内容
-- `release-manifest.json` 是发布版本来源，`scripts/export-version.sh` 将版本同步到各组件生成文件和模块描述文件
+- Desktop 全局配置由 `AppConfigStore` 读写（PostgreSQL、Host 路径、模块启用键）
+- 模块 catalog 与启用扩容来自 Host Snapshot，非配置加载扫盘
+- 模块业务配置：`{ConfigDir}/agents/modules/<Id>/settings.json`
+- Desktop 起 Host：`--config <绝对路径>`；模块挂载走管道 desired
+- `release-manifest.json` 为版本源；`scripts/export-version.sh` 同步各组件
 
 ## 相关文档
 
