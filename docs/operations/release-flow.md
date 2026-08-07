@@ -156,7 +156,7 @@ cp scripts/config.example.json scripts/config.json
 
 ## Agents 路径解析与运行时
 
-进程模型和控制文件协议见 [Agents 运行时架构](../architecture/agents.md)。
+进程模型与 IPC/desired 协议见 [Agents 运行时架构](../architecture/agents.md)。
 
 `AgentsPath` 按以下优先级解析 Host 可执行文件；相对路径以 Desktop 安装目录为基准：
 
@@ -164,11 +164,11 @@ cp scripts/config.example.json scripts/config.json
 2. **Standard**：配置路径不可用但标准布局中的 `Agents.exe` 存在时使用标准路径，并按需规范化配置
 3. **Missing**：两种路径均不可用时返回缺失状态，启动流程终止
 
-Desktop 加载配置时按磁盘模块目录规范化 `Agents.Modules`：新模块默认启用，已有开关保留，已删除模块在稳定非空目录清单下移除。模块目录在安装或更新期间短暂为空时，保留现有开关，避免产生错误重置。
+`Agents.Modules` 不再由配置加载期扫盘扩删；catalog 与启用键 merge 来自 Host **StatusSnapshot**（见 [agents.md](../architecture/agents.md)）。配置层只规范化已有启用键形状。
 
 模块默认配置首次复制到 `{ConfigDir}/agents/modules/<Id>/settings.json`。后续模块升级不会覆盖该用户文件。
 
-Desktop 启动 Host 时附带 `--config <AppConfig 绝对路径>`；Host 转发给模块，自身不解析该文件。
+Desktop 启动 Host：`--config <AppConfig 绝对路径>`；Host 转发给模块，自身不解析该文件。控制面为管道 desired/quit；启停 Host 超时仅强杀 **Host 进程树**。
 
 ## 相关文档
 

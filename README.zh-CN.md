@@ -74,7 +74,7 @@ PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
 
 - Desktop、Agents、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
-- Agents 运行时：常驻 .NET Host + 可独立启停的模块进程
+- Agents 运行时：常驻 .NET Host（模块监管 + Snapshot）+ Desktop 侧 Host 生命周期 / desired
 - 基于 PostgreSQL Migration 的数据库演进与兼容门禁
 - Desktop、Agents 和数据库版本由 Manifest 统一管理
 - 支持库存、追溯码录入、联调映射、任务队列与审计
@@ -94,7 +94,7 @@ flowchart LR
     CI[".github/workflows\n构建与发布自动化"]
 
     DESKTOP --> PKG
-    DESKTOP -->|启停 Host / module.control| HOST
+    DESKTOP -->|启停 Host / IPC desired| HOST
     HOST -->|子进程| INJ
     INJ -->|任务领取 / 状态回写 / 事件记录| DB
     PKG --> DB

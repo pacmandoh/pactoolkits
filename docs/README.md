@@ -4,12 +4,12 @@
 
 ## 架构
 
-| 文档                                                    | 内容                                 |
-| ------------------------------------------------------- | ------------------------------------ |
-| [monorepo-layout.md](./architecture/monorepo-layout.md) | 目录职责与解决方案成员               |
-| [layering.md](./architecture/layering.md)               | 依赖方向与各层职责                   |
-| [agents.md](./architecture/agents.md)                   | Agents Host、模块、进程与控制文件    |
-| [desktop-state.md](./architecture/desktop-state.md)     | Desktop 连接、页面可用性与区块空状态 |
+| 文档                                                    | 内容                                                     |
+| ------------------------------------------------------- | -------------------------------------------------------- |
+| [monorepo-layout.md](./architecture/monorepo-layout.md) | 目录职责与解决方案成员                                   |
+| [layering.md](./architecture/layering.md)               | 依赖方向与各层职责                                       |
+| [agents.md](./architecture/agents.md)                   | Agents 三边界：Host 监管、Desktop desired、管道 Snapshot |
+| [desktop-state.md](./architecture/desktop-state.md)     | Desktop 连接、页面可用性与区块空状态                     |
 
 ## 运维
 
