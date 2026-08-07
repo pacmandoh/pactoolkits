@@ -30,6 +30,6 @@ public static class ReleaseManifestDesktop
             return desktop;
         }
 
-        throw new InvalidOperationException("更新清单缺少 components.desktop.avalonia");
+        throw new InvalidOperationException("更新清单缺少 PacToolkits 客户端组件信息");
     }
 }

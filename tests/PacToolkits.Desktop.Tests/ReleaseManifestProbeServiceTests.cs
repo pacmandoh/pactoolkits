@@ -42,7 +42,7 @@ public sealed class ReleaseManifestProbeServiceTests
             CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Contains("高于当前程序支持范围", result.Message, StringComparison.Ordinal);
+        Assert.Contains("过高", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class ReleaseManifestProbeServiceTests
             CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Contains("低于最低支持版本", result.Message, StringComparison.Ordinal);
+        Assert.Contains("过低", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed class ReleaseManifestProbeServiceTests
                 TestContext.Current.CancellationToken);
 
             var schema = new FakeDbSchemaVersionService("1.2.23");
-            var service = new ReleaseManifestProbeService(schema, new NullLogger());
+            var service = new ReleaseManifestProbeService(new DbSchemaGate(schema), new NullLogger());
 
             var result = await service.ProbeAsync(
                 root, "beta", new PgOptions(), TestContext.Current.CancellationToken);
@@ -164,7 +164,7 @@ public sealed class ReleaseManifestProbeServiceTests
         try
         {
             var service = new ReleaseManifestProbeService(
-                new FakeDbSchemaVersionService("1.2.23"),
+                new DbSchemaGate(new FakeDbSchemaVersionService("1.2.23")),
                 new NullLogger());
 
             var result = await service.ProbeAsync(
@@ -207,7 +207,7 @@ public sealed class ReleaseManifestProbeServiceTests
     {
         var http = new HttpClient(new StaticResponseHandler(manifest));
         return new ReleaseManifestProbeService(
-            schema,
+            new DbSchemaGate(schema),
             new NullLogger(),
             http);
     }

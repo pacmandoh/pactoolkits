@@ -1,5 +1,6 @@
 namespace PacToolkits.Application.DTOs;
 
+/// <summary>当前构建/发布版本快照（Desktop 安装目录 ReleaseManifest）</summary>
 public sealed record ReleaseVersionInfo(
     string ProductVersion,
     string DesktopVersion,
@@ -8,9 +9,7 @@ public sealed record ReleaseVersionInfo(
     string BuildChannel,
     string BuildDate,
     string DesktopMinDbSchema,
-    string DesktopMaxDbSchema,
-    string AgentsMinDesktop,
-    string AgentsMaxDesktop)
+    string DesktopMaxDbSchema)
 {
     public static ReleaseVersionInfo Unknown { get; } = new(
         ProductVersion: "unknown",
@@ -20,7 +19,5 @@ public sealed record ReleaseVersionInfo(
         BuildChannel: "unknown",
         BuildDate: "unknown",
         DesktopMinDbSchema: "unknown",
-        DesktopMaxDbSchema: "unknown",
-        AgentsMinDesktop: "unknown",
-        AgentsMaxDesktop: "unknown");
+        DesktopMaxDbSchema: "unknown");
 }

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Core;
 
 namespace PacToolkits.Application.Services;
 
@@ -14,23 +13,23 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
         Timeout = TimeSpan.FromSeconds(15)
     };
 
-    private readonly IDbSchemaVersionService _dbSchemaVersion;
+    private readonly IDbSchemaGate _schemaGate;
     private readonly IAppLogger _logger;
     private readonly HttpClient _http;
 
     public ReleaseManifestProbeService(
-        IDbSchemaVersionService dbSchemaVersion,
+        IDbSchemaGate schemaGate,
         IAppLogger logger)
-        : this(dbSchemaVersion, logger, SharedHttp)
+        : this(schemaGate, logger, SharedHttp)
     {
     }
 
     internal ReleaseManifestProbeService(
-        IDbSchemaVersionService dbSchemaVersion,
+        IDbSchemaGate schemaGate,
         IAppLogger logger,
         HttpClient http)
     {
-        _dbSchemaVersion = dbSchemaVersion;
+        _schemaGate = schemaGate ?? throw new ArgumentNullException(nameof(schemaGate));
         _logger = logger;
         _http = http;
     }
@@ -108,16 +107,8 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
                 $"更新源通道不匹配：请求 {channel}，清单为 {manifest.Channel}");
         }
 
-        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(pgOptions, ct).ConfigureAwait(false);
-        if (!schema.Ok)
-        {
-            return Failed(channel, targetFeedUrl, manifestUrl, schema.Reason ?? "无法读取当前数据库版本");
-        }
-
-        var compatibility = DbSchemaCompat.Evaluate(
-            schema.Value,
-            manifest.RequiredMinDbSchema,
-            manifest.RequiredMaxDbSchema);
+        var schema = await _schemaGate.ReadAsync(pgOptions, ct).ConfigureAwait(false);
+        var compatibility = _schemaGate.Match(schema, manifest.RequiredMinDbSchema, manifest.RequiredMaxDbSchema);
         if (!compatibility.IsCompatible)
         {
             return new ReleaseManifestProbe(
@@ -129,7 +120,7 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
                 schema.Value,
                 manifest.RequiredMinDbSchema,
                 manifest.RequiredMaxDbSchema,
-                compatibility.Message);
+                DbSchemaDesktop.GateBlock(compatibility));
         }
 
         return new ReleaseManifestProbe(

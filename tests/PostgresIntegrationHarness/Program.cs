@@ -23,7 +23,7 @@ static SettingsService CreateService(PgOptions options, DbAccessGuard guard)
     return new SettingsService(
         config,
         new DbConnectionTester(logger),
-        new DbSchemaVersionService(config, logger),
+        new DbSchemaGate(new DbSchemaVersionService(config, logger)),
         new ClientIdReadRepo(logger, guard),
         guard);
 }

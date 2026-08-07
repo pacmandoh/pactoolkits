@@ -9,20 +9,20 @@ public sealed class SettingsService : ISettingsService
 {
     private readonly IDbConfigService _dbConfig;
     private readonly IDbConnectionTester _tester;
-    private readonly IDbSchemaVersionService _schemaVersion;
+    private readonly IDbSchemaGate _schemaGate;
     private readonly IClientIdReadRepo _clientRepo;
     private readonly IDbAccessGuard _accessGuard;
 
     public SettingsService(
         IDbConfigService dbConfig,
         IDbConnectionTester tester,
-        IDbSchemaVersionService schemaVersion,
+        IDbSchemaGate schemaGate,
         IClientIdReadRepo clientRepo,
         IDbAccessGuard accessGuard)
     {
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _tester = tester ?? throw new ArgumentNullException(nameof(tester));
-        _schemaVersion = schemaVersion ?? throw new ArgumentNullException(nameof(schemaVersion));
+        _schemaGate = schemaGate ?? throw new ArgumentNullException(nameof(schemaGate));
         _clientRepo = clientRepo ?? throw new ArgumentNullException(nameof(clientRepo));
         _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));
     }
@@ -69,7 +69,7 @@ public sealed class SettingsService : ISettingsService
             return (true, null);
         }
 
-        return (false, snapshot.IncompatibleMessage ?? BuildIncompatibleMessage(schemaContext, snapshot));
+        return (false, snapshot.IncompatibleMessage);
     }
 
     public Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
@@ -94,15 +94,13 @@ public sealed class SettingsService : ISettingsService
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
-        var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        var localTarget = DbSchemaCompat.NormalizeBound(
-            schemaContext.TargetDbSchemaVersion,
-            schemaContext.TargetDbSchemaVersion);
+        var min = schemaContext.Min;
+        var max = schemaContext.Max;
+        var target = schemaContext.Target;
         var schema = connectionOptions is null
-            ? await _schemaVersion.TryReadSchemaVersionAsync(ct).ConfigureAwait(false)
-            : await _schemaVersion.TryReadSchemaVersionAsync(connectionOptions, ct).ConfigureAwait(false);
-        var compatibility = BuildCompatibility(schema, uiMin, uiMax);
+            ? await _schemaGate.ReadAsync(ct).ConfigureAwait(false)
+            : await _schemaGate.ReadAsync(connectionOptions, ct).ConfigureAwait(false);
+        var compatibility = _schemaGate.Match(schema, min, max);
 
         if (MatchesLocalDb(connectionOptions))
         {
@@ -110,50 +108,25 @@ public sealed class SettingsService : ISettingsService
         }
 
         var current = schema.Value ?? string.Empty;
-        var snapshot = new DbSchemaStatusSnapshot(
+        var satisfied = compatibility.IsCompatible;
+        return new DbSchemaStatusSnapshot(
             SchemaOk: schema.Ok,
             CurrentVersion: current,
             Reason: schema.Ok ? null : schema.Reason ?? "读取失败",
-            TargetVersion: localTarget,
-            RequiredMinVersion: uiMin,
-            RequiredMaxVersion: uiMax,
+            TargetVersion: target,
+            RequiredMinVersion: min,
+            RequiredMaxVersion: max,
             Compatibility: compatibility.Status,
-            Satisfied: compatibility.IsCompatible,
-            IncompatibleMessage: null);
-        return snapshot with
-        {
-            IncompatibleMessage = snapshot.Satisfied
+            Satisfied: satisfied,
+            IncompatibleMessage: satisfied
                 ? null
-                : BuildIncompatibleMessage(schemaContext, snapshot)
-        };
-    }
-
-    private static DbSchemaCompatibilityResult BuildCompatibility(
-        DbSchemaVersionRead schema,
-        string requiredMin,
-        string requiredMax)
-    {
-        if (schema.Ok)
-        {
-            return DbSchemaCompat.Evaluate(schema.Value, requiredMin, requiredMax);
-        }
-
-        if (schema.IsMetadataMissing)
-        {
-            return new DbSchemaCompatibilityResult(
-                DbSchemaCompatibility.MetadataMissing,
-                schema.Value ?? string.Empty,
-                requiredMin,
-                requiredMax,
-                schema.Reason ?? "数据库版本元数据缺失，需要通过外部部署工具初始化");
-        }
-
-        return new DbSchemaCompatibilityResult(
-            DbSchemaCompatibility.Unknown,
-            schema.Value ?? string.Empty,
-            requiredMin,
-            requiredMax,
-            schema.Reason ?? "读取失败");
+                : DbSchemaDesktop.Incompatible(
+                    schema.Ok,
+                    current,
+                    schema.Ok ? null : schema.Reason ?? "读取失败",
+                    min,
+                    max,
+                    compatibility.Status));
     }
 
     public async Task<ClientAliasSources> GetClientAliasSourcesAsync(PgOptions options, CancellationToken ct)
@@ -191,7 +164,7 @@ public sealed class SettingsService : ISettingsService
         }
         else
         {
-            _accessGuard.Block(compatibility.Message);
+            _accessGuard.Block(DbSchemaDesktop.GateBlock(compatibility));
         }
     }
 
@@ -208,20 +181,6 @@ public sealed class SettingsService : ISettingsService
                && string.Equals(connectionOptions.Database, current.Database, StringComparison.Ordinal)
                && string.Equals(connectionOptions.Username, current.Username, StringComparison.Ordinal)
                && string.Equals(connectionOptions.Password, current.Password, StringComparison.Ordinal);
-    }
-
-    private static string BuildIncompatibleMessage(
-        DbSchemaVersionContext schemaContext,
-        DbSchemaStatusSnapshot snapshot)
-    {
-        var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        return DbSchemaCompat.BuildIncompatibleMessage(
-            snapshot.SchemaOk,
-            snapshot.CurrentVersion,
-            snapshot.Reason,
-            uiMin,
-            uiMax);
     }
 
     private static string ExtractMachine(string? raw)

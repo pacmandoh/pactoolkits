@@ -21,6 +21,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SyncService>();
         services.AddSingleton<ISyncService>(sp => sp.GetRequiredService<SyncService>());
         services.AddSingleton<IMsfxAutoRunService, MsfxAutoRunService>();
+        services.AddSingleton<IDbSchemaGate, DbSchemaGate>();
+        services.AddSingleton<IAgentsAdmitService, AgentsAdmitService>();
+        services.AddSingleton<IAgentsBundleService, AgentsBundleService>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILookupCatalogService, LookupCatalogService>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();
