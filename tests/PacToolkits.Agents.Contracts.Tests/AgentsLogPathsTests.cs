@@ -6,10 +6,10 @@ namespace PacToolkits.Agents.Contracts.Tests;
 public sealed class AgentsLogPathsTests
 {
     [Fact]
-    public void DefaultLogsRoot_UsesAppDataPacToolkitsLogs()
+    public void DefaultLogsRoot_UsesLocalAppDataPacToolkitsLogs()
     {
         var expected = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "PacToolkits",
             "logs");
 

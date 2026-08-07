@@ -87,7 +87,7 @@ desired 在会话内是**持续挂载意图**（已过 Desktop 门）：进程�
 
 ## 日志
 
-Host 与 AHK 模块与 Desktop 共用日志根（默认 AppData，可由 `Logging.LogDirectory` 自定义），JSON Lines：
+Host 与 AHK 模块与 Desktop 共用日志根（默认 LocalAppData，可由 `Logging.LogDirectory` 自定义），JSON Lines：
 
 ```text
 {logsRoot}/

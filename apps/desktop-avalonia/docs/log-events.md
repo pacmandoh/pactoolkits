@@ -9,8 +9,8 @@
 
 - 默认日志目录（设置页「日志目录」/「打开目录」；可自定义，全部相对此目录）：
   - macOS：`~/Library/Application Support/PacToolkits/logs`
-  - Linux：`~/.config/PacToolkits/logs`
-  - Windows：`%AppData%\PacToolkits\logs`
+  - Linux：`~/.local/share/PacToolkits/logs`
+  - Windows：`%LocalAppData%\PacToolkits\logs`
 - 相对目录布局：Desktop → `desktop/`；Host → `agents/host/`；模块 → `agents/modules/<Id>/`
 - 日志文件：`YYYY-MM-DD.log`（同日滚动为 `YYYY-MM-DD.N.log`）
 - 格式：JSON Lines；关键字段包括 `ts`、`level`、`module`、`event`、`message`、`exception`（可选）、`version` 和 `context`

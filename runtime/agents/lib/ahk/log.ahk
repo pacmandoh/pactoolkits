@@ -1,5 +1,5 @@
 ; 模块 JSON Lines 日志 → {logsRoot}\agents\modules\<Id>\
-; logsRoot 默认 %AppData%\PacToolkits\logs，可由 Desktop Logging.LogDirectory 覆盖
+; logsRoot 默认 %LocalAppData%\PacToolkits\logs，可由 Desktop Logging.LogDirectory 覆盖
 ; 规格对齐 packages/logger：门控、按日滚动、保留清理；字段 ts/level/module/event/message/version/context?/exception?
 ; Ahk2Exe 工作目录是编译器目录，不能裸 #Include（会落到 A_WorkingDir）
 #Include "%A_LineFile%\..\JSON.ahk"
@@ -8,7 +8,7 @@
 
 global Log_ModuleId := ""
 global Log_Version := ""
-; 日志根目录：空 = AppData\PacToolkits\logs；可由 Desktop 配置 Logging.LogDirectory 覆盖
+; 日志根目录：空 = LocalAppData\PacToolkits\logs；可由 Desktop 配置 Logging.LogDirectory 覆盖
 global Log_Root := ""
 ; 默认与 Desktop / Host Logging 一致
 global Log_Enabled := true
@@ -131,7 +131,7 @@ Log_ResolveRoot() {
 	global Log_Root
 	r := Trim("" Log_Root)
 	if (r = "")
-		return A_AppData "\PacToolkits\logs"
+		return A_LocalAppData "\PacToolkits\logs"
 	; 与 AgentsLogPaths.ResolveRoot 对齐：绝对路径 + 去掉尾部分隔符
 	full := Util_PathFull(r)
 	return RegExReplace(full, "[\\/]+$", "")

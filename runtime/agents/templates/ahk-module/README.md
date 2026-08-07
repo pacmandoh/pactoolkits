@@ -19,7 +19,7 @@
 
 - `Log_Startup` + `Ready_Install` + `Settings_RequireJson`（`lib/ahk/startup.ahk` / `ready.ahk`）
 - 配置读取成功后创建 `module.ready`，退出时删除（`Ready_Mark` / `Ready_Clear`）
-- JSON 日志写入 `%AppData%\PacToolkits\logs\agents\modules\<Id>\`（`lib/ahk/log.ahk`）
+- JSON 日志写入 `%LocalAppData%\PacToolkits\logs\agents\modules\<Id>\`（`lib/ahk/log.ahk`）
 - 提示 / 失败弹窗用 `UI_Tip` / `UI_Fail`（`lib/ahk/ui.ahk`；`UI_Fail` 的 `title` 每次必传）
 - 使用 `Ctrl+Alt+F8` 显示测试信息
 
