@@ -131,7 +131,8 @@ Log_ResolveRoot() {
 	global Log_Root
 	r := Trim("" Log_Root)
 	if (r = "")
-		return A_LocalAppData "\PacToolkits\logs"
+		; AHK v2 无 A_LocalAppData 内置，读 LocalAppData 环境变量
+		return EnvGet("LocalAppData") "\PacToolkits\logs"
 	; 与 AgentsLogPaths.ResolveRoot 对齐：绝对路径 + 去掉尾部分隔符
 	full := Util_PathFull(r)
 	return RegExReplace(full, "[\\/]+$", "")
