@@ -72,7 +72,7 @@ public sealed class SettingsServiceTests
         var service = new SettingsService(
             currentConfig,
             new FakeConnectionTester(),
-            schemaService,
+            new DbSchemaGate(schemaService),
             new FakeClientIdReadRepo(),
             new DbAccessGuard());
 
@@ -119,7 +119,9 @@ public sealed class SettingsServiceTests
         => new(
             new FakeDbConfigService(),
             new FakeConnectionTester(),
-            new FakeSchemaVersionService(schemaReadResult ?? new DbSchemaVersionRead(true, schemaVersion, null)),
+            new DbSchemaGate(
+                new FakeSchemaVersionService(
+                    schemaReadResult ?? new DbSchemaVersionRead(true, schemaVersion, null))),
             new FakeClientIdReadRepo(),
             guard);
 
