@@ -8,6 +8,7 @@ PacToolkits 使用单仓库组织 Desktop、Agents 运行时、数据库和共�
 pactoolkits/
   apps/
     desktop-avalonia/src/     Desktop（Avalonia 12 + ShadUI）
+    api-asp/src/              HTTP 宿主 PacToolkits.Api（API Key → JWT）
   packages/
     core/                     纯领域模型与跨层工具（无 I/O）
     application/              用例层：DTO、服务接口、应用服务
@@ -35,6 +36,7 @@ pactoolkits/
 | 路径                        | 角色            | 说明                                                               |
 | --------------------------- | --------------- | ------------------------------------------------------------------ |
 | `apps/desktop-avalonia`     | **Desktop**     | 业务 UI、配置、更新；Agents：**OS Host** + desired + Snapshot 投影 |
+| `apps/api-asp`              | **API**         | HTTP 宿主；API Key → JWT；域路由 → Application + Infrastructure    |
 | `runtime/agents/host`       | **Agents Host** | `Agents.exe`：desired reconcile、模块监管、Snapshot / moduleFailed |
 | `runtime/agents/modules`    | **Agents 模块** | 独立自动化进程、描述文件、默认配置与 settings schema               |
 | `runtime/agents/templates`  | **模块模板**    | 新模块起点；不参与运行时发现与打包                                 |
@@ -50,6 +52,7 @@ pactoolkits/
 `PacToolkits.sln` 包含：
 
 - `PacToolkits.Desktop.Avalonia`
+- `PacToolkits.Api`
 - `PacToolkits.Core`
 - `PacToolkits.Application`
 - `PacToolkits.Infrastructure`
@@ -59,6 +62,7 @@ pactoolkits/
 - `PacToolkits.Desktop.Tests`
 - `PacToolkits.Desktop.UiTests`
 - `PacToolkits.Agents.Contracts.Tests`
+- `PacToolkits.Api.Tests`
 
 ## 配置与版本
 
@@ -75,6 +79,7 @@ pactoolkits/
 - [Desktop 状态模型](./desktop-state.md)
 - [发布流程](../operations/release-flow.md)
 - [Desktop](../../apps/desktop-avalonia/README.md)
+- [API](../../apps/api-asp/README.md)
 - [Agents](../../runtime/agents/README.md)
 - [PostgreSQL](../../database/postgres/README.md)
 - [脚本工具](../../scripts/docs/tooling.md)

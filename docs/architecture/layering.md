@@ -1,12 +1,13 @@
 # 分层与依赖规则
 
-PacToolkits 按 Desktop、Application、Infrastructure、Core、Agents.Contracts 和 Logger 划分职责。Agents Host 与模块位于 `runtime/agents/`：共享 `packages/agents-contracts`（IPC / Snapshot / 路径）；JSON Lines 经 `packages/logger`。
+PacToolkits 按 Desktop、API、Application、Infrastructure、Core、Agents.Contracts 和 Logger 划分职责。Agents Host 与模块位于 `runtime/agents/`：共享 `packages/agents-contracts`（IPC / Snapshot / 路径）；JSON Lines 经 `packages/logger`。
 
 ## 依赖方向
 
 ```mermaid
 flowchart TB
     DESKTOP["apps/desktop-avalonia\n(Avalonia Desktop)"]
+    API["apps/api-asp\n(PacToolkits.Api)"]
     APP["packages/application\n用例与抽象"]
     INF["packages/infrastructure\nPostgreSQL 实现"]
     CORE["packages/core\n纯领域"]
@@ -19,18 +20,22 @@ flowchart TB
     DESKTOP --> INF
     DESKTOP --> AGENT
     DESKTOP --> LOGGER
+    API --> APP
+    API --> INF
     HOST --> AGENT
     HOST --> LOGGER
     INF --> APP
     INF --> CORE
     APP --> CORE
     DESKTOP -.->|启停 Host / IPC desired| HOST
+    DESKTOP -.->|HTTP| API
     HOST -.->|启动和停止| MODULE
 ```
 
 **允许：**
 
 - Desktop → Application、Infrastructure、Agents.Contracts、Logger
+- API → Application、Infrastructure（csproj 按域路由需要引用）
 - Host → Agents.Contracts、Logger
 - Infrastructure → Application、Core
 - Application → Core
@@ -41,6 +46,7 @@ flowchart TB
 - Core → 任意 I/O（数据库、文件系统、日志框架、配置、桌面端）
 - Application、Core → Avalonia
 - ViewModel 直接引用 Npgsql 或编写 SQL
+- API → Desktop / Avalonia
 
 ## 各层职责
 
@@ -83,6 +89,13 @@ flowchart TB
 - 页面连接、可用性和空状态见 [desktop-state.md](./desktop-state.md)
 - 焦点与工作集见 [focus-model.md](../../apps/desktop-avalonia/docs/focus-model.md)
 
+### `apps/api-asp`
+
+- HTTP 宿主（`PacToolkits.Api`）：API Key → JWT、`/health`、JWT 探针 `/v1/ping`
+- composition root：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）
+- 域路由在 `Endpoints/` 映射 Application 用例；csproj 按需引用 Application / Infrastructure
+- 部署与本地脚本见 [API README](../../apps/api-asp/README.md)
+
 ## 典型请求路径（示例）
 
 **Dashboard 加载：**
@@ -115,3 +128,4 @@ Settings / MainWindow shell
 1. 新业务能力优先在 Application 定义接口和服务，由 Infrastructure 提供外部系统实现
 2. Desktop 与 Host 共享的 Agents 类型放入 `agents-contracts`，模块业务配置不进入 Desktop 全局配置模型
 3. 新模块通过 `module.json` 声明入口、桌面元数据和构建方式，业务自动化保持在独立模块进程
+4. 域数据 HTTP 只经 `apps/api-asp`：路由 → Application 用例 → Infrastructure；Desktop 作 HTTP 客户端，不并行直连 Pg
