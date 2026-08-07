@@ -2,15 +2,34 @@
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.SettingsHeader"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:DataType="vm:Settings"
   Classes="PageHeaderContent">
-  <Grid ColumnDefinitions="Auto,Auto,*">
+  <Grid ColumnDefinitions="Auto,Auto,*,Auto">
     <Rectangle Grid.Column="1" Classes="HeaderDivider" />
     <TextBlock
       Grid.Column="2"
       VerticalAlignment="Center"
       Classes="Small Muted"
       Text="{Binding DisplayName}" />
+    <Menu Grid.Column="3" Classes="HeaderMenu">
+      <MenuItem Command="{Binding OpenLogDirectoryCommand}" ToolTip.Tip="打开日志根目录">
+        <MenuItem.Header>
+          <StackPanel Classes="HeaderMenuItem">
+            <icons:AppIcon Kind="ScrollText" />
+            <TextBlock Text="日志目录" />
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding OpenConfigDirectoryCommand}" ToolTip.Tip="打开应用配置所在目录">
+        <MenuItem.Header>
+          <StackPanel Classes="HeaderMenuItem">
+            <icons:AppIcon Kind="FolderOpen" />
+            <TextBlock Text="配置目录" />
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+    </Menu>
   </Grid>
 </UserControl>
