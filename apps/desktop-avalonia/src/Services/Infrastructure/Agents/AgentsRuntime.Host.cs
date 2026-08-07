@@ -9,6 +9,7 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Agents.Contracts.Validation;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
@@ -48,12 +49,6 @@ public sealed partial class AgentsRuntime
 
             NoteHostCommandIssued();
 
-            var bundleValidation = ValidateHostBundleCompat();
-            if (!bundleValidation.Ok)
-            {
-                return SetHostError(bundleValidation.Message);
-            }
-
             AgentsOptions options;
             bool modulesChanged;
             lock (_gate)
@@ -70,11 +65,6 @@ public sealed partial class AgentsRuntime
                 TryPersistNormalizedModules();
             }
 
-            if (!OperatingSystem.IsWindows())
-            {
-                return SetHostError("当前系统不支持启动 Agents");
-            }
-
             if (string.IsNullOrWhiteSpace(options.ExecutablePath))
             {
                 return SetHostError("请先配置 Agents 可执行文件路径");
@@ -89,6 +79,18 @@ public sealed partial class AgentsRuntime
             if (!File.Exists(resolvedExePath))
             {
                 return SetHostError($"文件不存在：{options.ExecutablePath}");
+            }
+
+            // 路径有效后再读 Agents 树配套；否则无清单也会被误报为 Incomplete
+            var bundleValidation = ValidateHostBundleCompat();
+            if (!bundleValidation.Ok)
+            {
+                return SetHostError(bundleValidation.Message);
+            }
+
+            if (!OperatingSystem.IsWindows())
+            {
+                return SetHostError("当前系统不支持启动 Agents");
             }
 
             var validate = ValidateHostLaunch();
@@ -141,19 +143,6 @@ public sealed partial class AgentsRuntime
             startCts = new CancellationTokenSource();
             _startCts = startCts;
 
-            var modules = _projection.Modules;
-            var enabledIds = modules
-                .Select(m => m.Id)
-                .Where(IsModuleEnabled)
-                .ToList();
-
-            IReadOnlyList<string> mountIds = enabledIds;
-            if (mountOnly is not null)
-            {
-                var allow = new HashSet<string>(mountOnly, StringComparer.OrdinalIgnoreCase);
-                mountIds = enabledIds.Where(id => allow.Contains(id)).ToList();
-            }
-
             try
             {
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, startCts.Token);
@@ -168,17 +157,44 @@ public sealed partial class AgentsRuntime
                 await _host.AttachLinkAsync(_link, ResolveAgentsDir(options), TimeSpan.FromSeconds(3), linked.Token)
                     .ConfigureAwait(false);
 
-                var planned = new List<string>();
-                foreach (var moduleId in mountIds)
+                // 启用集与门禁以 Attach 后 Host Snapshot catalog 为准
+                IReadOnlyList<ModuleDescriptor> modules;
+                lock (_gate)
                 {
-                    if (ModuleRequiresDatabase(moduleId) && !IsDatabaseConnected)
+                    modules = _projection.Modules;
+                }
+
+                var enabled = modules.Where(m => IsModuleEnabled(m.Id));
+                if (mountOnly is not null)
+                {
+                    var allow = new HashSet<string>(mountOnly, StringComparer.OrdinalIgnoreCase);
+                    enabled = enabled.Where(m => allow.Contains(m.Id));
+                }
+
+                var candidates = enabled
+                    .Select(m => new AgentsModuleDbBound(m.Id, m.MinDbSchema, m.MaxDbSchema))
+                    .ToList();
+
+                // 只写入通过门禁的 id；Host 不再次过滤 schema
+                // AdmitMany：多模块共享一次 schema 读
+                var planned = new List<string>();
+                var admits = await _admit.AdmitManyAsync(candidates, IsDatabaseConnected, linked.Token)
+                    .ConfigureAwait(false);
+
+                for (var i = 0; i < admits.Count; i++)
+                {
+                    var admit = admits[i];
+                    var bound = candidates[i];
+                    var moduleId = bound.ModuleId;
+
+                    if (!admit.Ok)
                     {
-                        _desired.NotePaused(moduleId);
-                        _logger.Info(
-                            "Agents",
-                            "agents.module.skip_mount_db",
-                            "Skipped mounting database-bound module while disconnected",
-                            new { moduleId });
+                        NoteAdmitDeniedOnColdStart(admit, moduleId);
+                        continue;
+                    }
+
+                    if (!EnsurePgConfigOrError(moduleId, bound).Ok)
+                    {
                         continue;
                     }
 
@@ -232,6 +248,13 @@ public sealed partial class AgentsRuntime
                         if (planned.Any(p => string.Equals(p, id, StringComparison.OrdinalIgnoreCase)))
                         {
                             continue;
+                        }
+
+                        // 优先沿用 Admit/门禁已写入的 LastError，避免泛化文案覆盖根因
+                        var prior = GetModuleLastError(id);
+                        if (!string.IsNullOrWhiteSpace(prior))
+                        {
+                            return FailMountWithHostAlive(id, prior);
                         }
 
                         if (ModuleRequiresDatabase(id) && !IsDatabaseConnected)
@@ -639,9 +662,31 @@ public sealed partial class AgentsRuntime
 
 
     private AgentsCommandResult ValidateHostBundleCompat()
-        => AgentsDesktopCompat.Validate(
+    {
+        string? agentsDir;
+        lock (_gate)
+        {
+            agentsDir = ResolveAgentsDir(_options);
+        }
+
+        if (string.IsNullOrWhiteSpace(agentsDir))
+        {
+            return new AgentsCommandResult(false, "无法解析 Agents 安装目录");
+        }
+
+        var manifestPath = Path.Combine(agentsDir, "ReleaseManifest.json");
+        if (!AgentsPath.TryReadAgentsDesktopBounds(manifestPath, out var minDesktop, out var maxDesktop))
+        {
+            return new AgentsCommandResult(false, "Agents 安装树缺少有效的 ReleaseManifest.json");
+        }
+
+        var result = _bundle.Validate(
             _releaseVersion.Current.DesktopVersion,
-            MinDesktop,
-            MaxDesktop);
+            minDesktop,
+            maxDesktop);
+        return result.Ok
+            ? new AgentsCommandResult(true, "ok")
+            : new AgentsCommandResult(false, result.Message);
+    }
 
 }

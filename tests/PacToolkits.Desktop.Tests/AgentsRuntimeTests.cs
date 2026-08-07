@@ -2,6 +2,7 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
@@ -11,32 +12,101 @@ public sealed class AgentsRuntimeTests
 {
     private const string TestModuleId = "ModuleA";
 
-    [Fact]
-    public void Declares_agents_desktop_compatibility_range()
-    {
-        using var runtime = new AgentsRuntime(
-            new FakeAppConfigStore(),
-            new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(),
-            new NullAppLogger());
+    private static AgentsRuntime CreateRuntime(
+        IAppConfigStore? config = null,
+        IModuleSettingsStore? settings = null,
+        IReleaseVersionService? release = null,
+        string schemaVersion = "1.2.25")
+        => new(
+            config ?? new FakeAppConfigStore(),
+            settings ?? new FakeModuleSettingsStore(),
+            release ?? new FakeReleaseVersionService(),
+            new NullAppLogger(),
+            new AgentsAdmitService(new DbSchemaGate(new FixedSchemaVersion(schemaVersion))),
+            new AgentsBundleService());
 
-        Assert.True(runtime.IsModuleEnabled(TestModuleId));
-        Assert.Equal("0.16.1", runtime.MinDesktop);
-        Assert.Equal("0.16.1", runtime.MaxDesktop);
+    private sealed class FixedSchemaVersion(string version) : IDbSchemaVersionService
+    {
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
+            => Task.FromResult(new DbSchemaVersionRead(true, version, null));
+
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
+            => TryReadSchemaVersionAsync(ct);
+    }
+
+    // Host 假文件 + ReleaseManifest，覆盖路径解析与清单门禁
+    private sealed class TempAgentsInstall : IDisposable
+    {
+        public string Root { get; }
+        public string AgentsDir { get; }
+        public string HostPath { get; }
+
+        public TempAgentsInstall(
+            string minDesktop = "0.16.1",
+            string maxDesktop = "0.16.1",
+            string agentsVersion = "0.6.1")
+        {
+            Root = Path.Combine(Path.GetTempPath(), "pac-agents-test-" + Guid.NewGuid().ToString("N"));
+            AgentsDir = Path.Combine(Root, "Agents");
+            Directory.CreateDirectory(AgentsDir);
+            HostPath = Path.Combine(AgentsDir, AgentsPaths.HostExecutableFileName);
+            File.WriteAllBytes(HostPath, [0]);
+            WriteBounds(minDesktop, maxDesktop, agentsVersion);
+        }
+
+        public void WriteBounds(string minDesktop, string maxDesktop, string agentsVersion = "0.6.1")
+        {
+            File.WriteAllText(
+                Path.Combine(AgentsDir, "ReleaseManifest.json"),
+                $$"""
+                {
+                  "components": {
+                    "agents": {
+                      "version": "{{agentsVersion}}",
+                      "minDesktop": "{{minDesktop}}",
+                      "maxDesktop": "{{maxDesktop}}"
+                    }
+                  }
+                }
+                """);
+        }
+
+        public void ApplyTo(FakeAppConfigStore config)
+            => config.Root.Agents.ExecutablePath = HostPath;
+
+        public void Dispose()
+        {
+            try
+            {
+                Directory.Delete(Root, recursive: true);
+            }
+            catch
+            {
+                // best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public void Agents_install_manifest_declares_desktop_bounds()
+    {
+        using var agents = new TempAgentsInstall("0.16.1", "0.16.1");
+        var path = Path.Combine(agents.AgentsDir, "ReleaseManifest.json");
+
+        Assert.True(AgentsPath.TryReadAgentsDesktopBounds(path, out var min, out var max));
+        Assert.Equal("0.16.1", min);
+        Assert.Equal("0.16.1", max);
     }
 
     [Fact]
     public async Task Start_when_desktop_outside_agents_range()
     {
+        using var agents = new TempAgentsInstall("0.16.0", "0.17.0");
         var config = new FakeAppConfigStore();
-        using var runtime = new AgentsRuntime(
-            config,
-            new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(
-                desktopVersion: "0.15.0",
-                agentsMinDesktop: "0.16.0",
-                agentsMaxDesktop: "0.17.0"),
-            new NullAppLogger());
+        agents.ApplyTo(config);
+        using var runtime = CreateRuntime(
+            config: config,
+            release: new FakeReleaseVersionService(desktopVersion: "0.15.0"));
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
@@ -48,14 +118,12 @@ public sealed class AgentsRuntimeTests
     [Fact]
     public async Task Start_rejects_prerelease_below_stable_min_desktop()
     {
-        using var runtime = new AgentsRuntime(
-            new FakeAppConfigStore(),
-            new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(
-                desktopVersion: "1.0.2-beta.8",
-                agentsMinDesktop: "1.0.2",
-                agentsMaxDesktop: "1.0.5"),
-            new NullAppLogger());
+        using var agents = new TempAgentsInstall("1.0.2", "1.0.5");
+        var config = new FakeAppConfigStore();
+        agents.ApplyTo(config);
+        using var runtime = CreateRuntime(
+            config: config,
+            release: new FakeReleaseVersionService(desktopVersion: "1.0.2-beta.8"));
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
@@ -66,55 +134,66 @@ public sealed class AgentsRuntimeTests
     [Fact]
     public async Task Start_allows_ordered_beta_inside_desktop_range()
     {
-        using var runtime = new AgentsRuntime(
-            new FakeAppConfigStore(),
-            new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(
-                desktopVersion: "1.0.3-beta.8",
-                agentsMinDesktop: "1.0.2",
-                agentsMaxDesktop: "1.0.5"),
-            new NullAppLogger());
+        using var agents = new TempAgentsInstall("1.0.2", "1.0.5");
+        var config = new FakeAppConfigStore();
+        agents.ApplyTo(config);
+        using var runtime = CreateRuntime(
+            config: config,
+            release: new FakeReleaseVersionService(desktopVersion: "1.0.3-beta.8"));
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
-        // 通过配套门禁；后续平台/路径/OS 门禁可另报
+        // 未触发 Agents×Desktop 配套拒绝
         Assert.DoesNotContain("支持下限", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("支持上限", result.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("无法校验 Agents 与 Desktop", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("无法校验 Agents 与 PacToolkits", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Start_does_not_gate_on_database_schema()
     {
+        using var agents = new TempAgentsInstall("0.1.0", "9.0.0");
         var config = new FakeAppConfigStore();
-        using var runtime = new AgentsRuntime(
-            config,
-            new FakeModuleSettingsStore(),
-            // unknown desktop bounds：跳过配套门禁，后续平台/路径门禁可另报
-            new FakeReleaseVersionService(
-                desktopVersion: "unknown",
-                agentsMinDesktop: "unknown",
-                agentsMaxDesktop: "unknown"),
-            new NullAppLogger());
+        agents.ApplyTo(config);
+        using var runtime = CreateRuntime(
+            config: config,
+            release: new FakeReleaseVersionService(desktopVersion: "0.16.1"));
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
+        // 配套已过关；失败原因可含 Host/OS，但不得走库 schema 门禁
         Assert.DoesNotContain("数据库版本", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("低于最低支持版本", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("Failed to connect", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
+    public async Task Start_rejects_missing_agents_release_manifest()
+    {
+        using var agents = new TempAgentsInstall("1.0.2", "1.0.5");
+        File.Delete(Path.Combine(agents.AgentsDir, "ReleaseManifest.json"));
+        var config = new FakeAppConfigStore();
+        agents.ApplyTo(config);
+        using var runtime = CreateRuntime(
+            config: config,
+            release: new FakeReleaseVersionService(desktopVersion: "1.0.2"));
+
+        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(result.Ok);
+        Assert.Contains("缺少有效的 ReleaseManifest", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("不完整", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Start_rejects_incomplete_agents_desktop_bounds()
     {
-        using var runtime = new AgentsRuntime(
-            new FakeAppConfigStore(),
-            new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(
-                desktopVersion: "1.0.2",
-                agentsMinDesktop: "1.0.2",
-                agentsMaxDesktop: string.Empty),
-            new NullAppLogger());
+        using var agents = new TempAgentsInstall("1.0.2", string.Empty);
+        var config = new FakeAppConfigStore();
+        agents.ApplyTo(config);
+        using var runtime = CreateRuntime(
+            config: config,
+            release: new FakeReleaseVersionService(desktopVersion: "1.0.2"));
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
@@ -123,19 +202,14 @@ public sealed class AgentsRuntimeTests
     }
 
     [Fact]
-    public void Min_max_desktop_expose_raw_agents_bounds_without_desktop_fallback()
+    public void Agents_bounds_reader_returns_raw_fields_without_fallback()
     {
-        using var runtime = new AgentsRuntime(
-            new FakeAppConfigStore(),
-            new FakeModuleSettingsStore(),
-            new FakeReleaseVersionService(
-                desktopVersion: "1.0.2",
-                agentsMinDesktop: string.Empty,
-                agentsMaxDesktop: "unknown"),
-            new NullAppLogger());
+        using var agents = new TempAgentsInstall(string.Empty, "unknown");
+        var path = Path.Combine(agents.AgentsDir, "ReleaseManifest.json");
 
-        Assert.Equal(string.Empty, runtime.MinDesktop);
-        Assert.Equal("unknown", runtime.MaxDesktop);
+        Assert.True(AgentsPath.TryReadAgentsDesktopBounds(path, out var min, out var max));
+        Assert.Equal(string.Empty, min);
+        Assert.Equal("unknown", max);
     }
 
     [Fact]
@@ -196,17 +270,43 @@ public sealed class AgentsRuntimeTests
     }
 
     [Fact]
-    public void Desktop_compat_rejects_below_min()
+    public void Desktop_bundle_rejects_below_min()
     {
-        var result = AgentsDesktopCompat.Validate("1.0.0", "1.0.2", "1.0.5");
+        var result = new AgentsBundleService().Validate("1.0.0", "1.0.2", "1.0.5");
         Assert.False(result.Ok);
+        Assert.Equal(AgentsBundleDenyKind.BelowMin, result.DenyKind);
         Assert.Contains("支持下限", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Desktop_compat_allows_ordered_prerelease()
+    public void Desktop_bundle_rejects_unknown_desktop_version()
     {
-        var result = AgentsDesktopCompat.Validate("1.0.3-beta.8", "1.0.2", "1.0.5");
+        var result = new AgentsBundleService().Validate("unknown", "1.0.0", "2.0.0");
+        Assert.False(result.Ok);
+        Assert.Equal(AgentsBundleDenyKind.Unparsable, result.DenyKind);
+        Assert.Contains("版本未知", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Desktop_bundle_rejects_missing_agents_bounds()
+    {
+        var result = new AgentsBundleService().Validate("1.0.0", string.Empty, string.Empty);
+        Assert.False(result.Ok);
+        Assert.Equal(AgentsBundleDenyKind.IncompleteRange, result.DenyKind);
+    }
+
+    [Fact]
+    public void Desktop_bundle_rejects_unparsable_agents_bounds()
+    {
+        var result = new AgentsBundleService().Validate("1.0.0", "unknown", "unknown");
+        Assert.False(result.Ok);
+        Assert.Equal(AgentsBundleDenyKind.Unparsable, result.DenyKind);
+    }
+
+    [Fact]
+    public void Desktop_bundle_allows_ordered_prerelease()
+    {
+        var result = new AgentsBundleService().Validate("1.0.3-beta.8", "1.0.2", "1.0.5");
         Assert.True(result.Ok, result.Message);
     }
 
@@ -339,10 +439,7 @@ public sealed class AgentsRuntimeTests
 
     private sealed class FakeReleaseVersionService : IReleaseVersionService
     {
-        public FakeReleaseVersionService(
-            string desktopVersion = "0.16.1",
-            string agentsMinDesktop = "0.16.1",
-            string agentsMaxDesktop = "0.16.1")
+        public FakeReleaseVersionService(string desktopVersion = "0.16.1")
         {
             Current = new(
                 ProductVersion: "0.17.1",
@@ -352,9 +449,7 @@ public sealed class AgentsRuntimeTests
                 BuildChannel: "stable",
                 BuildDate: "2026-06-13",
                 DesktopMinDbSchema: "1.2.22",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDesktop: agentsMinDesktop,
-                AgentsMaxDesktop: agentsMaxDesktop);
+                DesktopMaxDbSchema: "1.2.22");
         }
 
         public ReleaseVersionInfo Current { get; }

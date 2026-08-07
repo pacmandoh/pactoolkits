@@ -409,7 +409,7 @@ public partial class Settings : AppPageBase, ISettingsPage
             return true;
         }
 
-        await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), compat.IncompatibleMessage ?? "数据库版本不兼容");
+        await _dialog.Warn(DbSchemaDesktop.Title, compat.IncompatibleMessage ?? "数据库版本不兼容");
         return false;
     }
 

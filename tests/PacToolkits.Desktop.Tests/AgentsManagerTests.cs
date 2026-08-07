@@ -94,10 +94,6 @@ public sealed class AgentsManagerTests
 
         public IReadOnlyList<ModuleDescriptor> Modules => [];
 
-        public string MinDesktop => "1.0.0";
-
-        public string MaxDesktop => "1.0.0";
-
         public AgentsRunState HostState
             => IsHostRunningValue ? AgentsRunState.Running : AgentsRunState.Stopped;
 
