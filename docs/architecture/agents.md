@@ -62,22 +62,28 @@ flowchart LR
   Host -->|"pipe: Snapshot"| Runtime
 ```
 
-| 能力     | Desktop                                                           | Host                                               |
-| -------- | ----------------------------------------------------------------- | -------------------------------------------------- |
-| 控制     | 管道 `desired` / `quit`；文件只镜像                               | 管道服务；未收过 IPC 时可用 desired 文件种子       |
-| Snapshot | 管道缓存优先；文件观测镜像；本地 CreateProcess 失败优先 Failed    | 合成 state / LastError / catalog，schema **仅 v2** |
-| catalog  | 只吃 Snapshot；不轮询扫盘                                         | 扫 `Modules/*/module.json` 并入 Snapshot           |
-| 启模块   | desired 加入 id                                                   | reconcile 启动；ready/失败写入 Snapshot            |
-| 停模块   | desired 去掉 id                                                   | reconcile 停止                                     |
-| 停 Host  | desired=[] + quit；超时 **Kill Host 进程树**                      | quit → StopAll 子模块                              |
-| 模块 PID | **运行时监管无**；**Host 启停闸门**可按入口路径清残留（防双实例） | 子进程树 Kill / 热更重启                           |
-| DB 断连  | 库依赖模块 pause desired；重连 resume                             | 仅响应 desired 变化                                |
+| 能力        | Desktop                                                                                                     | Host                                               |
+| ----------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 控制        | 管道 `desired` / `quit`；文件只镜像                                                                         | 管道服务；未收过 IPC 时可用 desired 文件种子       |
+| Snapshot    | 管道缓存优先；文件观测镜像；本地 CreateProcess 失败优先 Failed                                              | 合成 state / LastError / catalog，schema **仅 v2** |
+| catalog     | 只吃 Snapshot；不轮询扫盘                                                                                   | 扫 `Modules/*/module.json` 并入 Snapshot           |
+| 启模块      | **先门禁**再 `desired` 加入 id（仅可挂集合）                                                                | reconcile 启动；ready/失败写入 Snapshot            |
+| 停模块      | desired 去掉 id                                                                                             | reconcile 停止                                     |
+| 停 Host     | desired=[] + quit；超时 **Kill Host 进程树**                                                                | quit → StopAll 子模块                              |
+| 模块 PID    | **运行时监管无**；**Host 启停闸门**可按入口路径清残留（防双实例）                                           | 子进程树 Kill / 热更重启                           |
+| DB / schema | **Application** `IAgentsAdmitService`（连库+schema∈模块区间）→ 仅可挂 id 进 desired；PG 配置仍 Desktop 校验 | **不**连库、**不**判 schema；只跟 desired          |
+
+**库策略门禁**：`Enabled` 是用户偏好；`desired` 只含当次允许运行的子集。为何不能挂由 Desktop 投影/`LastError` 说明，Host 不接收 schema 事实、不二次决策。
+
+**库 schema 小门**：Application `IDbSchemaGate`（Desktop 业务与模块 Admit 共用：读库 schema + 任意区间 `Match`）。批量 Admit 时 schema 只读一次；与 Agents 包的 `minDesktop`/`maxDesktop` 无关（后者每次起 Host 从 Agents 安装树现读）。`IAgentsBundleService` 只做 Agents×Desktop 产品 SemVer。
+
+**Agents ↔ Desktop 配套**：Host 路径已有效后读 **Agents 安装树**旁 `ReleaseManifest.json`（`components.agents.minDesktop` / `maxDesktop`），与当前 Desktop 产品 SemVer 比较（`IAgentsBundleService`）；再过 OS 门禁。清单/组件缺失、区间不全、Desktop 版本未知/不可解析一律硬拒绝，不软放行。Agents 可独立自更新，不以 Desktop 安装目录清单为准。
 
 **UI 开关**：Host/模块「开」仅 **Running**（Starting/Failed 用 tip/灯色，与 Settings 一致）。
 
-desired 在会话内是**持续意图**：非 0 退出或未 ready 失败记 sticky Failed，不再热循环；ready 后正常 exit 0 且仍在 desired 时可再起（监督语义）。
+desired 在会话内是**持续挂载意图**（已过 Desktop 门）：进程非 0 退出或未 ready 失败记 sticky Failed，不再热循环；ready 后正常 exit 0 且仍在 desired 时可再起（监督语义）。
 
-新增目录可被 Host 动态发现，**发现 ≠ 启动**。Desktop 起 Host 后按启用集挂 desired；运行中新模块须用户显式启。
+新增目录可被 Host 动态发现，**发现 ≠ 启动**。Desktop 起 Host 后按门禁通过的启用集写 desired；运行中新模块须用户显式启。
 
 ## 日志
 
