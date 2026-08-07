@@ -46,7 +46,7 @@ flowchart TB
 
 ### `packages/core`
 
-- 与基础设施无关的纯逻辑（例如 schema 版本比较 `DbSchemaCompat`）
+- 与基础设施无关的纯逻辑（例如 `SemVer` / `SemVerRange` 闭区间分类；schema 门面结果见 `DbSchemaCompatibility`）
 - 不引用 Npgsql、Avalonia、Microsoft.Extensions.Configuration 等
 
 ### `packages/application`
@@ -54,6 +54,7 @@ flowchart TB
 - **Abstractions/**：仓储与服务接口（`IDashboardService`、`IDashboardRepo` 等）
 - **DTOs/**：跨层传输模型（Dashboard、Msfx、ScanCode、Agents 等）
 - **Services/**：用例实现（`DashboardService`、`ScanCodeService`、`SyncService` 等）
+- 库与 Agents 门禁：`IDbSchemaGate` / `IAgentsAdmitService` / `IAgentsBundleService`（文案见 `DbSchemaDesktop`）
 - 注册入口：`AddPacToolkitsApplication()`（`ServiceCollectionExtensions.cs`）
 
 桌面 ViewModel **只注入应用服务或抽象**，不直接注入仓储实现。
