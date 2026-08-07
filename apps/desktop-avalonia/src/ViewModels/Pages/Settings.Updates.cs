@@ -224,62 +224,80 @@ public partial class Settings : AppPageBase, ISettingsPage
     [RelayCommand]
     private Task OpenLogDirectoryAsync()
     {
-        if (IsLoggingBusy || SkipTrigger())
+        if (SkipTrigger())
         {
             return Task.CompletedTask;
         }
 
-        IsLoggingBusy = true;
-        try
-        {
-            var dir = LogDirectory.Resolve(_loggingSettings.Current.LogDirectory).BrowseDirectory;
-            Directory.CreateDirectory(dir);
-            OpenDirectory(dir);
-            _logger.Info("SettingsVM", "logging.open_dir", "Opened log directory", new { dir });
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("SettingsVM", "logging.open_dir_fail", "Failed to open log directory", ex);
-            _toast.Error("打开日志目录失败", ex.Message);
-        }
-        finally
-        {
-            IsLoggingBusy = false;
-        }
-
+        var dir = LogDirectory.Resolve(_loggingSettings.Current.LogDirectory).BrowseDirectory;
+        TryOpenDirectory(dir, "打开日志目录失败", "logging.open_dir", "logging.open_dir_fail");
         return Task.CompletedTask;
     }
 
-    private static void OpenDirectory(string dir)
+    [RelayCommand]
+    private Task OpenConfigDirectoryAsync()
     {
-        if (OperatingSystem.IsWindows())
+        if (SkipTrigger())
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                ArgumentList = { dir },
-                UseShellExecute = false
-            });
-            return;
+            return Task.CompletedTask;
         }
 
-        if (OperatingSystem.IsMacOS())
+        var dir = Path.GetDirectoryName(_appConfigStore.ConfigPath);
+        if (string.IsNullOrWhiteSpace(dir))
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "open",
-                ArgumentList = { dir },
-                UseShellExecute = false
-            });
-            return;
+            _toast.Error("打开配置目录失败", "无法解析配置目录路径");
+            return Task.CompletedTask;
         }
 
-        Process.Start(new ProcessStartInfo
+        TryOpenDirectory(dir, "打开配置目录失败", "config.open_dir", "config.open_dir_fail");
+        return Task.CompletedTask;
+    }
+
+    private void TryOpenDirectory(
+        string dir,
+        string toastTitle,
+        string okEvent,
+        string failEvent)
+    {
+        try
         {
-            FileName = "xdg-open",
-            ArgumentList = { dir },
-            UseShellExecute = false
-        });
+            Directory.CreateDirectory(dir);
+
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    ArgumentList = { dir },
+                    UseShellExecute = false
+                });
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "open",
+                    ArgumentList = { dir },
+                    UseShellExecute = false
+                });
+            }
+            else
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "xdg-open",
+                    ArgumentList = { dir },
+                    UseShellExecute = false
+                });
+            }
+
+            _logger.Info("SettingsVM", okEvent, "Opened directory", new { dir });
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("SettingsVM", failEvent, "Failed to open directory", ex, new { dir });
+            _toast.Error(toastTitle, ex.Message);
+        }
     }
 
     [RelayCommand]
