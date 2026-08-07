@@ -9,10 +9,13 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Agents.Contracts.Validation;
+using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
-/// <summary>模块 desired 挂载、库依赖启停、模块 settings 门禁</summary>
+/// <summary>
+/// 模块 desired：Desktop 滤完可挂 id 再写；库依赖启停与 settings 门禁
+/// </summary>
 public sealed partial class AgentsRuntime
 {
     private bool IsDatabaseConnected
@@ -298,20 +301,6 @@ public sealed partial class AgentsRuntime
                 return SetModuleError(moduleId, $"未发现模块：{moduleId}");
             }
 
-            if (ModuleRequiresDatabase(moduleId))
-            {
-                if (!IsDatabaseConnected)
-                {
-                    return SetModuleError(moduleId, $"数据库未连接，无法启动 {moduleId}");
-                }
-
-                var launchConfig = ValidatePostgresLaunchConfig();
-                if (!launchConfig.Ok)
-                {
-                    return SetModuleError(moduleId, launchConfig.Message);
-                }
-            }
-
             var entryPath = AgentsDeployPaths.ResolveModuleEntry(options, moduleId);
             if (string.IsNullOrWhiteSpace(entryPath) || !File.Exists(entryPath))
             {
@@ -370,6 +359,12 @@ public sealed partial class AgentsRuntime
         string moduleId,
         CancellationToken ct)
     {
+        var admit = await TryAdmitDesiredMountAsync(moduleId, ct).ConfigureAwait(false);
+        if (!admit.Ok)
+        {
+            return admit;
+        }
+
         try
         {
             PrepareModuleSettings(options, moduleId);
@@ -594,6 +589,68 @@ public sealed partial class AgentsRuntime
         }
 
         return validated;
+    }
+
+    private async Task<AgentsCommandResult> TryAdmitDesiredMountAsync(
+        string moduleId,
+        CancellationToken ct)
+    {
+        ModuleDescriptor? module;
+        lock (_gate)
+        {
+            module = _projection.Modules.FirstOrDefault(
+                m => string.Equals(m.Id, moduleId, StringComparison.Ordinal));
+        }
+
+        if (module is null)
+        {
+            return SetModuleError(moduleId, $"未发现模块：{moduleId}");
+        }
+
+        var bound = new AgentsModuleDbBound(module.Id, module.MinDbSchema, module.MaxDbSchema);
+        var outcome = await _admit.AdmitAsync(bound, IsDatabaseConnected, ct).ConfigureAwait(false);
+        if (!outcome.Ok)
+        {
+            return SetModuleError(moduleId, outcome.Message);
+        }
+
+        return EnsurePgConfigOrError(moduleId, bound);
+    }
+
+    /// <summary>库依赖模块启动前校验 Desktop 侧 PG 配置（与 Admit 库区间门禁独立）</summary>
+    private AgentsCommandResult EnsurePgConfigOrError(string moduleId, AgentsModuleDbBound bound)
+    {
+        if (!bound.RequiresDatabase)
+        {
+            return new AgentsCommandResult(true, "ok");
+        }
+
+        var launchConfig = ValidatePostgresLaunchConfig();
+        return launchConfig.Ok
+            ? new AgentsCommandResult(true, "ok")
+            : SetModuleError(moduleId, launchConfig.Message);
+    }
+
+    private void NoteAdmitDeniedOnColdStart(AgentsAdmitResult admit, string moduleId)
+    {
+        if (admit.DenyKind == AgentsAdmitDenyKind.Disconnected)
+        {
+            _desired.NotePaused(moduleId);
+            _logger.Info(
+                "Agents",
+                "agents.module.skip_mount_db",
+                "Skipped mounting database-bound module while disconnected",
+                new { moduleId });
+            return;
+        }
+
+        SetModuleError(moduleId, admit.Message);
+        _logger.Warn(
+            "Agents",
+            "agents.module.skip_mount_schema",
+            "Skipped mounting database-bound module: admit gate failed",
+            null,
+            new { moduleId, admit.Message, admit.DenyKind });
     }
 
 }

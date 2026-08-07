@@ -21,6 +21,8 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
     private readonly IAppConfigStore _configStore;
     private readonly IModuleSettingsStore _moduleSettings;
     private readonly IReleaseVersionService _releaseVersion;
+    private readonly IAgentsAdmitService _admit;
+    private readonly IAgentsBundleService _bundle;
     private readonly IDbConnectionMonitorService? _dbMonitor;
     private readonly IAppLogger _logger;
     private readonly object _gate = new();
@@ -49,12 +51,6 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
 
     public IReadOnlyList<ModuleDescriptor> Modules => _projection.Modules;
 
-    public string MinDesktop
-        => (_releaseVersion.Current.AgentsMinDesktop ?? string.Empty).Trim();
-
-    public string MaxDesktop
-        => (_releaseVersion.Current.AgentsMaxDesktop ?? string.Empty).Trim();
-
     public AgentsRunState HostState => _projection.HostState;
 
     public bool IsHostRunning => _projection.IsHostRunning;
@@ -70,11 +66,15 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
         IModuleSettingsStore moduleSettings,
         IReleaseVersionService releaseVersion,
         IAppLogger logger,
+        IAgentsAdmitService admit,
+        IAgentsBundleService bundle,
         IDbConnectionMonitorService? dbMonitor = null)
     {
         _configStore = configStore;
         _moduleSettings = moduleSettings ?? throw new ArgumentNullException(nameof(moduleSettings));
         _releaseVersion = releaseVersion;
+        _admit = admit ?? throw new ArgumentNullException(nameof(admit));
+        _bundle = bundle ?? throw new ArgumentNullException(nameof(bundle));
         _dbMonitor = dbMonitor;
         _logger = logger;
         _host = new AgentsHostLauncher(_gate, logger);

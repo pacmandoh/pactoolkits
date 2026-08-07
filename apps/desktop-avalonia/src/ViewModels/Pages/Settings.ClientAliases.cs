@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Core;
+using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -99,7 +99,7 @@ public partial class Settings : AppPageBase, ISettingsPage
             if (!validation.SchemaCompatible)
             {
                 IsDbConnected = false;
-                await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), validation.IncompatibleMessage ?? "数据库版本不兼容");
+                await _dialog.Warn(DbSchemaDesktop.Title, validation.IncompatibleMessage ?? "数据库版本不兼容");
                 return;
             }
 

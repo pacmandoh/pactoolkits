@@ -8,9 +8,10 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
 /// <summary>
-/// Desktop 会话 desired：用户/策略意图集合
+/// Desktop 会话 desired：**仅**已过 Desktop 策略门禁、允许 Host 挂起的模块 id
 ///
-/// 管道 desired = 控制面；host.desired.json = 镜像（冷启种子 / 诊断），非第二控制决策
+/// 连库 / schema / 配置在本侧滤完再写；Host 只 reconcile，不解释为何不能挂
+/// 管道 desired = 控制面；host.desired.json = 镜像（冷启种子 / 诊断）
 /// </summary>
 internal sealed class AgentsDesiredSession
 {

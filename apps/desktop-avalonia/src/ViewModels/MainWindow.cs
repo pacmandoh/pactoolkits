@@ -13,7 +13,6 @@ using global::Avalonia.Threading;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -1355,14 +1354,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync()
     {
-        var version = _releaseVersion.Current;
-        var context = BuildSchemaContext();
-        var uiMin = DbSchemaCompat.NormalizeBound(version.DesktopMinDbSchema, version.DbSchemaVersion);
-        var uiMax = DbSchemaCompat.NormalizeBound(version.DesktopMaxDbSchema, version.DbSchemaVersion);
-        var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
-
         var snapshot = await _settings
-            .GetSchemaStatusAsync(context, CancellationToken.None)
+            .GetSchemaStatusAsync(BuildSchemaContext(), CancellationToken.None)
             .ConfigureAwait(false);
 
         if (snapshot.Satisfied)
@@ -1370,18 +1363,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version compatible", new
             {
                 schemaValue = snapshot.CurrentVersion,
-                target,
-                desktopMin = uiMin,
-                desktopMax = uiMax
+                target = snapshot.TargetVersion,
+                desktopMin = snapshot.RequiredMinVersion,
+                desktopMax = snapshot.RequiredMaxVersion
             });
         }
         else
         {
             _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
             {
-                target,
-                desktopMin = uiMin,
-                desktopMax = uiMax,
+                target = snapshot.TargetVersion,
+                desktopMin = snapshot.RequiredMinVersion,
+                desktopMax = snapshot.RequiredMaxVersion,
                 schemaOk = snapshot.SchemaOk,
                 schemaValue = snapshot.CurrentVersion,
                 schemaReason = snapshot.Reason,
@@ -1393,8 +1386,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             Compatible: snapshot.Satisfied,
             Message: snapshot.IncompatibleMessage ?? "数据库版本不兼容",
             Target: snapshot.TargetVersion,
-            DesktopMin: uiMin,
-            DesktopMax: uiMax,
+            DesktopMin: snapshot.RequiredMinVersion,
+            DesktopMax: snapshot.RequiredMaxVersion,
             SchemaOk: snapshot.SchemaOk,
             DbVersion: snapshot.CurrentVersion,
             Compatibility: snapshot.Compatibility.ToString(),
