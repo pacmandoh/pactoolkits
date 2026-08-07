@@ -4,29 +4,32 @@ using PacToolkits.Agents.Contracts.Agents;
 namespace PacToolkits.Agents.Host;
 
 /// <summary>
-/// Agents 常驻进程，负责模块发现、控制文件消费和子进程监管
+/// Agents 常驻进程：发现、desired reconcile、命名管道 IPC、热更、status 发布
 ///
-/// 模块仅响应 Desktop 写入的 start 或 stop 命令；Host 退出由根目录 quit 命令控制
+/// Desktop 经管道发 desired/quit，收 status / moduleFailed；desired/status 文件作诊断镜像
 /// </summary>
 internal static class Program
 {
-    // 控制文件无确认通道，消费后立即删除以保证命令至多执行一次
     private static readonly TimeSpan ControlPoll = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan ModuleReadyTimeout = TimeSpan.FromSeconds(12);
 
     private sealed class ModuleSlot
     {
         public required string Id { get; init; }
         public required string EntryPath { get; set; }
         public required string ModuleDir { get; set; }
-        public required string ControlPath { get; set; }
         public Process? Process { get; set; }
+        public ModuleDescriptor? Catalog { get; set; }
+        public string? LastError { get; set; }
+        public bool StartFailed { get; set; }
+        public DateTimeOffset? LaunchUtc { get; set; }
+        public bool SawReady { get; set; }
     }
 
     private static int Main(string[] args)
     {
         try
         {
-            // 与 Desktop Logging 门控共用同一配置文件
             HostLog.Init(GetArgValue(args, "--config"));
             return Run(args);
         }
@@ -42,9 +45,10 @@ internal static class Program
         var baseDir = AppContext.BaseDirectory;
         var childArgs = FilterHostArgs(args).ToList();
         var slots = new List<ModuleSlot>();
+        var binaries = new HostModuleBinary();
+        using var ipc = new HostIpc(baseDir);
         ReconcileSlots(slots, baseDir);
 
-        var hostControlPath = AgentsPaths.HostControlPath(baseDir);
         var quit = new ManualResetEventSlim(false);
 
         Console.CancelKeyPress += (_, e) =>
@@ -54,91 +58,219 @@ internal static class Program
         };
 
         HostLog.Info("host.ready", "Agents Host control loop started");
+        ipc.Start();
+        PublishStatus(baseDir, slots, ipc);
 
-        // Host 不根据 Enabled 推断启动意图，模块生命周期仅由 Desktop 控制命令驱动
-        while (!quit.IsSet)
+        while (!quit.IsSet && !ipc.QuitRequested)
         {
-            // 先更新模块槽位，确保新部署模块的首条控制命令可以在同一轮处理
+            ipc.DrainActions();
             ReconcileSlots(slots, baseDir);
+            var desired = ipc.ReadDesiredIds();
+            ReapExited(slots, baseDir, desired);
+            ReconcileDesired(slots, baseDir, childArgs, ipc);
+            NoteReadyAndWatchdog(slots, baseDir, ipc.ReadDesiredIds());
 
-            foreach (var slot in slots)
+            binaries.Sync(slots.Select(s => (s.Id, s.EntryPath)).ToList());
+            foreach (var moduleId in binaries.DetectReloads(
+                         slots.Select(s => (s.Id, Alive: s.Process is { HasExited: false })).ToList()))
             {
-                if (slot.Process is not null && slot.Process.HasExited)
-                {
-                    var exitCode = slot.Process.ExitCode;
-                    HostLog.Info(
-                        "host.module.exited",
-                        $"Module process exited: {slot.Id}",
-                        new { moduleId = slot.Id, exitCode });
-                    slot.Process.Dispose();
-                    slot.Process = null;
-                }
-            }
-
-            var hostCommand = TryReadControl(hostControlPath);
-            if (hostCommand is not null)
-            {
-                TryDelete(hostControlPath);
-                if (hostCommand == "quit")
-                {
-                    HostLog.Info("host.quit", "Host quit requested");
-                    StopAll(slots);
-                    return 0;
-                }
-            }
-
-            foreach (var slot in slots)
-            {
-                var command = TryReadControl(slot.ControlPath);
-                if (command is null)
+                var slot = slots.FirstOrDefault(s => string.Equals(s.Id, moduleId, StringComparison.Ordinal));
+                if (slot is null)
                 {
                     continue;
                 }
 
-                TryDelete(slot.ControlPath);
-                switch (command)
-                {
-                    case "stop":
-                        StopModule(slot);
-                        break;
-                    case "start":
-                        // 单模块配置或部署失败不得中断其他模块的控制循环
-                        try
-                        {
-                            if (slot.Process is null || slot.Process.HasExited)
-                            {
-                                slot.Process?.Dispose();
-                                slot.Process = StartModule(slot, childArgs);
-                                HostLog.Info(
-                                    "host.module.start",
-                                    $"Module started: {slot.Id}",
-                                    new { moduleId = slot.Id, pid = slot.Process?.Id });
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            HostLog.Error(
-                                "host.module_start.fail",
-                                ex.Message,
-                                new { moduleId = slot.Id });
-                            slot.Process = null;
-                        }
-
-                        break;
-                }
+                HostLog.Info(
+                    "host.module.binary_reload",
+                    $"Module binary changed, restarting: {moduleId}",
+                    new { moduleId });
+                StopModule(slot, baseDir, clearError: true);
+                TryStartSlot(slot, childArgs, source: "binary_reload");
             }
 
+            PublishStatus(baseDir, slots, ipc);
             quit.Wait(ControlPoll);
         }
 
         HostLog.Info("host.shutdown", "Host control loop ending");
-        StopAll(slots);
+        StopAll(slots, baseDir);
+        HostStatus.Clear(baseDir);
+        HostDesired.Clear(baseDir);
         return 0;
+    }
+
+    private static void ReapExited(List<ModuleSlot> slots, string baseDir, HashSet<string> desired)
+    {
+        foreach (var slot in slots)
+        {
+            if (slot.Process is null || !slot.Process.HasExited)
+            {
+                continue;
+            }
+
+            var exitCode = slot.Process.ExitCode;
+            HostLog.Info(
+                "host.module.exited",
+                $"Module process exited: {slot.Id}",
+                new { moduleId = slot.Id, exitCode });
+            slot.Process.Dispose();
+            slot.Process = null;
+            HostStatus.ClearModuleReady(baseDir, slot.Id);
+
+            if (!desired.Contains(slot.Id))
+            {
+                slot.LaunchUtc = null;
+                continue;
+            }
+
+            // desired 下意外退出：写入 Snapshot 失败态，避免 Desktop 本地超时造状态
+            if (!slot.SawReady || exitCode != 0)
+            {
+                slot.StartFailed = true;
+                slot.LastError = slot.SawReady
+                    ? $"Module process exited with code {exitCode}"
+                    : $"Module process exited before ready (code {exitCode})";
+            }
+
+            slot.LaunchUtc = null;
+        }
+    }
+
+    private static void NoteReadyAndWatchdog(List<ModuleSlot> slots, string agentsDir, HashSet<string> desired)
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var slot in slots)
+        {
+            var want = desired.Contains(slot.Id);
+            var alive = slot.Process is { HasExited: false };
+            if (!want || !alive)
+            {
+                continue;
+            }
+
+            if (File.Exists(AgentsPaths.ModuleReadyPath(agentsDir, slot.Id)))
+            {
+                slot.SawReady = true;
+                continue;
+            }
+
+            if (slot.StartFailed || slot.LaunchUtc is null)
+            {
+                continue;
+            }
+
+            if (now - slot.LaunchUtc < ModuleReadyTimeout)
+            {
+                continue;
+            }
+
+            slot.StartFailed = true;
+            slot.LastError = "Module did not become ready in time";
+            HostLog.Error(
+                "host.module.ready_timeout",
+                slot.LastError,
+                new { moduleId = slot.Id, timeoutSec = ModuleReadyTimeout.TotalSeconds });
+            StopModule(slot, agentsDir, clearError: false);
+        }
+    }
+
+    private static void ReconcileDesired(
+        List<ModuleSlot> slots,
+        string baseDir,
+        IReadOnlyList<string> childArgs,
+        HostIpc ipc)
+    {
+        var desired = ipc.ReadDesiredIds();
+        foreach (var slot in slots)
+        {
+            var want = desired.Contains(slot.Id);
+            var alive = slot.Process is { HasExited: false };
+            if (!want)
+            {
+                if (alive)
+                {
+                    StopModule(slot, baseDir, clearError: true);
+                }
+                else
+                {
+                    slot.StartFailed = false;
+                    slot.LastError = null;
+                    slot.LaunchUtc = null;
+                    slot.SawReady = false;
+                }
+            }
+            else if (!alive)
+            {
+                TryStartSlot(slot, childArgs, source: "desired");
+            }
+        }
+    }
+
+    private static void TryStartSlot(ModuleSlot slot, IReadOnlyList<string> childArgs, string source)
+    {
+        try
+        {
+            if (slot.Process is { HasExited: false })
+            {
+                return;
+            }
+
+            // 同一 desired 周期内启动失败后勿热循环疯狂重试
+            if (slot.StartFailed && string.Equals(source, "desired", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            slot.Process?.Dispose();
+            slot.LastError = null;
+            slot.StartFailed = false;
+            slot.SawReady = false;
+            slot.Process = StartModule(slot, childArgs);
+            slot.LaunchUtc = DateTimeOffset.UtcNow;
+            HostLog.Info(
+                "host.module.start",
+                $"Module started: {slot.Id}",
+                new { moduleId = slot.Id, pid = slot.Process?.Id, source });
+        }
+        catch (Exception ex)
+        {
+            HostLog.Error(
+                "host.module_start.fail",
+                ex.Message,
+                new { moduleId = slot.Id, source });
+            slot.Process = null;
+            slot.LaunchUtc = null;
+            slot.SawReady = false;
+            slot.LastError = ex.Message;
+            slot.StartFailed = true;
+        }
+    }
+
+    private static void PublishStatus(string agentsDir, List<ModuleSlot> slots, HostIpc ipc)
+    {
+        var desired = ipc.ReadDesiredIds();
+        var views = new ModuleSlotView[slots.Count];
+        for (var i = 0; i < slots.Count; i++)
+        {
+            var slot = slots[i];
+            views[i] = new ModuleSlotView(
+                slot.Id,
+                slot.Process,
+                slot.LastError,
+                slot.StartFailed,
+                slot.Catalog);
+        }
+
+        var status = HostStatus.Publish(agentsDir, views, desired);
+        if (status is not null)
+        {
+            ipc.PushStatus(status);
+        }
     }
 
     private static void ReconcileSlots(List<ModuleSlot> slots, string agentsDir)
     {
-        var desired = AgentsPath.ScanModules(agentsDir);
+        var catalog = AgentsPath.ScanModules(agentsDir);
         var byId = new Dictionary<string, ModuleSlot>(StringComparer.Ordinal);
         foreach (var slot in slots)
         {
@@ -146,7 +278,7 @@ internal static class Program
         }
 
         var keepIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var module in desired)
+        foreach (var module in catalog)
         {
             var entryPath = AgentsPath.TryResolveModuleEntryPath(agentsDir, module.Id);
             if (entryPath is null)
@@ -165,15 +297,13 @@ internal static class Program
             }
 
             keepIds.Add(module.Id);
-            var controlPath = AgentsPaths.ModuleControlPath(agentsDir, module.Id);
             if (byId.TryGetValue(module.Id, out var existing))
             {
-                // 运行中槽位保留原入口，确保进程引用和后续停止操作保持一致
+                existing.Catalog = module;
                 if (existing.Process is null || existing.Process.HasExited)
                 {
                     existing.EntryPath = entryPath;
                     existing.ModuleDir = module.Directory;
-                    existing.ControlPath = controlPath;
                 }
 
                 continue;
@@ -184,7 +314,7 @@ internal static class Program
                 Id = module.Id,
                 EntryPath = entryPath,
                 ModuleDir = module.Directory,
-                ControlPath = controlPath,
+                Catalog = module,
             });
             HostLog.Info("host.module.discovered", $"Module discovered: {module.Id}", new { moduleId = module.Id });
         }
@@ -197,17 +327,17 @@ internal static class Program
                 continue;
             }
 
-            StopModule(slot);
+            StopModule(slot, agentsDir, clearError: true);
             slots.RemoveAt(i);
             HostLog.Info("host.module.removed", $"Module removed: {slot.Id}", new { moduleId = slot.Id });
         }
     }
 
-    private static void StopAll(List<ModuleSlot> slots)
+    private static void StopAll(List<ModuleSlot> slots, string agentsDir)
     {
         foreach (var slot in slots)
         {
-            StopModule(slot);
+            StopModule(slot, agentsDir, clearError: true);
         }
     }
 
@@ -224,7 +354,6 @@ internal static class Program
             startInfo.ArgumentList.Add(arg);
         }
 
-        // 用户模块配置与 Desktop 配置共享父目录，避免 Host 读取或复制 Desktop 配置内容
         var settingsPath = TryResolveModuleSettingsPath(childArgs, slot.Id)
             ?? throw new InvalidOperationException(
                 $"Cannot resolve --module-settings for module {slot.Id} (missing --config)");
@@ -271,10 +400,18 @@ internal static class Program
         }
     }
 
-    private static void StopModule(ModuleSlot slot)
+    private static void StopModule(ModuleSlot slot, string agentsDir, bool clearError)
     {
         if (slot.Process is null)
         {
+            if (clearError)
+            {
+                slot.LastError = null;
+                slot.StartFailed = false;
+                slot.LaunchUtc = null;
+                slot.SawReady = false;
+            }
+
             return;
         }
 
@@ -287,55 +424,19 @@ internal static class Program
         {
             slot.Process.Dispose();
             slot.Process = null;
+            slot.LaunchUtc = null;
+            if (clearError)
+            {
+                slot.LastError = null;
+                slot.StartFailed = false;
+                slot.SawReady = false;
+            }
+
+            HostStatus.ClearModuleReady(agentsDir, slot.Id);
             HostLog.Info(
                 "host.module.stop",
                 $"Module stopped: {slot.Id}",
                 new { moduleId = slot.Id, pid });
-        }
-    }
-
-    private static string? TryReadControl(string path)
-    {
-        try
-        {
-            if (!File.Exists(path))
-            {
-                return null;
-            }
-
-            var text = File.ReadAllText(path).Trim();
-            if (text.Length == 0)
-            {
-                return null;
-            }
-
-            var line = text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[0];
-            return line.ToLowerInvariant() switch
-            {
-                "stop" => "stop",
-                "start" => "start",
-                "quit" => "quit",
-                _ => null,
-            };
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch
-        {
-            // 删除失败时保留命令供下一轮重试，避免错误标记为已消费
         }
     }
 
@@ -359,7 +460,6 @@ internal static class Program
         return null;
     }
 
-    // 过滤 Host 自有参数，保证每个模块只接收一份由 Host 生成的模块配置参数
     private static IReadOnlyList<string> FilterHostArgs(string[] args)
     {
         var result = new List<string>(args.Length);
@@ -389,7 +489,7 @@ internal static class Program
         }
         catch
         {
-            // 终止请求与进程自然退出可能并发，失败不代表仍有存活进程
+            // 终止请求与进程自然退出可能并发
         }
     }
 }
