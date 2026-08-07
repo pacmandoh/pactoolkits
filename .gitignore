@@ -67,6 +67,10 @@ artifacts/desktop/**/*
 # Keep template files
 !.env.example
 
+# api-asp local secrets (.env.asp) and wire-local runtime (pid/log)
+apps/api-asp/.env.*
+apps/api-asp/.run/
+
 # DB local deploy config (contains environment-specific values)
 database/postgres/scripts/config.json
 
