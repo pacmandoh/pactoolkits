@@ -28,7 +28,8 @@ public sealed record ModulePackage(
 
 /// <summary>
 /// 已验证的模块描述及其源码或安装目录
-/// RequiresDatabase：运行是否依赖 Postgres；manifest 顶层字段，缺省 true
+///
+/// 顶层完整 minDbSchema+maxDbSchema 即依赖库与 schema 门禁；两者皆缺=不依赖库；半套拒绝
 /// </summary>
 public sealed record ModuleDescriptor(
     string Id,
@@ -40,7 +41,12 @@ public sealed record ModuleDescriptor(
     string ManifestPath,
     ModuleDesktop Desktop,
     ModulePackage Package,
-    bool RequiresDatabase = true);
+    string? MinDbSchema = null,
+    string? MaxDbSchema = null)
+{
+    public bool RequiresDatabase
+        => !string.IsNullOrWhiteSpace(MinDbSchema) && !string.IsNullOrWhiteSpace(MaxDbSchema);
+}
 
 /// <summary>
 /// <c>module.json</c> 支持的运行时标识

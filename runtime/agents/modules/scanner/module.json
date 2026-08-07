@@ -6,7 +6,8 @@
   "entry": {
     "win-x64": "Scanner.exe"
   },
-  "requiresDatabase": true,
+  "minDbSchema": "1.2.25",
+  "maxDbSchema": "1.2.25",
   "desktop": {
     "icons": {
       "active": "Wrench",

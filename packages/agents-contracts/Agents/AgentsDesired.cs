@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Desktop 声明的期望挂载集合（host.desired.json / 管道 desired）；Host 以此 reconcile 模块启停
+/// Desktop 声明的期望挂载集合（host.desired.json / 管道 desired）；仅含已过 Desktop 门的 id；Host 只 reconcile
 /// </summary>
 public sealed class AgentsDesired
 {

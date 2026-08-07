@@ -18,10 +18,6 @@ public interface IAgentsRuntime : IDisposable
 
     IReadOnlyList<ModuleDescriptor> Modules { get; }
 
-    string MinDesktop { get; }
-
-    string MaxDesktop { get; }
-
     AgentsRunState HostState { get; }
 
     bool IsHostRunning { get; }

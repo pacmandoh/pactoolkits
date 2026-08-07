@@ -121,6 +121,8 @@ public sealed class AgentsPathTests : IDisposable
         Assert.True(module.Desktop.TopStatusPills);
         Assert.Equal(10, module.Desktop.Order);
         Assert.True(module.RequiresDatabase);
+        Assert.Equal("1.2.25", module.MinDbSchema);
+        Assert.Equal("1.2.25", module.MaxDbSchema);
         Assert.Equal("Sample.exe", module.EntryWinX64);
         Assert.Equal(ModuleBuilders.Ahk2Exe, module.Package.Builder);
         Assert.Equal("assets/agents-sample.ico", module.Package.Ahk2Exe.Icon);
@@ -130,25 +132,7 @@ public sealed class AgentsPathTests : IDisposable
     }
 
     [Fact]
-    public void TryReadModule_defaults_requires_database_true_when_omitted()
-    {
-        var agentsDir = Path.Combine(_baseDirectory, "Agents");
-        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "DefaultDb");
-        Directory.CreateDirectory(moduleDir);
-        var assetsDir = Path.Combine(moduleDir, "assets");
-        Directory.CreateDirectory(assetsDir);
-        File.WriteAllText(Path.Combine(assetsDir, "ico.ico"), string.Empty);
-        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
-        File.WriteAllText(manifestPath, FullManifestJson("DefaultDb", "DefaultDb.exe", order: 1, icon: "assets/ico.ico"));
-
-        var module = AgentsPath.TryReadModule(manifestPath);
-
-        Assert.NotNull(module);
-        Assert.True(module.RequiresDatabase);
-    }
-
-    [Fact]
-    public void TryReadModule_parses_requires_database_false()
+    public void TryReadModule_omitted_db_schema_means_no_database()
     {
         var agentsDir = Path.Combine(_baseDirectory, "Agents");
         var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "NoDb");
@@ -157,14 +141,88 @@ public sealed class AgentsPathTests : IDisposable
         Directory.CreateDirectory(assetsDir);
         File.WriteAllText(Path.Combine(assetsDir, "ico.ico"), string.Empty);
         var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
-        File.WriteAllText(
-            manifestPath,
-            FullManifestJson("NoDb", "NoDb.exe", order: 2, icon: "assets/ico.ico", requiresDatabase: false));
+        File.WriteAllText(manifestPath, FullManifestJson("NoDb", "NoDb.exe", order: 1, icon: "assets/ico.ico"));
 
         var module = AgentsPath.TryReadModule(manifestPath);
 
         Assert.NotNull(module);
         Assert.False(module.RequiresDatabase);
+        Assert.Null(module.MinDbSchema);
+        Assert.Null(module.MaxDbSchema);
+    }
+
+    [Fact]
+    public void TryReadModule_parses_db_schema_range()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "WithDb");
+        Directory.CreateDirectory(moduleDir);
+        var assetsDir = Path.Combine(moduleDir, "assets");
+        Directory.CreateDirectory(assetsDir);
+        File.WriteAllText(Path.Combine(assetsDir, "ico.ico"), string.Empty);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(
+            manifestPath,
+            FullManifestJson(
+                "WithDb",
+                "WithDb.exe",
+                order: 2,
+                icon: "assets/ico.ico",
+                minDbSchema: "1.2.20",
+                maxDbSchema: "1.2.25"));
+
+        var module = AgentsPath.TryReadModule(manifestPath);
+
+        Assert.NotNull(module);
+        Assert.True(module.RequiresDatabase);
+        Assert.Equal("1.2.20", module.MinDbSchema);
+        Assert.Equal("1.2.25", module.MaxDbSchema);
+    }
+
+    [Fact]
+    public void TryReadModule_rejects_partial_db_schema_range()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "PartialDb");
+        Directory.CreateDirectory(moduleDir);
+        var assetsDir = Path.Combine(moduleDir, "assets");
+        Directory.CreateDirectory(assetsDir);
+        File.WriteAllText(Path.Combine(assetsDir, "ico.ico"), string.Empty);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(
+            manifestPath,
+            FullManifestJson(
+                "PartialDb",
+                "PartialDb.exe",
+                order: 3,
+                icon: "assets/ico.ico",
+                minDbSchema: "1.2.20",
+                maxDbSchema: null));
+
+        Assert.Null(AgentsPath.TryReadModule(manifestPath));
+    }
+
+    [Fact]
+    public void TryReadModule_rejects_inverted_db_schema_range()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "BadRange");
+        Directory.CreateDirectory(moduleDir);
+        var assetsDir = Path.Combine(moduleDir, "assets");
+        Directory.CreateDirectory(assetsDir);
+        File.WriteAllText(Path.Combine(assetsDir, "ico.ico"), string.Empty);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(
+            manifestPath,
+            FullManifestJson(
+                "BadRange",
+                "BadRange.exe",
+                order: 4,
+                icon: "assets/ico.ico",
+                minDbSchema: "1.2.25",
+                maxDbSchema: "1.2.20"));
+
+        Assert.Null(AgentsPath.TryReadModule(manifestPath));
     }
 
     [Fact]
@@ -273,6 +331,23 @@ public sealed class AgentsPathTests : IDisposable
         Assert.Equal("0.1.1", version);
     }
 
+    [Fact]
+    public void TryReadAgentsDesktopBounds_reads_min_max_desktop()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "AgentsBounds");
+        Directory.CreateDirectory(agentsDir);
+        var manifestPath = Path.Combine(agentsDir, "ReleaseManifest.json");
+        File.WriteAllText(
+            manifestPath,
+            """
+            {"components":{"agents":{"version":"0.2.0","minDesktop":"1.0.0","maxDesktop":"1.1.0"}}}
+            """);
+
+        Assert.True(AgentsPath.TryReadAgentsDesktopBounds(manifestPath, out var min, out var max));
+        Assert.Equal("1.0.0", min);
+        Assert.Equal("1.1.0", max);
+    }
+
     private static string FullModuleManifestJson()
         => FullManifestJson(
             TestModuleId,
@@ -281,7 +356,9 @@ public sealed class AgentsPathTests : IDisposable
             displayName: "追溯码录入",
             active: "Bone",
             inactive: "BoneFracture",
-            icon: "assets/agents-sample.ico");
+            icon: "assets/agents-sample.ico",
+            minDbSchema: "1.2.25",
+            maxDbSchema: "1.2.25");
 
     private static string FullManifestJson(
         string id,
@@ -292,12 +369,24 @@ public sealed class AgentsPathTests : IDisposable
         string inactive = "Box",
         string version = "1.0.0",
         string icon = "assets/agents-injector.ico",
-        bool? requiresDatabase = null)
+        string? minDbSchema = null,
+        string? maxDbSchema = null)
     {
         var name = displayName ?? id;
-        var requiresField = requiresDatabase is bool flag
-            ? $",\"requiresDatabase\":{(flag ? "true" : "false")}"
-            : string.Empty;
+        var dbFields = string.Empty;
+        if (minDbSchema is not null && maxDbSchema is null)
+        {
+            dbFields = $",\"minDbSchema\":\"{minDbSchema}\"";
+        }
+        else if (minDbSchema is null && maxDbSchema is not null)
+        {
+            dbFields = $",\"maxDbSchema\":\"{maxDbSchema}\"";
+        }
+        else if (minDbSchema is not null && maxDbSchema is not null)
+        {
+            dbFields = $",\"minDbSchema\":\"{minDbSchema}\",\"maxDbSchema\":\"{maxDbSchema}\"";
+        }
+
         return
             "{"
             + $"\"id\":\"{id}\","
@@ -305,7 +394,7 @@ public sealed class AgentsPathTests : IDisposable
             + "\"runtime\":\"ahk\","
             + $"\"displayName\":\"{name}\","
             + $"\"entry\":{{\"win-x64\":\"{entry}\"}}"
-            + requiresField
+            + dbFields
             + ","
             + "\"desktop\":{"
             + $"\"icons\":{{\"active\":\"{active}\",\"inactive\":\"{inactive}\"}},"
