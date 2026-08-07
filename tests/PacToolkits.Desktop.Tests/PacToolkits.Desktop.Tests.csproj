@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\apps\desktop-avalonia\src\PacToolkits.Desktop.Avalonia.csproj" />
     <ProjectReference Include="..\..\packages\application\PacToolkits.Application.csproj" />
+    <ProjectReference Include="..\..\packages\logger\PacToolkits.Logger.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(PostgresIntegration)' != 'true'">

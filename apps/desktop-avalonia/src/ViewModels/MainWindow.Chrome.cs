@@ -23,20 +23,19 @@ public partial class MainWindowViewModel
 
     private readonly Dictionary<string, ModuleChrome> _moduleChromeById = new(StringComparer.Ordinal);
     private DateTimeOffset _lastAgentsTopToastAt = DateTimeOffset.MinValue;
-    private bool _syncingHostMenu;
 
     private IAgentsRuntime Agents => _agentsManager.GetRequired(AgentsIds.Agents);
 
     public ObservableCollection<ModuleChrome> TopStatusPills { get; } = new();
 
-    /// <summary>底栏 Agents 菜单的模块列表（desktop.order）</summary>
     public ObservableCollection<ModuleChrome> AgentsMenuModules { get; } = new();
 
     public event Action? AgentsChromeUpdated;
 
     [ObservableProperty] private bool _isAgentsActionRunning;
     [ObservableProperty] private bool _isTopModulesExpanded;
-    [ObservableProperty] private bool _isHostMenuChecked;
+
+    public bool IsHostMenuChecked => Agents.IsHostRunning;
 
     public RuntimeVisualState DbVisualState
         => IsDbProbeRunning
@@ -45,7 +44,6 @@ public partial class MainWindowViewModel
                 ? RuntimeVisualState.Active
                 : RuntimeVisualState.Inactive;
 
-    /// <summary>标题栏/底栏 ToolTip（连接态文案）</summary>
     public string DbItemText
         => IsDbProbeRunning ? "检测中…"
         : IsDbConnected ? "已连接"
@@ -60,14 +58,12 @@ public partial class MainWindowViewModel
     public bool CanControlAgents
         => !IsAgentsActionRunning && Agents.HostState != AgentsRunState.Starting;
 
-    /// <summary>底栏菜单模块 Running/Starting 数（AgentsMenuModules.IsRunning）</summary>
     private int RunningBottomModuleCount
         => AgentsMenuModules.Count(m => m.IsRunning);
 
     public string RunningModuleCountIcon
         => $"rosette-number-{Math.Clamp(RunningBottomModuleCount, 0, 9)}";
 
-    /// <summary>底栏/标题 Host tip：主机态 + 底栏模块数</summary>
     public string AgentsBarTip
     {
         get
@@ -76,6 +72,7 @@ public partial class MainWindowViewModel
             {
                 AgentsRunState.Running => "Agents 运行中",
                 AgentsRunState.Starting => "Agents 启动中",
+                AgentsRunState.Failed => "Agents 启动失败",
                 _ => "Agents 未启动",
             };
             var n = RunningBottomModuleCount;
@@ -95,6 +92,7 @@ public partial class MainWindowViewModel
         {
             AgentsRunState.Running => RuntimeVisualState.Active,
             AgentsRunState.Starting => RuntimeVisualState.Transitioning,
+            AgentsRunState.Failed => RuntimeVisualState.Inactive,
             _ => RuntimeVisualState.Inactive,
         };
 
@@ -133,16 +131,6 @@ public partial class MainWindowViewModel
     {
         OnPropertyChanged(nameof(TopModulesExpandIcon));
         OnPropertyChanged(nameof(TopModulesExpandTip));
-    }
-
-    partial void OnIsHostMenuCheckedChanged(bool value)
-    {
-        if (_syncingHostMenu)
-        {
-            return;
-        }
-
-        ObserveDetached(SetHostRunningAsync(value), "agents.host_menu_toggle.detached.fail");
     }
 
     [RelayCommand]
@@ -491,7 +479,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        var running = Agents.GetModuleState(moduleId) is AgentsRunState.Running or AgentsRunState.Starting;
+        var running = Agents.GetModuleState(moduleId) == AgentsRunState.Running;
         if (wantRunning == running)
         {
             return;
@@ -538,7 +526,8 @@ public partial class MainWindowViewModel
         }
     }
 
-    private async Task SetHostRunningAsync(bool wantRunning)
+    /// <summary>底栏 Host 状态开关（仅 Running 为开）</summary>
+    public async Task SetHostRunningAsync(bool wantRunning)
     {
         if (!CanControlAgents)
         {
@@ -546,8 +535,10 @@ public partial class MainWindowViewModel
             return;
         }
 
-        if (wantRunning == IsHostMenuActive)
+        // 开关只表示已 Running（与 Settings 一致）；Starting/Failed 不算开
+        if (wantRunning == Agents.IsHostRunning)
         {
+            RaiseAgentsStateChanged();
             return;
         }
 
@@ -578,6 +569,7 @@ public partial class MainWindowViewModel
             await RunOnUiAsync(() =>
             {
                 IsAgentsActionRunning = false;
+                // 失败/取消后按 Runtime 校准，避免 Toggle 卡在用户点选的「开」
                 RaiseAgentsStateChanged();
             });
         }
@@ -620,30 +612,14 @@ public partial class MainWindowViewModel
             return;
         }
 
-        SyncHostMenuChecked();
         SyncModuleChrome();
+        OnPropertyChanged(nameof(IsHostMenuChecked));
         OnPropertyChanged(nameof(HostVisualState));
         OnPropertyChanged(nameof(RunningModuleCountIcon));
         OnPropertyChanged(nameof(AgentsBarTip));
         OnPropertyChanged(nameof(CanControlAgents));
         NotifyAgentsCommands();
         AgentsChromeUpdated?.Invoke();
-    }
-
-    private bool IsHostMenuActive
-        => Agents.IsHostRunning || Agents.HostState == AgentsRunState.Starting;
-
-    private void SyncHostMenuChecked()
-    {
-        _syncingHostMenu = true;
-        try
-        {
-            IsHostMenuChecked = IsHostMenuActive;
-        }
-        finally
-        {
-            _syncingHostMenu = false;
-        }
     }
 
     private void SyncModuleChrome()

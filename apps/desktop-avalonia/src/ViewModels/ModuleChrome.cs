@@ -43,14 +43,15 @@ public sealed partial class ModuleChrome : ObservableObject
 
     public void Apply(AgentsRunState state)
     {
-        // 三态仅反映进程：Running 绿 / Starting 黄 / 其余红；断库由 Runtime 停模块后自然变红
+        // 灯色：Running 绿 / Starting 黄 / Failed·Stopped 红
         VisualState = state switch
         {
             AgentsRunState.Running => RuntimeVisualState.Active,
             AgentsRunState.Starting => RuntimeVisualState.Transitioning,
             _ => RuntimeVisualState.Inactive,
         };
-        IsRunning = state is AgentsRunState.Running or AgentsRunState.Starting;
+        // 开关仅 Running 为开（与 Settings 一致，失败/Starting 不为开）
+        IsRunning = state == AgentsRunState.Running;
         Tip = state switch
         {
             AgentsRunState.Running => $"{DisplayName} · 运行中",

@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Threading;
@@ -16,6 +15,8 @@ namespace PacToolkits.Desktop.Avalonia.Views;
 
 public partial class MainWindowShellStatusBar
 {
+    private const string HostToggleTag = "__host__";
+
     private MainWindowViewModel? _vm;
     private string _agentsBarStructureKey = string.Empty;
     private bool _agentsBarSuppressToggle;
@@ -123,22 +124,14 @@ public partial class MainWindowShellStatusBar
         UpdateAgentsBarToggleStates();
     }
 
-    private static MenuItem BuildHostToggleItem(MainWindowViewModel vm)
+    private MenuItem BuildHostToggleItem(MainWindowViewModel vm)
     {
+        // 与模块开关一致：code-behind 写 IsChecked，避免 TwoWay 在启动失败后卡在「开」
         var toggle = CreateToggleSwitch();
-        toggle.Bind(
-            ToggleSwitch.IsCheckedProperty,
-            new Binding(nameof(MainWindowViewModel.IsHostMenuChecked))
-            {
-                Source = vm,
-                Mode = BindingMode.TwoWay
-            });
-        toggle.Bind(
-            IsEnabledProperty,
-            new Binding(nameof(MainWindowViewModel.CanControlAgents))
-            {
-                Source = vm
-            });
+        toggle.Tag = HostToggleTag;
+        toggle.IsChecked = vm.IsHostMenuChecked;
+        toggle.IsEnabled = vm.CanControlAgents;
+        toggle.IsCheckedChanged += OnHostMenuToggleChanged;
 
         return new MenuItem
         {
@@ -226,9 +219,30 @@ public partial class MainWindowShellStatusBar
         };
     }
 
+    private void OnHostMenuToggleChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_agentsBarSuppressToggle || sender is not ToggleSwitch { Tag: string tag } toggle
+            || !string.Equals(tag, HostToggleTag, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (_vm is null)
+        {
+            return;
+        }
+
+        var wantRunning = toggle.IsChecked == true;
+        TaskObserve.Observe(
+            _vm.SetHostRunningAsync(wantRunning),
+            "MainWindowShellStatusBar",
+            "agents.host_menu_toggle.detached.fail");
+    }
+
     private void OnModuleMenuToggleChanged(object? sender, RoutedEventArgs e)
     {
-        if (_agentsBarSuppressToggle || sender is not ToggleSwitch { Tag: string moduleId } toggle)
+        if (_agentsBarSuppressToggle || sender is not ToggleSwitch { Tag: string moduleId } toggle
+            || string.Equals(moduleId, HostToggleTag, StringComparison.Ordinal))
         {
             return;
         }
@@ -255,11 +269,23 @@ public partial class MainWindowShellStatusBar
         _agentsBarSuppressToggle = true;
         try
         {
+            foreach (var item in root.Items.OfType<MenuItem>())
+            {
+                if (FindToggle(item) is { Tag: string tag } hostToggle
+                    && string.Equals(tag, HostToggleTag, StringComparison.Ordinal))
+                {
+                    // Runtime 真相写回；失败后强制回「关」
+                    hostToggle.IsChecked = _vm.IsHostMenuChecked;
+                    hostToggle.IsEnabled = _vm.CanControlAgents;
+                }
+            }
+
             foreach (var moduleMenu in EnumerateModuleMenus(root))
             {
                 foreach (var child in moduleMenu.Items.OfType<MenuItem>())
                 {
-                    if (FindToggle(child) is not { Tag: string moduleId } toggle)
+                    if (FindToggle(child) is not { Tag: string moduleId } toggle
+                        || string.Equals(moduleId, HostToggleTag, StringComparison.Ordinal))
                     {
                         continue;
                     }

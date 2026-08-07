@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using PacToolkits.Agents.Contracts.Agents;
+using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -139,28 +139,11 @@ public sealed class AgentsRuntimeTests
     }
 
     [Fact]
-    public void MatchesExe_wrong_path()
-    {
-        using var process = Process.GetCurrentProcess();
-        var currentExe = process.MainModule?.FileName;
-        Assert.False(string.IsNullOrWhiteSpace(currentExe));
-
-        Assert.True(AgentsRuntime.MatchesExe(
-            process,
-            currentExe,
-            permissiveOnAccessDenied: false));
-        Assert.False(AgentsRuntime.MatchesExe(
-            process,
-            @"C:\Other\agent.exe",
-            permissiveOnAccessDenied: false));
-    }
-
-    [Fact]
     public void Binary_change_requires_two_stable_active_observations()
     {
-        var change = new StableBinaryChange();
-        var original = new BinaryStamp(100, 10);
-        var updated = new BinaryStamp(120, 20);
+        var change = new AgentsBinaryChange();
+        var original = new AgentsBinaryStamp(100, 10);
+        var updated = new AgentsBinaryStamp(120, 20);
 
         Assert.False(change.Observe(original, active: false, out _));
         Assert.False(change.Observe(updated, active: true, out _));
@@ -173,9 +156,9 @@ public sealed class AgentsRuntimeTests
     [Fact]
     public void Inactive_binary_change_advances_baseline_without_reload()
     {
-        var change = new StableBinaryChange();
-        var original = new BinaryStamp(100, 10);
-        var updated = new BinaryStamp(120, 20);
+        var change = new AgentsBinaryChange();
+        var original = new AgentsBinaryStamp(100, 10);
+        var updated = new AgentsBinaryStamp(120, 20);
 
         Assert.False(change.Observe(original, active: false, out _));
         Assert.False(change.Observe(updated, active: false, out _));
@@ -185,9 +168,9 @@ public sealed class AgentsRuntimeTests
     [Fact]
     public void Missing_binary_does_not_replace_accepted_baseline()
     {
-        var change = new StableBinaryChange();
-        var original = new BinaryStamp(100, 10);
-        var updated = new BinaryStamp(120, 20);
+        var change = new AgentsBinaryChange();
+        var original = new AgentsBinaryStamp(100, 10);
+        var updated = new AgentsBinaryStamp(120, 20);
 
         Assert.False(change.Observe(original, active: false, out _));
         Assert.False(change.Observe(null, active: true, out _));
@@ -203,7 +186,119 @@ public sealed class AgentsRuntimeTests
     [InlineData(AgentsRunState.Unknown, false)]
     public void Binary_reload_activity_matches_runtime_lifecycle(AgentsRunState state, bool expected)
     {
-        Assert.Equal(expected, AgentsRuntime.IsBinaryReloadActive(state));
+        Assert.Equal(expected, state.IsActive());
+    }
+
+    [Fact]
+    public void Module_orphans_clear_empty_catalog_is_ok()
+    {
+        Assert.True(AgentsModuleOrphans.Clear(new AgentsOptions(), [], new NullAppLogger()));
+    }
+
+    [Fact]
+    public void Desktop_compat_rejects_below_min()
+    {
+        var result = AgentsDesktopCompat.Validate("1.0.0", "1.0.2", "1.0.5");
+        Assert.False(result.Ok);
+        Assert.Contains("支持下限", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Desktop_compat_allows_ordered_prerelease()
+    {
+        var result = AgentsDesktopCompat.Validate("1.0.3-beta.8", "1.0.2", "1.0.5");
+        Assert.True(result.Ok, result.Message);
+    }
+
+    [Fact]
+    public void Module_discovery_empty_dir_keeps_empty_catalog()
+    {
+        Assert.Empty(AgentsStatusCatalog.ToDescriptors(AgentsStatus.Create(1, []), agentsDir: "/x"));
+    }
+
+    [Theory]
+    [InlineData(true, false, false, AgentsRunState.Running)]
+    [InlineData(false, true, false, AgentsRunState.Starting)]
+    [InlineData(false, false, true, AgentsRunState.Failed)]
+    [InlineData(false, false, false, AgentsRunState.Stopped)]
+    public void RunObserve_host(
+        bool processAlive,
+        bool launching,
+        bool stickyFailed,
+        AgentsRunState expected)
+    {
+        Assert.Equal(expected, AgentsObserve.Host(processAlive, launching, stickyFailed));
+    }
+
+    [Fact]
+    public void RunObserve_module_running_clears_errors()
+    {
+        var resultState = AgentsObserve.Module(
+            desired: true,
+            processAlive: true,
+            ready: true,
+            startFailed: false,
+            lastError: null);
+
+        Assert.Equal(AgentsRunState.Running, resultState);
+    }
+
+    [Fact]
+    public void RunObserve_module_stale_ready_is_failed_or_starting()
+    {
+        var state = AgentsObserve.Module(
+            desired: true,
+            processAlive: false,
+            ready: true,
+            startFailed: false,
+            lastError: null);
+
+        Assert.Equal(AgentsRunState.Starting, state);
+    }
+
+    [Fact]
+    public void RunObserve_module_user_drop_desired_is_stopped()
+    {
+        var state = AgentsObserve.Module(
+            desired: false,
+            processAlive: true,
+            ready: true,
+            startFailed: true,
+            lastError: "x");
+
+        Assert.Equal(AgentsRunState.Stopped, state);
+    }
+
+    [Fact]
+    public void OptionsModel_normalize_trims_and_clones_modules()
+    {
+        var src = new AgentsOptions
+        {
+            ExecutablePath = " /agents/host ",
+            ProcessName = " PacTools.Agents ",
+            Modules = new Dictionary<string, ModuleOptions>(StringComparer.Ordinal)
+            {
+                ["Injector"] = new ModuleOptions { Enabled = true },
+            },
+        };
+
+        var normalized = AgentsOptionsModel.Normalize(src);
+        Assert.Equal("/agents/host", normalized.ExecutablePath);
+        Assert.Equal("PacTools.Agents", normalized.ProcessName);
+        Assert.True(normalized.Modules["Injector"].Enabled);
+
+        src.Modules["Injector"].Enabled = false;
+        Assert.True(normalized.Modules["Injector"].Enabled);
+
+        Assert.True(AgentsOptionsModel.Same(normalized, AgentsOptionsModel.Clone(new AgentsOptions
+        {
+            ExecutablePath = " /agents/host ",
+            ProcessName = " PacTools.Agents ",
+            Modules = new Dictionary<string, ModuleOptions>(StringComparer.Ordinal)
+            {
+                ["Injector"] = new ModuleOptions { Enabled = true },
+            },
+        })));
     }
 
     private sealed class FakeAppConfigStore : IAppConfigStore

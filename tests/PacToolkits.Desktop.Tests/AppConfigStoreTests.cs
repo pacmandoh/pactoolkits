@@ -153,7 +153,7 @@ public sealed class AppConfigStoreTests
     }
 
     [Fact]
-    public void Seeds_scanned_modules_enabled_and_drops_orphans()
+    public void Normalize_keeps_config_module_keys_without_disk_scan()
     {
         var rootDir = Path.Combine(Path.GetTempPath(), "pactoolkits-appconfig-" + Guid.NewGuid().ToString("N"));
         var agentsDir = Path.Combine(rootDir, "Agents");
@@ -178,11 +178,11 @@ public sealed class AppConfigStoreTests
                 },
             });
 
-            Assert.False(normalized.Agents.Modules.ContainsKey("Gone"));
+            // 配置规范化不再扫盘发现/剔除：catalog 由 Host Snapshot 注入
+            Assert.True(normalized.Agents.Modules.ContainsKey("Gone"));
             Assert.True(normalized.Agents.Modules.TryGetValue("Alpha", out var alpha));
             Assert.False(alpha!.Enabled);
-            Assert.True(normalized.Agents.Modules.TryGetValue("Beta", out var beta));
-            Assert.True(beta!.Enabled);
+            Assert.False(normalized.Agents.Modules.ContainsKey("Beta"));
         }
         finally
         {

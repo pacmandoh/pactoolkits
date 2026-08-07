@@ -61,6 +61,11 @@ public partial class Settings
     public ObservableCollection<ModuleSettingsEditor> ModuleEditors { get; } = new();
     public ObservableCollection<ModuleSettingsLoadIssue> ModuleSettingsLoadIssues { get; } = new();
 
+    public bool HasModuleSettingsEditors => ModuleEditors.Count > 0;
+
+    public bool IsModuleSettingsCatalogEmpty
+        => ModuleEditors.Count == 0 && ModuleSettingsLoadIssues.Count == 0;
+
     private bool _syncingFromRuntime;
 
     [ObservableProperty] private bool _isHostRunningSwitch;
@@ -924,6 +929,7 @@ public partial class Settings
                                                ?? ModuleEditors.FirstOrDefault();
                         _moduleEditorsStale = false;
                         ApplyPendingModuleSelection(discardIfMissing: true);
+                        NotifyModuleSettingsCatalog();
                     }
 
                     var current = BuildCurrentSnapshot();
@@ -957,6 +963,12 @@ public partial class Settings
         {
             Dispatcher.UIThread.Post(Apply);
         }
+    }
+
+    private void NotifyModuleSettingsCatalog()
+    {
+        OnPropertyChanged(nameof(HasModuleSettingsEditors));
+        OnPropertyChanged(nameof(IsModuleSettingsCatalogEmpty));
     }
 
     private string? TryResolveAgentsDir()
