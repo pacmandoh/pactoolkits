@@ -161,7 +161,9 @@ public sealed class AgentsStatusModule
 
     public string? EntryWinX64 { get; set; }
 
-    public bool RequiresDatabase { get; set; } = true;
+    public string? MinDbSchema { get; set; }
+
+    public string? MaxDbSchema { get; set; }
 
     public string? IconActive { get; set; }
 

@@ -6,7 +6,7 @@ namespace PacToolkits.Agents.Host;
 /// <summary>
 /// Agents 常驻进程：发现、desired reconcile、命名管道 IPC、热更、status 发布
 ///
-/// Desktop 经管道发 desired/quit，收 status / moduleFailed；desired/status 文件作诊断镜像
+/// 只 reconcile desired ↔ 模块进程，不连库、不判 schema；库策略由 Desktop 过滤后再写入 desired
 /// </summary>
 internal static class Program
 {

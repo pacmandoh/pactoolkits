@@ -34,7 +34,8 @@ public sealed class AgentsStatusCatalogTests
                 TopStatusPills: true,
                 Order: 3),
             Package: new ModulePackage(ModuleBuilders.Ahk2Exe, new ModuleAhk2Exe(string.Empty)),
-            RequiresDatabase: true);
+            MinDbSchema: "1.2.20",
+            MaxDbSchema: "1.2.25");
 
         AgentsStatusCatalog.FillCatalog(status.Modules[0], descriptor);
         var list = AgentsStatusCatalog.ToDescriptors(status, agentsDir: "/Agents");
@@ -46,5 +47,7 @@ public sealed class AgentsStatusCatalogTests
         Assert.Equal("a.png", back.Desktop.Icons.Active);
         Assert.Equal(3, back.Desktop.Order);
         Assert.True(back.RequiresDatabase);
+        Assert.Equal("1.2.20", back.MinDbSchema);
+        Assert.Equal("1.2.25", back.MaxDbSchema);
     }
 }

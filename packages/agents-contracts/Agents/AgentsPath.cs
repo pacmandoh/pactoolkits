@@ -216,9 +216,51 @@ public static class AgentsPath
 
     public static string? TryReadHostVersion(string releaseManifestPath)
     {
-        if (string.IsNullOrWhiteSpace(releaseManifestPath) || !File.Exists(releaseManifestPath))
+        if (!TryReadAgentsComponent(releaseManifestPath, out var agents)
+            || string.IsNullOrWhiteSpace(agents.Version))
         {
             return null;
+        }
+
+        return agents.Version;
+    }
+
+    /// <summary>
+    /// 读取 Agents 包声明的 Desktop 配套闭区间（components.agents.minDesktop / maxDesktop）
+    ///
+    /// 供 Desktop 起 Host 前校验；Agents 自更新后以包内清单为准，不读 Desktop 安装目录清单
+    /// 返回 false 表示文件缺失/无法解析；字段缺省时 out 为空串
+    /// </summary>
+    public static bool TryReadAgentsDesktopBounds(
+        string releaseManifestPath,
+        out string minDesktop,
+        out string maxDesktop)
+    {
+        minDesktop = string.Empty;
+        maxDesktop = string.Empty;
+        if (!TryReadAgentsComponent(releaseManifestPath, out var agents))
+        {
+            return false;
+        }
+
+        minDesktop = agents.MinDesktop;
+        maxDesktop = agents.MaxDesktop;
+        return true;
+    }
+
+    private readonly record struct AgentsComponentFields(
+        string? Version,
+        string MinDesktop,
+        string MaxDesktop);
+
+    private static bool TryReadAgentsComponent(
+        string releaseManifestPath,
+        out AgentsComponentFields agents)
+    {
+        agents = default;
+        if (string.IsNullOrWhiteSpace(releaseManifestPath) || !File.Exists(releaseManifestPath))
+        {
+            return false;
         }
 
         try
@@ -227,21 +269,45 @@ public static class AgentsPath
             using var doc = JsonDocument.Parse(stream);
             if (!doc.RootElement.TryGetProperty("components", out var components)
                 || components.ValueKind != JsonValueKind.Object
-                || !components.TryGetProperty("agents", out var agents)
-                || agents.ValueKind != JsonValueKind.Object
-                || !agents.TryGetProperty("version", out var version)
-                || version.ValueKind != JsonValueKind.String)
+                || !components.TryGetProperty("agents", out var agentsEl)
+                || agentsEl.ValueKind != JsonValueKind.Object)
             {
-                return null;
+                return false;
             }
 
-            var text = version.GetString();
-            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+            string? version = null;
+            if (agentsEl.TryGetProperty("version", out var versionEl)
+                && versionEl.ValueKind == JsonValueKind.String)
+            {
+                var text = versionEl.GetString();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    version = text.Trim();
+                }
+            }
+
+            agents = new AgentsComponentFields(
+                version,
+                ReadOptionalString(agentsEl, "minDesktop"),
+                ReadOptionalString(agentsEl, "maxDesktop"));
+            return true;
         }
         catch
         {
-            return null;
+            return false;
         }
+    }
+
+    private static string ReadOptionalString(JsonElement objectElement, string name)
+    {
+        if (objectElement.ValueKind != JsonValueKind.Object
+            || !objectElement.TryGetProperty(name, out var value)
+            || value.ValueKind != JsonValueKind.String)
+        {
+            return string.Empty;
+        }
+
+        return (value.GetString() ?? string.Empty).Trim();
     }
 
     public static HostExecutableResolution ResolveHost(string? configuredPath, string baseDirectory)
@@ -357,8 +423,11 @@ public static class AgentsPath
             return null;
         }
 
-        // 顶层契约：模块运行是否依赖库；与 desktop 展示无关；缺省 true
-        var requiresDatabase = ReadBool(root, "requiresDatabase") ?? true;
+        // 完整 minDbSchema+maxDbSchema ⇒ 依赖库；皆缺 ⇒ 不依赖；半套或非法 ⇒ 拒绝
+        if (!TryReadDbSchemaRange(root, out var minDbSchema, out var maxDbSchema))
+        {
+            return null;
+        }
 
         string directory;
         try
@@ -385,7 +454,94 @@ public static class AgentsPath
             manifestPath,
             desktop,
             package,
-            requiresDatabase);
+            minDbSchema,
+            maxDbSchema);
+    }
+
+    /// <summary>
+    /// 解析顶层 minDbSchema/maxDbSchema；皆缺返回 true 且 bounds 为 null；半套或非法返回 false
+    /// </summary>
+    private static bool TryReadDbSchemaRange(
+        JsonElement root,
+        out string? minDbSchema,
+        out string? maxDbSchema)
+    {
+        minDbSchema = null;
+        maxDbSchema = null;
+
+        var hasMin = root.TryGetProperty("minDbSchema", out var minEl)
+                     && minEl.ValueKind != JsonValueKind.Null
+                     && minEl.ValueKind != JsonValueKind.Undefined;
+        var hasMax = root.TryGetProperty("maxDbSchema", out var maxEl)
+                     && maxEl.ValueKind != JsonValueKind.Null
+                     && maxEl.ValueKind != JsonValueKind.Undefined;
+
+        if (!hasMin && !hasMax)
+        {
+            return true;
+        }
+
+        if (!hasMin || !hasMax)
+        {
+            return false;
+        }
+
+        var min = ReadRequiredString(root, "minDbSchema");
+        var max = ReadRequiredString(root, "maxDbSchema");
+        if (min is null || max is null || !IsValidDbSchemaVersion(min) || !IsValidDbSchemaVersion(max))
+        {
+            return false;
+        }
+
+        if (CompareDbSchemaVersion(min, max) > 0)
+        {
+            return false;
+        }
+
+        minDbSchema = min;
+        maxDbSchema = max;
+        return true;
+    }
+
+    private static bool IsValidDbSchemaVersion(string value)
+    {
+        // 与 Core SemVer 纯 X.Y.Z 一致（拒前导零、拒 prerelease）；Contracts 无 Core 引用
+        var parts = value.Split('.', StringSplitOptions.None);
+        if (parts.Length != 3)
+        {
+            return false;
+        }
+
+        foreach (var part in parts)
+        {
+            if (part.Length == 0
+                || (part.Length > 1 && part[0] == '0')
+                || !part.All(char.IsAsciiDigit)
+                || !int.TryParse(part, out var n)
+                || n < 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static int CompareDbSchemaVersion(string left, string right)
+    {
+        var l = left.Split('.');
+        var r = right.Split('.');
+        for (var i = 0; i < 3; i++)
+        {
+            var lv = int.Parse(l[i]);
+            var rv = int.Parse(r[i]);
+            if (lv != rv)
+            {
+                return lv.CompareTo(rv);
+            }
+        }
+
+        return 0;
     }
 
     private static ModuleDesktop? TryParseDesktop(JsonElement root)
