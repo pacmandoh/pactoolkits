@@ -32,7 +32,7 @@ runtime/agents/
 Host 与 AHK 与 Desktop 共用日志根，JSON Lines：
 
 ```text
-%AppData%/PacToolkits/logs/   # macOS/Linux：Application Support / .config
+%LocalAppData%/PacToolkits/logs/   # macOS：Application Support；Linux：~/.local/share
   desktop/YYYY-MM-DD.log
   agents/host/YYYY-MM-DD.log
   agents/modules/<Id>/YYYY-MM-DD.log

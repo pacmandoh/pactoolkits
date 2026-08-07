@@ -23,7 +23,7 @@ Host 启动 Injector 时传入两类配置：
 
 ## 日志
 
-- 目录：`%AppData%\PacToolkits\logs\agents\modules\Injector\`
+- 目录：`%LocalAppData%\PacToolkits\logs\agents\modules\Injector\`
 - 格式：JSON Lines（`lib/ahk/log.ahk`）
 - 约定：与 Desktop 同字段；`level` ∈ `Debug|Info|Warn|Error|Fatal`；`event` = 分类短名（对应旧 `type`）；`message` = 正文（对应旧 `why`）；附加进 `context`
 - API：`Log_Debug` / `Log_Info` / `Log_Warn` / `Log_Error` / `Log_Fatal`（写入 `Debug`…`Fatal` 原文）

@@ -12,10 +12,10 @@ public static class AgentsLogPaths
     public const string HostDirectoryName = "host";
     public const string ModulesDirectoryName = "modules";
 
-    /// <summary>默认日志根：AppData/PacToolkits/logs</summary>
+    /// <summary>默认日志根：LocalAppData/PacToolkits/logs（不漫游）</summary>
     public static string DefaultLogsRoot()
         => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             ProductDirectoryName,
             LogsDirectoryName);
 
