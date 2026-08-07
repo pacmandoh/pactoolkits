@@ -6,7 +6,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
@@ -232,14 +231,13 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         agents.ProcessName = string.IsNullOrWhiteSpace(agents.ProcessName)
             ? defaults.ProcessName
             : agents.ProcessName.Trim();
-        agents.Modules = NormalizeModules(agents.Modules, agents.ExecutablePath);
+        agents.Modules = NormalizeModules(agents.Modules);
         return agents;
     }
 
-    // 仅以稳定非空目录清单收敛模块开关，避免部署替换窗口将全部模块误判为已删除
+    // 仅保留配置内模块键；catalog / 启用扩容由 Runtime 吃 Snapshot 后 Merge
     private static Dictionary<string, ModuleOptions> NormalizeModules(
-        Dictionary<string, ModuleOptions>? source,
-        string executablePath)
+        Dictionary<string, ModuleOptions>? source)
     {
         var existing = new Dictionary<string, ModuleOptions>(StringComparer.Ordinal);
         if (source is not null)
@@ -255,30 +253,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             }
         }
 
-        var resolution = AgentsPath.ResolveHost(executablePath, AppContext.BaseDirectory);
-        var agentsDir = resolution.ResolvedPath is null
-            ? null
-            : Path.GetDirectoryName(resolution.ResolvedPath);
-        if (string.IsNullOrWhiteSpace(agentsDir) || !Directory.Exists(agentsDir))
-        {
-            return existing;
-        }
-
-        var scanned = AgentsPath.ScanModules(agentsDir);
-        if (scanned.Count == 0)
-        {
-            // 安装或模块更新期间目录可能短暂为空，此时保留用户已有启用状态
-            return existing;
-        }
-
-        var modules = new Dictionary<string, ModuleOptions>(StringComparer.Ordinal);
-        foreach (var module in scanned)
-        {
-            var enabled = existing.TryGetValue(module.Id, out var options) ? options.Enabled : true;
-            modules[module.Id] = new ModuleOptions { Enabled = enabled };
-        }
-
-        return modules;
+        return existing;
     }
 
     private static MsfxApiOptions NormalizeMsfxApi(MsfxApiOptions? source)
