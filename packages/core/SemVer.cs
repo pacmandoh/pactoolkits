@@ -67,20 +67,10 @@ public static class SemVer
     }
 
     /// <summary>
-    /// 闭区间 [min, max]；比较遵循 SemVer 优先级（正式版 &gt; 同核心的 prerelease）
+    /// 闭区间 [min, max]（允许 prerelease）；诊断细节见 <see cref="SemVerRange.Classify"/>
     /// </summary>
     public static bool IsInInclusiveRange(string? current, string? minimum, string? maximum)
-    {
-        if (!TryParse(current, out var cur)
-            || !TryParse(minimum, out var min)
-            || !TryParse(maximum, out var max)
-            || Compare(min, max) > 0)
-        {
-            return false;
-        }
-
-        return Compare(cur, min) >= 0 && Compare(cur, max) <= 0;
-    }
+        => SemVerRange.Classify(current, minimum, maximum, allowPrerelease: true).IsCompatible;
 
     public static int Compare(string? left, string? right)
     {
