@@ -1,5 +1,5 @@
 # Single-pass whitespace + style + analyzers (same coverage as the old 3-subcommand sequence).
-# FORMAT_CHANGED=1 → --include git-changed *.cs only（见 format-changed.sh）
+# FORMAT_CHANGED=1 时只 --include git 变更的 *.cs（见 format-changed.sh）
 
 run_dotnet_format() {
   local -a cmd=(

@@ -595,7 +595,7 @@ public sealed partial class AgentsRuntime
     }
 
     /// <summary>
-    /// Host 已活；仅模块挂载失败。结束冷启 launching，勿把 Host 留在 Starting
+    /// Host 已活；仅模块挂载失败。结束 launching，勿把 Host 留在 Starting
     /// </summary>
     private AgentsCommandResult FailMountWithHostAlive(string moduleId, string message)
     {

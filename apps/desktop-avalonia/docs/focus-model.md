@@ -24,7 +24,7 @@ flowchart LR
 
   subgraph W["W — 业务工作集"]
     VM["页 ViewModel Selected* / 勾选 / 草稿"]
-    GridBind["TwoWay SelectedItem → VM"]
+    GridBind["TwoWay SelectedItem 绑定 VM"]
   end
 
   Shell["FocusClear @ MainWindow"] --> K
@@ -37,7 +37,7 @@ flowchart LR
 | ---- | ---- | ------ |
 | **K** | 谁接收键盘输入 | `FocusManager`；空白落点为 `FocusClear.Enable` 所在 host（通常 MainWindow）；表单环为 `TabScope` |
 | **T** | 瞬时 chrome | 打开中的 Popup / Combo / AutoComplete 下拉、Text 字符选区 |
-| **W** | 业务“当前行 / 勾选 / 正在编辑” | 页 ViewModel（如 DrugIndex `Selected` + 编辑器、MSFX 勾选快照） |
+| **W** | 业务“当前行 / 勾选 / 正在编辑” | 页 ViewModel（如 DrugIndex `Selected` 与编辑器、MSFX 勾选快照） |
 
 命名约束：不要说「清焦点」指代清空 `Selected`。业务清空用 `ClearWorkingSet` 或清空对应 `Selected*`/`IsSelected`。
 
@@ -55,7 +55,7 @@ DataGrid 控件自身的 `SelectedItem` / 行高亮是 **原生选中**，不是
 | `SuppressGridClear` | 声明子树不参与壳层原生表清选 | 代替页内 W 策略 |
 | `PopupDismissHelper` | TopLevel 内 light-dismiss Combo/日历/菜单/普通 Popup；**不强制关 ACB**（选区护栏见 `AutoCompleteSelectionGuard`，外侧靠原生 light-dismiss） | 业务选中、键盘环、ACB 强制 CloseDropDown |
 | `DataGridInteractionHelper` | 原生 selection / currency / 翻页高亮 API | 页面业务规则 |
-| `TabScope` + `InputFocusHelper` | 表单 Tab/Enter 输入环（K） | 空白点击、W |
+| `TabScope` 与 `InputFocusHelper` | 表单 Tab/Enter 输入环（K） | 空白点击、W |
 | 页 ViewModel | W 的生命周期（reload、保存 reselect、详情关闭清行等） | 全局 pointer 策略 |
 
 Pointer 统一走 **Bubble**（`FocusClear`、`PopupDismissHelper`），避免 Tunnel 在 AutoComplete 候选尚未选中前关掉下拉。
@@ -68,7 +68,7 @@ Pointer 统一走 **Bubble**（`FocusClear`、`PopupDismissHelper`），避免 T
 2. 若命中打开中的下拉/Popup 候选面（`SkipPopupDismiss`），不处理（下拉关闭由 `PopupDismissHelper` 自管）  
 3. 若当前键盘焦点在 **可编辑输入** 且指针仍在其内，保留焦点  
 4. 否则：离开 AutoComplete 时先 `CommitPendingInput` 再关下拉；离开 TextBox 时清字符选区  
-5. **命中某 DataGrid 子树**：清其它表原生选中，保留当前表 → **return**（不 `host.Focus`，保证首次点行有效）  
+5. **命中某 DataGrid 子树**：清其它表原生选中，保留当前表并 **return**（不 `host.Focus`，保证首次点行有效）  
 6. **未命中 DataGrid**：清所有无 suppress 祖先的 DataGrid 原生选中  
 7. 可编辑输入 / Button / Menu / Tab：不抢 host；否则同步 `host.Focus()` 抬走 K  
 
@@ -89,11 +89,11 @@ Pointer 统一走 **Bubble**（`FocusClear`、`PopupDismissHelper`），避免 T
 | 页面 | K | W | 空白与原生表选 |
 | ---- | - | - | -------------- |
 | MainWindow | shell host | — | 全局 `FocusClear` 规则 |
-| DrugIndex | 页 + `TabScope`→EditorCard | `Selected` + 编辑器；reload 用 `WorkingSetReload`；保存后 `ReselectRow` | 页根 `SuppressGridClear`，空白不清表选 |
+| DrugIndex | 页与 `TabScope` 内 EditorCard | `Selected` 与编辑器；reload 用 `WorkingSetReload`；保存后 `ReselectRow` | 页根 `SuppressGridClear`，空白不清表选 |
 | InventoryOverview | 页 root | 行 / 重分配 | 默认清原生表选 |
 | MsfxLink | 页 root | 各 `Selected*`、任务勾选 | 默认清原生表选；运行中心详情关闭清对应行选并还 K |
 | ScanCode | 页 root | 药 / 码编辑 | 默认清；多表 peer 由壳层 |
-| Settings | 页 + `TabScope`（含 Combo） | 表单字段态，无行 W | 无业务 DataGrid 工作集 |
+| Settings | 页与 `TabScope`（含 Combo） | 表单字段态，无行 W | 无业务 DataGrid 工作集 |
 | Dashboard | 壳 / 页 | 面板局部 | 默认清；翻页可走 pager `ClearTarget` |
 
 DrugIndex 工作集在 reload 上的语义：

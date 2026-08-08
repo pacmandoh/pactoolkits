@@ -15,7 +15,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
-/// <summary>标题胶囊 + 底栏 chrome：DB 探测展示、Agents 控制、状态入口</summary>
+/// <summary>标题胶囊与底栏 chrome：DB 探测展示、Agents 控制、状态入口</summary>
 public partial class MainWindowViewModel
 {
     private static readonly TimeSpan ChromeActionDebounce = TimeSpan.FromMilliseconds(1200);

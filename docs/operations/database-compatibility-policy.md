@@ -35,7 +35,7 @@ Desktop 不包含数据库迁移执行器，安装包也不分发 migration SQL�
 
 ## 发布前检查
 
-1. 校验 Manifest 的 DB 版本与 Desktop min/max schema 范围，Agents 包 minDesktop/maxDesktop 与 Desktop 版本闭环，以及各库依赖模块的 min/maxDbSchema
+1. 校验 Manifest 的 DB 版本与 Desktop min/max schema 范围，Agents 包 minDesktop/maxDesktop 与 Desktop 版本一致，以及各库依赖模块的 min/maxDbSchema
 2. 确认 Stable 与 Beta Feed 相互隔离，且目标 manifest 来自正确通道
 3. 确认没有修改或删除已执行 migration
 4. 验证当前 Schema 位于 Desktop 声明的 schema 闭区间内

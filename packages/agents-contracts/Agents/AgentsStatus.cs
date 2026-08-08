@@ -139,7 +139,7 @@ public sealed class AgentsStatus
 }
 
 /// <summary>
-/// 单模块监督 + 展示元数据（catalog 片段）
+/// 单模块监督与展示元数据（catalog 片段）
 /// </summary>
 public sealed class AgentsStatusModule
 {

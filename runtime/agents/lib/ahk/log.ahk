@@ -1,4 +1,4 @@
-; 模块 JSON Lines 日志 → {logsRoot}\agents\modules\<Id>\
+; 模块 JSON Lines 日志目录：{logsRoot}\agents\modules\<Id>\
 ; logsRoot 默认 %LocalAppData%\PacToolkits\logs，可由 Desktop Logging.LogDirectory 覆盖
 ; 规格对齐 packages/logger：门控、按日滚动、保留清理；字段 ts/level/module/event/message/version/context?/exception?
 ; Ahk2Exe 工作目录是编译器目录，不能裸 #Include（会落到 A_WorkingDir）
@@ -133,7 +133,7 @@ Log_ResolveRoot() {
 	if (r = "")
 		; AHK v2 无 A_LocalAppData 内置，读 LocalAppData 环境变量
 		return EnvGet("LocalAppData") "\PacToolkits\logs"
-	; 与 AgentsLogPaths.ResolveRoot 对齐：绝对路径 + 去掉尾部分隔符
+	; 与 AgentsLogPaths.ResolveRoot 对齐：绝对路径，并去掉尾部分隔符
 	full := Util_PathFull(r)
 	return RegExReplace(full, "[\\/]+$", "")
 }
@@ -197,7 +197,7 @@ Log_Write(level, event, message, context := unset, exception := unset) {
 	Log_MaybeCleanup(dir)
 }
 
-; 固定键序：ts → level → module → event → message → version → context? → exception?
+; 固定键序：ts, level, module, event, message, version, 可选 context / exception
 ; 标量勿调 JSON.stringify（顶层只接受 Array/Map/Object，String 会 OwnProps 报错）
 Log_BuildLine(level, event, message, context := unset, exception := unset) {
 	global Log_ModuleId, Log_Version

@@ -12,7 +12,7 @@ runtime/agents/
   docs/                  模块说明
 ```
 
-架构全文见 [docs/architecture/agents.md](../../docs/architecture/agents.md)（三边界：Contracts / Host / Desktop 薄客户端）。
+架构全文见 [docs/architecture/agents.md](../../docs/architecture/agents.md)（三边界：Contracts / Host / Desktop 侧）。
 
 ## 运行模型
 
@@ -25,7 +25,7 @@ runtime/agents/
 - 模块挂载意图 = **desired 集合**（持续意图，非 control 文件 start/stop）
 - Desktop **运行时不** Kill 模块 PID；日常不扫盘 catalog
 - 无 `host.control` / `module.control`；status **仅 schema v2**
-- 管道 = 控制面；`host.desired.json` / `host.status.json` = 镜像（冷启种子 / 诊断）
+- 主路径走命名管道；`host.desired.json` / `host.status.json` 为冷启动种子与诊断镜像
 
 ## 日志
 
@@ -46,8 +46,8 @@ Host 与 AHK 与 Desktop 共用日志根，JSON Lines：
 | `context` | 结构化附加 |
 | `exception` | 可选异常 |
 
-- **Desktop + Host**：`Logging.*`（`JsonLogWriter`）
-- **模块**：用户 `settings.json` → `Log_ApplySettings`
+- **Desktop 与 Host**：`Logging.*`（`JsonLogWriter`）
+- **模块**：用户 `settings.json` 交给 `Log_ApplySettings`
 - 文件名 `YYYY-MM-DD[.N].log`（靠目录区分来源）
 - Host 事件例：`host.ready` / `host.quit` / `host.module.start` / `.stop` / `.exited`
 
@@ -68,9 +68,9 @@ Agents/
 
 ## 发现、热更与 catalog
 
-- Host 扫盘 → Snapshot catalog → Desktop UI / 设置页
+- Host 扫盘写入 Snapshot catalog，再由 Desktop UI / 设置页消费
 - Desktop **不**在 poll/`Reload` 扫 `Modules/` 发现  
-- 发现 ≠ 启动；enabled + desired 才挂载
+- 发现 ≠ 启动；enabled 且 desired 才挂载
 - Host.exe 热更：Desktop；模块入口热更：Host
 - 未运行模块文件变了不自动起
 

@@ -7,7 +7,7 @@ using PacToolkits.Application.Services;
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 /// <summary>
-/// 主窗前台用户输入 → 敏感解锁空闲续期；后台或无输入则走会话空闲超时
+/// 主窗前台用户输入续期敏感解锁空闲；后台或无输入则走会话空闲超时
 /// </summary>
 public sealed class UnlockActivity : IDisposable
 {

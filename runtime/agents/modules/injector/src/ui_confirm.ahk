@@ -211,7 +211,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optGridClassNN, iptVerifyGridClassNN,
 	return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n未知窗口，请一直保持在相应扫码窗口")
 }
 
-; 门诊校验：点回目标行 → 轮询已扫至 alreadyScanned+codes（只认「已扫 N 码」）
+; 门诊校验：点回目标行后，轮询已扫至 alreadyScanned+codes（只认「已扫 N 码」）
 UI_WaitConfirm_Opt(codes, timeoutMs, gridClassNN, win, optCtx, t0) {
 	if !IsObject(optCtx) {
 		Log_Debug("ui.confirm.opt_no_ctx", "门诊缺少目标上下文", Map())

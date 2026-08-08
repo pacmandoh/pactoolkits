@@ -4,8 +4,8 @@ using System.Text.RegularExpressions;
 namespace PacToolkits.Logger;
 
 /// <summary>
-/// 按日日志文件名、单文件滚动与保留清理。
-/// 单文件达到 MaxFileSizeMb 后递增 N（YYYY-MM-DD.N.log），不设固定上界，以免封顶分片无限增长。
+/// 按日日志文件名、单文件滚动与保留清理
+/// 单文件达到 MaxFileSizeMb 后递增 N（YYYY-MM-DD.N.log），不设固定上界，以免封顶分片无限增长
 /// </summary>
 public static partial class LogFiles
 {
@@ -63,7 +63,7 @@ public static partial class LogFiles
     }
 
     /// <summary>
-    /// 解析按日文件名上的分片序号：yyyy-MM-dd.log → 0，yyyy-MM-dd.N.log → N
+    /// 解析按日文件名上的分片序号：yyyy-MM-dd.log 为 0，yyyy-MM-dd.N.log 为 N
     /// </summary>
     public static bool TryGetDailySuffix(string? fileName, string dayStamp, out int suffix)
     {

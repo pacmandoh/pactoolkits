@@ -117,7 +117,7 @@ public partial class Settings : UserControl
         }
     }
 
-    // 仅模块配置内部 Tab 换模块时回顶；同模块重载 / 左侧目录切换不碰 Offset
+    // 仅模块配置内部 Tab 换模块时回顶；同模块重载或左侧目录切换不改 Offset
     private void OnSelectedModuleEditorChanged()
     {
         var nextId = _vm?.SelectedModuleEditor?.ModuleId;

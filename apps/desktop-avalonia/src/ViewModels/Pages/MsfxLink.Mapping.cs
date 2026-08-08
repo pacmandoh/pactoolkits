@@ -574,7 +574,7 @@ public sealed partial class MsfxLink
 
             await RunOnUiAsync(ClearMappingTarget).ConfigureAwait(false);
 
-            // 单次队列 Tab 重载：映射分组 + 监控板（含任务队列）；勿拆成两路 RunLocalReload 互抢
+            // 单次队列 Tab 重载：映射分组与监控板（含任务队列）；勿拆成两路 RunLocalReload 互抢
             await RunLocalReloadAsync(_ => { }, ReloadQueueTabCoreAsync).ConfigureAwait(false);
             if (WorkspacePageRefresh.RefreshSucceeded(this))
             {

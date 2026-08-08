@@ -1,4 +1,4 @@
-; 半自动取码计划：整盒数 + 拆零粒（rem 只注拆零；full 整盒+拆零）
+; 半自动取码计划：整盒数与拆零粒（rem 只注拆零；full 整盒与拆零）
 ; injectMode: "rem" | "full"
 
 ; 读 drug_index 单盒数量
@@ -23,7 +23,7 @@ Txn_FetchDbQty(drugId, spec) {
 	return Map("ok", true, "dbQty", dbQty)
 }
 
-; 由行字段 + 模式算出 wholePick / remNeed
+; 由行字段与模式算出 wholePick / remNeed
 ; alreadyScanned：门诊已扫码数；住院传 0
 Txn_PlanPick(by, injectMode, isOpt, drugId, spec, alreadyScanned := 0) {
 	if !IsObject(by)

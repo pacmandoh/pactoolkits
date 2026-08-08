@@ -4,7 +4,7 @@ using PacToolkits.Agents.Contracts.Agents;
 namespace PacToolkits.Agents.Host;
 
 /// <summary>
-/// 将槽位监督事实写成 StatusSnapshot（文件 + 管道推送字段）
+/// 将槽位监督事实写成 StatusSnapshot（文件与管道推送字段）
 /// </summary>
 internal static class HostStatus
 {

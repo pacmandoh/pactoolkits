@@ -109,7 +109,7 @@ case "$agents_out" in
     ;;
 esac
 
-# 整目录挪走 Modules，避免 rm Agents 时丢掉 Debug/bin 已编好的 exe+stamp
+# 整目录挪走 Modules，避免 rm Agents 时丢掉 Debug/bin 已编好的 exe 与 stamp
 modules_park=""
 if [[ -d "$agents_out/Modules" ]]; then
   modules_park="$(mktemp -d "${TMPDIR:-/tmp}/pac-agents-modules.XXXXXX")"

@@ -164,7 +164,7 @@ public class DataGridCellSelect
             return;
         }
 
-        // 数据列 currency → 复制格；否则仅在有 SelectedItem 时复制整行（初始化 # 幽灵 currency 且无行选中 → 不复制）
+        // 数据列 currency 时复制格；否则仅在有 SelectedItem 时复制整行（初始化 # 幽灵 currency 且无行选中则不复制）
         if (grid.CurrentColumn is not null && !IsChromeColumn(grid.CurrentColumn))
         {
             e.Handled = true;

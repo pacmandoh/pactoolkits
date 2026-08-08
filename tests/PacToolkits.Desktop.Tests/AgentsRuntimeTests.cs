@@ -34,7 +34,7 @@ public sealed class AgentsRuntimeTests
             => TryReadSchemaVersionAsync(ct);
     }
 
-    // Host 假文件 + ReleaseManifest，覆盖路径解析与清单门禁
+    // Host 假文件与 ReleaseManifest，覆盖路径解析与清单门禁
     private sealed class TempAgentsInstall : IDisposable
     {
         public string Root { get; }

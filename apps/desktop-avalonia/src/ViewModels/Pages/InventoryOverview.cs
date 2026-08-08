@@ -22,7 +22,7 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPage
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
-    // 写库后短暂停住 LISTEN→全量 Reload；静默对账立刻拉
+    // 写库后短暂停住 LISTEN 触发的全量 Reload；静默对账立刻拉
     private static readonly TimeSpan PostWriteAutoRefreshPause = TimeSpan.FromSeconds(2);
     private const string OpsScope = UnlockScopes.SharedOps;
     private static readonly int[] PageSizeOptionValues = [20, 50, 100];

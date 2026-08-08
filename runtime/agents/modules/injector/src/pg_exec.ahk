@@ -40,7 +40,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 }
 
 ; wholeN：整盒行数（remain=qty）；remNeed：拆零粒
-; 码选取：门诊全部；住院 full 整盒全部 + 拆零侧仅末码；住院 rem 仅末码
+; 码选取：门诊全部；住院 full 整盒全部，拆零侧仅末码；住院 rem 仅末码
 Txn_ReserveAlloc(txnId, clientId, drugId, spec, wholeN, remNeed, cls, isOpt := false, injectMode := "rem") {
 	codes := []
 	items := []

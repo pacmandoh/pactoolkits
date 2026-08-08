@@ -11,7 +11,7 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
 /// <summary>
-/// Desktop 薄客户端编排：组合链路 + HostLauncher + DesiredSession + SnapshotProjection
+/// Desktop 侧编排：链路、HostLauncher、DesiredSession、SnapshotProjection
 ///
 /// 模块进程监管在 Host；本类不实现 IAgentsClient
 /// partial：.Host 启停，.Modules 挂载/库生命周期
@@ -339,7 +339,7 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
 
     private AgentsCommandResult SetModuleError(string moduleId, string message, bool log = true)
     {
-        // 模块失败不碰 Host launching：避免模块门禁失败抹掉 Host 启动中态
+        // 模块失败不改 Host launching：避免模块门禁失败抹掉 Host 启动中态
         _projection.SetModuleError(moduleId, message);
 
         if (log)

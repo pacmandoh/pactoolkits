@@ -121,7 +121,7 @@ Util_LoadDotEnv(path) {
 	return env
 }
 
-; 环境变量值里的 JSON 对象/数组 → Map/Array
+; 环境变量值里的 JSON 对象/数组解析为 Map/Array
 Util_TryParseJson(val) {
 	v := Trim(val)
 	if (v = "")

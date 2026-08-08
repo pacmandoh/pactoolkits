@@ -26,7 +26,7 @@
       <br />
       <strong>PacToolkits Agents</strong>
       <br />
-      <sub>Host + 模块运行时</sub>
+      <sub>Host 与模块运行时</sub>
       <br />
       <sub>&nbsp;</sub>
       <br />
@@ -46,7 +46,7 @@
 
 **面向药品追溯码业务的桌面端、自动化与数据库一体化工具套件**
 
-PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
+PacToolkits Desktop、Agents（Host 与模块）与 PostgreSQL 任务编排。
 
 </div>
 
@@ -63,10 +63,11 @@ PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
 仓库主要目录：
 
 - [`apps/desktop-avalonia`](./apps/desktop-avalonia/)：业务交互、配置、更新与诊断
+- [`apps/api-asp`](./apps/api-asp/)：HTTP 宿主
 - `packages/application`：用例层服务与抽象
 - `packages/infrastructure`：PostgreSQL 仓储与 DB 实现
 - [`runtime/agents`](./runtime/agents/)：Host、自动化模块与模块模板
-- [`database/postgres`](./database/postgres/)：入库、映射、任务与迁移治理
+- [`database/postgres`](./database/postgres/)：入库、映射、任务与迁移
 
 ---
 
@@ -74,7 +75,7 @@ PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
 
 - Desktop、Agents、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
-- Agents 运行时：常驻 .NET Host（模块监管 + Snapshot）+ Desktop 侧 Host 生命周期 / desired
+- Agents 运行时：常驻 .NET Host（模块监管与 Snapshot）；Desktop 侧管 Host 生命周期与 desired
 - 基于 PostgreSQL Migration 的数据库演进与兼容门禁
 - Desktop、Agents 和数据库版本由 Manifest 统一管理
 - 支持库存、追溯码录入、联调映射、任务队列与审计
@@ -89,7 +90,7 @@ flowchart LR
     PKG["packages/\napplication · infrastructure · core · agents-contracts"]
     HOST["runtime/agents/host\nAgents.exe Host"]
     INJ["runtime/agents/modules/injector\nInjector AHK 模块"]
-    DB["database/postgres\nPostgreSQL Schema + Migrations"]
+    DB["database/postgres\nPostgreSQL schema 与 migrations"]
     SCRIPTS["scripts/\n版本与发布工具"]
     CI[".github/workflows\n构建与发布自动化"]
 
@@ -111,18 +112,19 @@ flowchart LR
 ```text
 pactoolkits/
   apps/desktop-avalonia/      Desktop 客户端（Avalonia）
+  apps/api-asp/               HTTP 宿主（PacToolkits.Api）
   packages/
     core/                     纯业务核心（无 IO）
     application/              用例层：DTO、服务接口与应用服务
     infrastructure/           外部实现：PostgreSQL 仓储
-    agents-contracts/         Desktop ↔ Agents 共享协议
+    agents-contracts/         Desktop 与 Agents 共享协议
   runtime/agents/             Agents 运行时（Host 与模块）
   database/postgres/          PostgreSQL 初始化、迁移、验证与部署
   docs/                       跨模块架构与运维文档
   scripts/                    版本、打包、发布辅助脚本
   .github/workflows/          持续集成与发布流程
   PacToolkits.sln             .NET 解决方案入口
-  release-manifest.json       全局版本与兼容性清单
+  release-manifest.json       版本与兼容性清单
 ```
 
 ---
@@ -134,6 +136,7 @@ pactoolkits/
 - [Monorepo 布局](./docs/architecture/monorepo-layout.md)
 - [分层与依赖规则](./docs/architecture/layering.md)
 - [Agents 运行时架构](./docs/architecture/agents.md)
+- [API 宿主与迁移](./docs/architecture/api.md)
 - [Desktop 状态模型](./docs/architecture/desktop-state.md)
 - [发布流程](./docs/operations/release-flow.md)
 - [Beta 发布规则](./docs/operations/beta-release-policy.md)
@@ -142,6 +145,7 @@ pactoolkits/
 ### 子项目
 
 - [Desktop](./apps/desktop-avalonia/README.md) · [概览](./apps/desktop-avalonia/docs/overview.md)
+- [API](./apps/api-asp/README.md)
 - [Agents](./runtime/agents/README.md) · [Injector](./runtime/agents/docs/injector.md)
 - [PostgreSQL](./database/postgres/README.md) · [概览](./database/postgres/docs/overview.md)
 - [脚本工具](./scripts/docs/tooling.md)
@@ -163,7 +167,7 @@ pactoolkits/
 
 ## 版本与兼容性
 
-统一版本源：[`release-manifest.json`](./release-manifest.json)（schema v2）。
+版本与兼容区间以 [`release-manifest.json`](./release-manifest.json) 为准（schema v2）。
 
 ```bash
 ./scripts/check-version.sh
@@ -183,6 +187,7 @@ dotnet build PacToolkits.sln
 ```
 
 - Desktop：见 [apps/desktop-avalonia/README.md](./apps/desktop-avalonia/README.md)
+- API：见 [apps/api-asp/README.md](./apps/api-asp/README.md)
 - Agents：见 [runtime/agents/README.md](./runtime/agents/README.md)
 - 数据库：见 [database/postgres/README.md](./database/postgres/README.md)
 
@@ -190,11 +195,11 @@ dotnet build PacToolkits.sln
 
 ## 设计原则
 
-- 使用单一发布清单作为版本权威来源
+- 版本以单一发布清单为准
 - Desktop、Agents、DB 协同演进
 - 业务流程可观察、可追溯
 - 自动化能力通过独立配置管理，不与页面逻辑耦合
-- 数据库是任务状态和执行状态的权威来源
+- 任务与执行状态以数据库为准
 - Desktop、运行时、持久化边界清晰
 
 ---

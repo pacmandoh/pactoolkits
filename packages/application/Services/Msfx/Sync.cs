@@ -4,7 +4,7 @@ using PacToolkits.Application.TextSearch;
 namespace PacToolkits.Application.Services.Msfx;
 
 /// <summary>
-/// MSFX 同步用例：游标/看板/映射批处理/注入任务（编排走 AutoRun + 窄 Repo）
+/// MSFX 同步用例：游标/看板/映射批处理/注入任务（编排走 AutoRun 与窄 Repo）
 /// </summary>
 public sealed partial class SyncService : ISyncService
 {

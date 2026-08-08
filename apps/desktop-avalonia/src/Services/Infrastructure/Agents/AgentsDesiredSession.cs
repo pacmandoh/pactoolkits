@@ -11,7 +11,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 /// Desktop 会话 desired：**仅**已过 Desktop 策略门禁、允许 Host 挂起的模块 id
 ///
 /// 连库 / schema / 配置在本侧滤完再写；Host 只 reconcile，不解释为何不能挂
-/// 管道 desired = 控制面；host.desired.json = 镜像（冷启种子 / 诊断）
+/// desired 以管道为准；host.desired.json 为冷启动种子与诊断镜像
 /// </summary>
 internal sealed class AgentsDesiredSession
 {

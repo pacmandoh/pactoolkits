@@ -5,7 +5,7 @@ using PacToolkits.Core;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 模块 desired 门禁：已连 + <see cref="IDbSchemaGate"/> 区间 Match
+/// 模块 desired 门禁：已连且 <see cref="IDbSchemaGate"/> 区间 Match
 /// </summary>
 public sealed class AgentsAdmitService : IAgentsAdmitService
 {

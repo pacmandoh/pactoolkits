@@ -5,7 +5,7 @@ using PacToolkits.Core;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// Agents ↔ Desktop SemVer 闭区间配套（调用方传入的 minDesktop–maxDesktop）
+/// Agents 与 Desktop SemVer 闭区间配套（调用方传入的 minDesktop–maxDesktop）
 /// </summary>
 public sealed class AgentsBundleService : IAgentsBundleService
 {
@@ -25,7 +25,7 @@ public sealed class AgentsBundleService : IAgentsBundleService
 
         var min = (minDesktop ?? string.Empty).Trim();
         var max = (maxDesktop ?? string.Empty).Trim();
-        // 半套或全空 → Incomplete；非法字面量交给 Classify
+        // 半套或全空视为 Incomplete；非法字面量交给 Classify
         if (string.IsNullOrWhiteSpace(min) || string.IsNullOrWhiteSpace(max))
         {
             return new AgentsBundleResult(

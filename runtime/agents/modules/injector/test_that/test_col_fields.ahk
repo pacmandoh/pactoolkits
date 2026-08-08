@@ -30,7 +30,7 @@ Main() {
 	Test_CfgGetAppWin_StringList()
 	Test_CfgGetOneOf_CodePickPolicy()
 
-	; --- 3. 出厂 defaults（settings.json 原始语义 + 加载后运行时）---
+	; --- 3. 出厂 defaults（settings.json 原始语义与加载后运行时）---
 	Test_SettingsJson_ShipShape()
 	Test_SettingsJson_LoadViaCfgGet()
 
@@ -38,7 +38,7 @@ Main() {
 	Test_MatchHeader()
 	Test_ByGet()
 
-	; --- 5. 静态文本解析（仅验证 ColFields → bySpec[id]，不接 MSFX/DB）---
+	; --- 5. 静态文本解析（仅验证 ColFields 写入 bySpec[id]，不接 MSFX/DB）---
 	Test_Parse_BySpecKeysAndOptional()
 	Test_Parse_AsIntCoerce()
 	Test_Parse_HeaderMissAndEmptyFields()
@@ -99,10 +99,10 @@ HasId(arr, id) {
 ; ========== 1. Normalize ==========
 
 Test_Normalize_RejectsNonArray() {
-	AssertEq(Parse_NormalizeColFields("").Length, 0, "normalize:string → []")
-	AssertEq(Parse_NormalizeColFields(Map()).Length, 0, "normalize:Map → []")
-	AssertEq(Parse_NormalizeColFields(0).Length, 0, "normalize:0 → []")
-	AssertEq(Parse_NormalizeColFields([]).Length, 0, "normalize:[] → []")
+	AssertEq(Parse_NormalizeColFields("").Length, 0, "normalize:string yields []")
+	AssertEq(Parse_NormalizeColFields(Map()).Length, 0, "normalize:Map yields []")
+	AssertEq(Parse_NormalizeColFields(0).Length, 0, "normalize:0 yields []")
+	AssertEq(Parse_NormalizeColFields([]).Length, 0, "normalize:[] yields []")
 }
 
 Test_Normalize_DropsInvalidItems() {
@@ -122,7 +122,7 @@ Test_Normalize_DropsInvalidItems() {
 }
 
 Test_Normalize_HeadersRules() {
-	; headers 必须是 Array；字符串不是 Array → 丢弃整项
+	; headers 必须是 Array；字符串不是 Array 则丢弃整项
 	outStr := Parse_NormalizeColFields([Map("id", "x", "headers", "物资名称")])
 	AssertEq(outStr.Length, 0, "normalize:headers string rejected")
 
@@ -159,8 +159,8 @@ Test_Normalize_BoolDefaultsAndCoercion() {
 			"id", "b", "headers", ["H"],
 			"required", c["in"], "asInt", c["in"]
 		)])[1]
-		AssertEq(f["required"], c["req"], "normalize:required←" c["in"])
-		AssertEq(f["asInt"], c["as"], "normalize:asInt←" c["in"])
+		AssertEq(f["required"], c["req"], "normalize:required from " c["in"])
+		AssertEq(f["asInt"], c["as"], "normalize:asInt from " c["in"])
 	}
 }
 
@@ -201,24 +201,24 @@ Test_CfgGetColFields_Rejects() {
 	err := ""
 
 	Util_CfgGetColFields(Map(), "ColFields", &ok, &err)
-	AssertFalse(ok, "CfgGet:missing key → fail")
+	AssertFalse(ok, "CfgGet:missing key fails")
 	AssertTrue(InStr(err, "缺少"), "CfgGet:missing key message")
 
 	Util_CfgGetColFields(Map("ColFields", "not-array"), "ColFields", &ok, &err)
-	AssertFalse(ok, "CfgGet:non-array → fail")
+	AssertFalse(ok, "CfgGet:non-array fails")
 	AssertTrue(InStr(err, "数组"), "CfgGet:non-array message")
 
 	Util_CfgGetColFields(Map("ColFields", []), "ColFields", &ok, &err)
-	AssertFalse(ok, "CfgGet:empty array → fail")
+	AssertFalse(ok, "CfgGet:empty array fails")
 
 	Util_CfgGetColFields(Map("ColFields", ["x", Map("id", "a")]), "ColFields", &ok, &err)
-	AssertFalse(ok, "CfgGet:all invalid after normalize → fail")
+	AssertFalse(ok, "CfgGet:all invalid after normalize fails")
 
 	Util_CfgGetColFields(Map("ColFields", [
 		Map("id", "drugName", "headers", ["A"]),
 		Map("id", "drugName", "headers", ["B"]),
 	]), "ColFields", &ok, &err)
-	AssertFalse(ok, "CfgGet:duplicate id → fail")
+	AssertFalse(ok, "CfgGet:duplicate id fails")
 	AssertTrue(InStr(err, "重复"), "CfgGet:duplicate message")
 	AssertTrue(InStr(err, "drugName"), "CfgGet:duplicate names id")
 }
@@ -227,7 +227,7 @@ Test_CfgGetColFields_AcceptsMixedValid() {
 	ok := false
 	err := ""
 	fields := Util_CfgGetColFields(Map("ColFields", [
-		Map("id", "bad"),  ; no headers → drop
+		Map("id", "bad"),  ; no headers: drop
 		Map("id", "drugName", "headers", ["物资名称", "药品名称"], "required", true, "asInt", false, "locked", true),
 		Map("id", "qty", "headers", ["数量"], "required", true, "asInt", true),
 	]), "ColFields", &ok, &err)
@@ -375,8 +375,8 @@ Test_ByGet() {
 	by := Map("drugName", "阿莫西林", "qty", 2)
 	AssertEq(By_Get(by, "drugName"), "阿莫西林", "By_Get:hit")
 	AssertEq(By_Get(by, "missing", "d"), "d", "By_Get:default")
-	AssertEq(By_Get(by, "", "d"), "d", "By_Get:empty id → default")
-	AssertEq(By_Get(0, "drugName", "d"), "d", "By_Get:non-object → default")
+	AssertEq(By_Get(by, "", "d"), "d", "By_Get:empty id uses default")
+	AssertEq(By_Get(0, "drugName", "d"), "d", "By_Get:non-object uses default")
 	AssertEq(By_Get(by, "  drugName  "), "阿莫西林", "By_Get:trim id")
 }
 
@@ -412,12 +412,12 @@ Test_Parse_AsIntCoerce() {
 	rOk := Parse_TargetInfo(fields, "", "名称`t数量`n药`t7", "A", "", true)
 	AssertTrue(rOk["ok"], "parse:asInt digits ok")
 	if rOk["ok"]
-		AssertEq(rOk["bySpec"]["qty"], 7, "parse:asInt→integer")
+		AssertEq(rOk["bySpec"]["qty"], 7, "parse:asInt to integer")
 
 	rBad := Parse_TargetInfo(fields, "", "名称`t数量`n药`tx", "A", "", true)
 	AssertTrue(rBad["ok"], "parse:asInt non-digit still row-ok")
 	if rBad["ok"]
-		AssertEq(rBad["bySpec"]["qty"], 0, "parse:asInt non-digit → 0")
+		AssertEq(rBad["bySpec"]["qty"], 0, "parse:asInt non-digit is 0")
 }
 
 Test_Parse_HeaderMissAndEmptyFields() {
@@ -426,13 +426,13 @@ Test_Parse_HeaderMissAndEmptyFields() {
 		Map("id", "qty", "headers", ["数量"], "required", true, "asInt", true),
 	])
 	rMiss := Parse_TargetInfo(fields, "", "别的列`t数量`nA`t1", "A", "", true)
-	AssertFalse(rMiss["ok"], "parse:missing required header → fail")
+	AssertFalse(rMiss["ok"], "parse:missing required header fails")
 	AssertTrue(InStr(rMiss["reason"], "Header"), "parse:header miss reason")
 
 	rEmpty := Parse_TargetInfo([], "", "物资名称`t数量`nA`t1", "A", "", true)
-	AssertFalse(rEmpty["ok"], "parse:empty ColFields → fail")
+	AssertFalse(rEmpty["ok"], "parse:empty ColFields fails")
 	AssertTrue(InStr(rEmpty["reason"], "ColFields"), "parse:empty fields reason")
 
 	rNoRow := Parse_TargetInfo(fields, "", "物资名称`t数量", "A", "", true)
-	AssertFalse(rNoRow["ok"], "parse:header only no data → fail")
+	AssertFalse(rNoRow["ok"], "parse:header only no data fails")
 }
