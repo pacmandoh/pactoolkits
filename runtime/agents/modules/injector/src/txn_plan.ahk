@@ -23,9 +23,40 @@ Txn_FetchDbQty(drugId, spec) {
 	return Map("ok", true, "dbQty", dbQty)
 }
 
+; 门诊数量「单位」对应计算 packWhole；空或未入 OptPackUnits/OptPieceUnits：失败
+Txn_OptUnitPackWhole(unit, packSet, pieceSet) {
+	unit := Trim("" unit)
+	if (unit = "")
+		return Map(
+			"ok", false, "level", "Warn",
+			"message", "[解析错误] 门诊计算整盒/拆零需要「单位」列"
+		)
+	if !(IsObject(packSet) && IsObject(pieceSet))
+		return Map(
+			"ok", false, "level", "Error",
+			"message", "[配置错误] 缺少 OptPackUnits / OptPieceUnits"
+		)
+	inPack := packSet.Has(unit)
+	inPiece := pieceSet.Has(unit)
+	if (inPack && inPiece)
+		return Map(
+			"ok", false, "level", "Error",
+			"message", "[配置错误] 单位同时落在「数量单位」与「包装单位」：" unit
+		)
+	if inPack
+		return Map("ok", true, "packWhole", true)
+	if inPiece
+		return Map("ok", true, "packWhole", false)
+	return Map(
+		"ok", false, "level", "Warn",
+		"message", "[解析错误]`n门诊数量单位未识别：`n单位=" unit
+	)
+}
+
 ; 由行字段与模式算出 wholePick / remNeed
 ; alreadyScanned：门诊已扫码数；住院传 0
 Txn_PlanPick(by, injectMode, isOpt, drugId, spec, alreadyScanned := 0) {
+	global Cfg
 	if !IsObject(by)
 		return Map("ok", false, "level", "Warn", "message", "[解析错误] 缺少行字段")
 
@@ -36,13 +67,12 @@ Txn_PlanPick(by, injectMode, isOpt, drugId, spec, alreadyScanned := 0) {
 	splitFlag := Trim("" By_Get(by, "splitFlag"))
 	qtyVal := By_Get(by, "qty")
 	unit := Trim("" By_Get(by, "unit"))
-	doseUnit := Trim("" By_Get(by, "doseUnit"))
 	qtyN := Util_ToInt(qtyVal, 0)
 	scannedN := Util_ToInt(alreadyScanned, 0)
 
 	Log_Debug("txn.plan.begin", "取码计划", Map(
 		"injectMode", injectMode, "isOpt", isOpt, "split", splitFlag,
-		"qty", qtyVal, "unit", unit, "doseUnit", doseUnit, "alreadyScanned", scannedN
+		"qty", qtyVal, "unit", unit, "alreadyScanned", scannedN
 	))
 
 	if (qtyN <= 0)
@@ -51,13 +81,15 @@ Txn_PlanPick(by, injectMode, isOpt, drugId, spec, alreadyScanned := 0) {
 	; packWhole：数量按整包装计（不做 qty//dbQty）
 	packWhole := false
 	if isOpt {
-		if (unit = "" || doseUnit = "")
+		if !(IsSet(Cfg) && IsObject(Cfg) && Cfg.Has("OPT_PACK_UNITS") && Cfg.Has("OPT_PIECE_UNITS"))
 			return Map(
-				"ok", false, "level", "Warn",
-				"message", "[解析错误]`n门诊计算整盒/拆零需要「单位」与「用量单位」`n单位=" unit "`n用量单位=" doseUnit
+				"ok", false, "level", "Error",
+				"message", "[配置错误] 缺少 OptPackUnits / OptPieceUnits"
 			)
-		if (unit != doseUnit)
-			packWhole := true
+		gate := Txn_OptUnitPackWhole(unit, Cfg["OPT_PACK_UNITS"], Cfg["OPT_PIECE_UNITS"])
+		if !gate["ok"]
+			return gate
+		packWhole := !!gate["packWhole"]
 	} else if (splitFlag = "否") {
 		packWhole := true
 	}
@@ -69,9 +101,9 @@ Txn_PlanPick(by, injectMode, isOpt, drugId, spec, alreadyScanned := 0) {
 	if packWhole {
 		if (injectMode = "rem") {
 			msg := isOpt
-				? "[跳过取码]`n整包装（发药单位与用量单位不同，按整包装发药）`n单位=" unit "`n用量单位=" doseUnit "`n数量=" qtyN
+				? "[跳过取码] 整包装：`n单位=" unit "`n数量=" qtyN
 				: "[跳过取码] 未拆零药物"
-			Log_Debug("txn.plan.skip", "rem 整包装跳过", Map("packWhole", true, "qty", qtyN))
+			Log_Debug("txn.plan.skip", "rem 整包装跳过", Map("packWhole", true, "qty", qtyN, "unit", unit))
 			return Map("ok", true, "skip", true, "level", "Info", "message", msg,
 				"wholePick", 0, "remNeed", 0, "planWhole", qtyN, "planRem", 0, "dbQty", 0, "packWhole", true)
 		}

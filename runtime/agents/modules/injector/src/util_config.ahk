@@ -89,6 +89,19 @@ Util_LoadUnifiedConfig(configPath) {
 	cfg["IPT_INPUT_CLASSNN"] := Util_CfgGetString(agent, "IptInputClassNN", true, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
+	cfg["OPT_PACK_UNITS"] := Util_CfgGetAppWin(agent, "OptPackUnits", &ok, &err)
+	if !ok
+		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
+	cfg["OPT_PIECE_UNITS"] := Util_CfgGetAppWin(agent, "OptPieceUnits", &ok, &err)
+	if !ok
+		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
+	for u, _ in cfg["OPT_PACK_UNITS"] {
+		if cfg["OPT_PIECE_UNITS"].Has(u)
+			return Util_CfgFail(
+				"OptPackUnits 与 OptPieceUnits 不可重叠：`n" u,
+				"INVALID_MODULE_SETTINGS"
+			)
+	}
 	cfg["CONFIRM_TIMEOUT_MS"] := Util_CfgGetRangeInt(agent, "ConfirmTimeoutMs", 100, 10000, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")

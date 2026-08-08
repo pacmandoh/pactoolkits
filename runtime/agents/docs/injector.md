@@ -51,6 +51,8 @@ Desktop 仅在用户配置不存在时复制默认配置；升级时若默认配
 
 窗口类、ClassNN、仓库识别文本和字段策略均由用户配置提供。运行时不会提供绕过目标应用检查的全局模式。
 
+门诊取码计划读数量列的「单位」，对照 `OptPackUnits`（包装单位）与 `OptPieceUnits`（数量单位）；空或未命中任一侧则中止。
+
 ## 源码结构
 
 相对 `runtime/agents/modules/injector/`：

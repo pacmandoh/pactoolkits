@@ -84,6 +84,18 @@
           "type": "string",
           "label": "门诊输入控件",
           "description": "门诊输入 ClassNN"
+        },
+        {
+          "key": "OptPackUnits",
+          "type": "stringList",
+          "label": "门诊包装单位",
+          "description": "数量「单位」落在此清单则按整包装计；与「门诊数量单位」不可重叠"
+        },
+        {
+          "key": "OptPieceUnits",
+          "type": "stringList",
+          "label": "门诊数量单位",
+          "description": "数量「单位」落在此清单则按非整包装数量计；未命中任一侧则中止"
         }
       ]
     },
