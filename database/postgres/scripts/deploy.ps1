@@ -29,7 +29,7 @@ function Load-DbEnv() {
   $cfg = Read-Json $ConfigPath
   $env:PGHOST = if ($cfg.PGHOST) { "$($cfg.PGHOST)" } else { '127.0.0.1' }
   $env:PGPORT = if ($cfg.PGPORT) { "$($cfg.PGPORT)" } else { '5432' }
-  $env:PGDATABASE = if ($cfg.PGDATABASE) { "$($cfg.PGDATABASE)" } else { 'codepool_dev' }
+  $env:PGDATABASE = if ($cfg.PGDATABASE) { "$($cfg.PGDATABASE)" } else { 'postgres' }
   $env:PGUSER = if ($cfg.PGUSER) { "$($cfg.PGUSER)" } else { 'postgres' }
   $env:PGPASSWORD = if ($cfg.PGPASSWORD) { "$($cfg.PGPASSWORD)" } else { '' }
 }

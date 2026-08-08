@@ -3,7 +3,7 @@ using PacToolkits.Api.Auth;
 
 namespace PacToolkits.Api.Endpoints;
 
-/// <summary>JWT 校验探针</summary>
+/// <summary>校验 JWT 与 read scope</summary>
 public static class PingEndpoints
 {
     public static IEndpointRouteBuilder MapPing(this IEndpointRouteBuilder routes)
@@ -18,7 +18,7 @@ public static class PingEndpoints
 
                 return Results.Ok(new PingResponse("pong", clientId));
             })
-            .RequireAuthorization();
+            .RequireAuthorization(AuthPolicies.Read);
         return routes;
     }
 }

@@ -14,7 +14,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
 {
     private const string NotifyChannel = "pactoolkits_change";
 
-    private readonly IDb _db;
+    private readonly IChangeWatermarkRepo _watermarks;
     private readonly IDbConfigService _dbConfig;
     private readonly IAppLogger _logger;
     private readonly CancellationTokenSource _cts = new();
@@ -34,11 +34,14 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
 
     public event Action<string>? TopicChanged;
 
-    public ChangeWatermarkService(IDb db, IDbConfigService dbConfig, IAppLogger logger)
+    public ChangeWatermarkService(
+        IChangeWatermarkRepo watermarks,
+        IDbConfigService dbConfig,
+        IAppLogger logger)
     {
-        _db = db;
-        _dbConfig = dbConfig;
-        _logger = logger;
+        _watermarks = watermarks ?? throw new ArgumentNullException(nameof(watermarks));
+        _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public void Start()
@@ -165,10 +168,12 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
 
     private async Task RefreshFromWatermarkAsync(bool emitOnBootstrap, CancellationToken ct)
     {
-        var rows = await ReadWatermarksAsync(ct).ConfigureAwait(false);
+        var rows = await _watermarks.ListAsync(ct).ConfigureAwait(false);
 
-        foreach (var (topic, version) in rows)
+        foreach (var row in rows)
         {
+            var topic = row.Topic;
+            var version = row.Version;
             var shouldEmit = false;
 
             lock (_gate)
@@ -195,39 +200,6 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             }
         }
     }
-
-    private Task<List<(string Topic, long Version)>> ReadWatermarksAsync(CancellationToken ct)
-        => _db.WithConnection(async (conn, token) =>
-        {
-            const string sql = """
-                select topic, version
-                from app_change_watermark
-                order by topic
-            """;
-
-            await using var cmd = conn.CreateCommand(sql, timeoutSeconds: 4);
-            var list = new List<(string Topic, long Version)>();
-
-            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            while (await reader.ReadAsync(token).ConfigureAwait(false))
-            {
-                if (reader.IsDBNull(0) || reader.IsDBNull(1))
-                {
-                    continue;
-                }
-
-                var topic = reader.GetString(0);
-                var version = reader.GetInt64(1);
-                if (string.IsNullOrWhiteSpace(topic))
-                {
-                    continue;
-                }
-
-                list.Add((topic, version));
-            }
-
-            return list;
-        }, ct);
 
     private string BuildListenConnectionString()
     {

@@ -75,7 +75,7 @@ public sealed class PostgresIntegrationTests
         {
             Host = Environment.GetEnvironmentVariable("PGHOST") ?? "127.0.0.1",
             Port = int.TryParse(Environment.GetEnvironmentVariable("PGPORT"), out var port) ? port : 5432,
-            Database = database ?? Environment.GetEnvironmentVariable("PGDATABASE") ?? "codepool_dev",
+            Database = database ?? Environment.GetEnvironmentVariable("PGDATABASE") ?? "postgres",
             Username = Environment.GetEnvironmentVariable("PGUSER") ?? "postgres",
             Password = Environment.GetEnvironmentVariable("PGPASSWORD") ?? string.Empty,
         };

@@ -1,4 +1,4 @@
-using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -7,6 +7,8 @@ namespace PacToolkits.Api.Auth;
 
 public static class AuthServiceExtensions
 {
+    public const string TokenRateLimitPolicy = "auth-token";
+
     public static IServiceCollection AddPacToolkitsAuth(this IServiceCollection services, IConfiguration config)
     {
         services
@@ -27,30 +29,68 @@ public static class AuthServiceExtensions
             .Validate(
                 o => o.Jwt.ExpiresMinutes > 0,
                 "Auth:Jwt:ExpiresMinutes must be greater than 0")
+            .Validate(
+                o => o.Clients.Values.All(c =>
+                    c is null
+                    || string.IsNullOrWhiteSpace(c.ApiKeyHash)
+                    || ApiKeyHasher.IsSha256Hex(c.ApiKeyHash)),
+                "Auth:Clients:*:ApiKeyHash must be 64-char SHA-256 hex when set")
             .ValidateOnStart();
 
+        services.AddSingleton(sp =>
+        {
+            var auth = sp.GetRequiredService<IOptions<AuthOptions>>().Value;
+            return new JwtSigningMaterial(auth.Jwt);
+        });
+
         services.AddSingleton<JwtTokenIssuer>();
-        services.AddSingleton<IConfigureOptions<JwtBearerOptions>, JwtBearerFromAuthOptions>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer();
 
-        services.AddAuthorization();
+        services.AddSingleton<IConfigureOptions<JwtBearerOptions>, JwtBearerFromSigningMaterial>();
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(
+                AuthPolicies.Read,
+                p => p.RequireAuthenticatedUser().RequireClaim(AuthPolicies.ScopeClaim, AuthPolicies.Read));
+            options.AddPolicy(
+                AuthPolicies.Write,
+                p => p.RequireAuthenticatedUser().RequireClaim(AuthPolicies.ScopeClaim, AuthPolicies.Write));
+            options.AddPolicy(
+                AuthPolicies.SystemStatus,
+                p => p.RequireAuthenticatedUser()
+                    .RequireClaim(AuthPolicies.ScopeClaim, AuthPolicies.SystemStatus));
+        });
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(TokenRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                    }));
+        });
+
         return services;
     }
 }
 
-/// <summary>
-/// JWT 校验参数与 AuthOptions 同源，避免注册期快照与配置覆盖脱节
-/// </summary>
-internal sealed class JwtBearerFromAuthOptions : IConfigureNamedOptions<JwtBearerOptions>
+/// <summary>JWT 校验使用进程启动时固定的 SigningMaterial（不随热更配置重载）</summary>
+internal sealed class JwtBearerFromSigningMaterial : IConfigureNamedOptions<JwtBearerOptions>
 {
-    private readonly IOptionsMonitor<AuthOptions> _auth;
+    private readonly JwtSigningMaterial _signing;
 
-    public JwtBearerFromAuthOptions(IOptionsMonitor<AuthOptions> auth)
+    public JwtBearerFromSigningMaterial(JwtSigningMaterial signing)
     {
-        _auth = auth ?? throw new ArgumentNullException(nameof(auth));
+        _signing = signing ?? throw new ArgumentNullException(nameof(signing));
     }
 
     public void Configure(JwtBearerOptions options)
@@ -63,19 +103,19 @@ internal sealed class JwtBearerFromAuthOptions : IConfigureNamedOptions<JwtBeare
             return;
         }
 
-        var jwt = _auth.CurrentValue.Jwt;
-        var signingKey = jwt.SigningKey.Trim();
         options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = jwt.Issuer,
+            ValidIssuer = _signing.Issuer,
             ValidateAudience = true,
-            ValidAudience = jwt.Audience,
+            ValidAudience = _signing.Audience,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+            IssuerSigningKey = _signing.SecurityKey,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1),
+            RequireSignedTokens = true,
+            ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
         };
     }
 }

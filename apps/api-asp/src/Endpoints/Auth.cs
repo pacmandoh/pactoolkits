@@ -2,24 +2,32 @@ using PacToolkits.Api.Auth;
 
 namespace PacToolkits.Api.Endpoints;
 
-/// <summary>API Key → JWT 换票</summary>
+/// <summary>API Key 换 JWT</summary>
 public static class AuthEndpoints
 {
     public static IEndpointRouteBuilder MapAuth(this IEndpointRouteBuilder routes)
     {
-        routes.MapPost("/v1/auth/token", IssueToken).AllowAnonymous();
+        routes.MapPost("/v1/auth/token", IssueToken)
+            .AllowAnonymous()
+            .RequireRateLimiting(AuthServiceExtensions.TokenRateLimitPolicy);
         return routes;
     }
 
-    private static IResult IssueToken(HttpRequest request, JwtTokenIssuer issuer)
+    private static IResult IssueToken(
+        HttpRequest request,
+        JwtTokenIssuer issuer,
+        ILoggerFactory loggerFactory)
     {
+        var logger = loggerFactory.CreateLogger("Auth.Token");
         var key = issuer.ReadApiKey(request);
-        if (!issuer.TryMatchApiKey(key, out var clientId))
+        if (!issuer.TryMatchApiKey(key, out var clientId, out var scopes))
         {
+            logger.LogWarning("auth.token_denied remote={Remote}", request.HttpContext.Connection.RemoteIpAddress);
             return Results.Unauthorized();
         }
 
-        var (accessToken, expiresIn) = issuer.Issue(clientId);
+        var (accessToken, expiresIn) = issuer.Issue(clientId, scopes);
+        logger.LogInformation("auth.token_issued clientId={ClientId}", clientId);
         return Results.Ok(new TokenResponse(accessToken, "Bearer", expiresIn, clientId));
     }
 }

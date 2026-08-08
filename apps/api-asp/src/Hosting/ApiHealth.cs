@@ -1,0 +1,68 @@
+using Microsoft.Extensions.Options;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Core;
+
+namespace PacToolkits.Api.Hosting;
+
+/// <summary>进程、PostgreSQL 与 schema 门禁的健康快照</summary>
+public sealed record ApiHealthSnapshot(
+    bool Ok,
+    string Database,
+    string Schema,
+    string? SchemaVersion);
+
+/// <summary>业务可用性健康检查（响应不含连接串与账号）</summary>
+public interface IApiHealth
+{
+    Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default);
+}
+
+/// <summary>连库探测并 Match SchemaBounds</summary>
+public sealed class ApiHealth : IApiHealth
+{
+    private readonly IDbConfigService _db;
+    private readonly IDbSchemaGate _schemaGate;
+    private readonly SchemaBoundsOptions _bounds;
+
+    public ApiHealth(
+        IDbConfigService db,
+        IDbSchemaGate schemaGate,
+        IOptions<SchemaBoundsOptions> bounds)
+    {
+        _db = db ?? throw new ArgumentNullException(nameof(db));
+        _schemaGate = schemaGate ?? throw new ArgumentNullException(nameof(schemaGate));
+        _bounds = bounds?.Value ?? throw new ArgumentNullException(nameof(bounds));
+    }
+
+    public async Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default)
+    {
+        var reachable = await _db.TestConnectionAsync(_db.Current, ct).ConfigureAwait(false);
+        if (!reachable)
+        {
+            return new ApiHealthSnapshot(Ok: false, Database: "unavailable", Schema: "skipped", SchemaVersion: null);
+        }
+
+        var read = await _schemaGate.ReadAsync(ct).ConfigureAwait(false);
+        var match = _schemaGate.Match(read, _bounds.MinDbSchema, _bounds.MaxDbSchema);
+        if (!match.IsCompatible)
+        {
+            var schemaState = match.Status switch
+            {
+                DbSchemaCompatibility.MetadataMissing => "metadata_missing",
+                DbSchemaCompatibility.BelowMinimum or DbSchemaCompatibility.AboveMaximum => "incompatible",
+                _ => "unavailable",
+            };
+            return new ApiHealthSnapshot(
+                Ok: false,
+                Database: "ok",
+                Schema: schemaState,
+                SchemaVersion: string.IsNullOrWhiteSpace(match.CurrentVersion) ? null : match.CurrentVersion);
+        }
+
+        return new ApiHealthSnapshot(
+            Ok: true,
+            Database: "ok",
+            Schema: "ok",
+            SchemaVersion: match.CurrentVersion);
+    }
+}

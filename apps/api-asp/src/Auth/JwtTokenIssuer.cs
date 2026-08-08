@@ -1,49 +1,62 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace PacToolkits.Api.Auth;
 
-/// <summary>校验 API Key 并用对称密钥签发 JWT</summary>
+/// <summary>校验 API Key 散列并以启动期材料签发 JWT</summary>
 public sealed class JwtTokenIssuer
 {
     public const string ClientIdClaim = "client_id";
 
-    private readonly IOptionsMonitor<AuthOptions> _options;
+    public const int MaxApiKeyHeaderLength = 512;
 
-    public JwtTokenIssuer(IOptionsMonitor<AuthOptions> options)
+    private readonly IOptionsMonitor<AuthOptions> _options;
+    private readonly JwtSigningMaterial _signing;
+
+    public JwtTokenIssuer(IOptionsMonitor<AuthOptions> options, JwtSigningMaterial signing)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _signing = signing ?? throw new ArgumentNullException(nameof(signing));
     }
 
-    public bool TryMatchApiKey(string? presented, out string clientId)
+    public bool TryMatchApiKey(string? presented, out string clientId, out IReadOnlyList<string> scopes)
     {
         clientId = string.Empty;
+        scopes = Array.Empty<string>();
         if (string.IsNullOrWhiteSpace(presented))
         {
             return false;
         }
 
-        var presentedBytes = Encoding.UTF8.GetBytes(presented.Trim());
-        var keys = _options.CurrentValue.ApiKeys;
-        for (var i = 0; i < keys.Count; i++)
+        var trimmed = presented.Trim();
+        if (trimmed.Length > MaxApiKeyHeaderLength)
         {
-            var candidate = keys[i];
-            if (string.IsNullOrWhiteSpace(candidate))
+            return false;
+        }
+
+        var presentedHash = ApiKeyHasher.Hash(trimmed);
+        foreach (var (id, client) in _options.CurrentValue.Clients)
+        {
+            if (string.IsNullOrWhiteSpace(id) || client is null || !client.Enabled)
             {
                 continue;
             }
 
-            var candidateBytes = Encoding.UTF8.GetBytes(candidate.Trim());
-            if (presentedBytes.Length == candidateBytes.Length
-                && CryptographicOperations.FixedTimeEquals(presentedBytes, candidateBytes))
+            if (string.IsNullOrWhiteSpace(client.ApiKeyHash))
             {
-                clientId = $"site-{i}";
-                return true;
+                continue;
             }
+
+            if (!ApiKeyHasher.FixedTimeEqualsHex(presentedHash, client.ApiKeyHash))
+            {
+                continue;
+            }
+
+            clientId = id.Trim();
+            scopes = NormalizeScopes(client.Scopes);
+            return true;
         }
 
         return false;
@@ -60,24 +73,28 @@ public sealed class JwtTokenIssuer
         return null;
     }
 
-    public (string AccessToken, int ExpiresInSeconds) Issue(string clientId)
+    public (string AccessToken, int ExpiresInSeconds) Issue(string clientId, IReadOnlyList<string> scopes)
     {
-        var jwt = _options.CurrentValue.Jwt;
-        var expiresMinutes = jwt.ExpiresMinutes;
+        var expiresMinutes = _signing.ExpiresMinutes;
         var now = DateTimeOffset.UtcNow;
         var expires = now.AddMinutes(expiresMinutes);
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey.Trim()));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var claims = new[]
+        var creds = new SigningCredentials(_signing.SecurityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, clientId),
-            new Claim(ClientIdClaim, clientId),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new(JwtRegisteredClaimNames.Sub, clientId),
+            new(ClientIdClaim, clientId),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
         };
 
+        foreach (var scope in scopes)
+        {
+            claims.Add(new Claim(AuthPolicies.ScopeClaim, scope));
+        }
+
         var token = new JwtSecurityToken(
-            issuer: jwt.Issuer,
-            audience: jwt.Audience,
+            issuer: _signing.Issuer,
+            audience: _signing.Audience,
             claims: claims,
             notBefore: now.UtcDateTime,
             expires: expires.UtcDateTime,
@@ -85,5 +102,19 @@ public sealed class JwtTokenIssuer
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
         return (accessToken, (int)TimeSpan.FromMinutes(expiresMinutes).TotalSeconds);
+    }
+
+    private static IReadOnlyList<string> NormalizeScopes(IEnumerable<string>? scopes)
+    {
+        if (scopes is null)
+        {
+            return Array.Empty<string>();
+        }
+
+        return scopes
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
     }
 }

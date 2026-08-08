@@ -1,10 +1,10 @@
 namespace PacToolkits.Api.Auth;
 
 /// <summary>
-/// 换票用站点 API Key 与 JWT 签发参数
+/// 换票用站点客户端与 JWT 签发参数
 ///
-/// 受保护路由验 JWT；Key 仅用于 POST /v1/auth/token
-/// 生产：Auth:ApiKeys / Auth:Jwt:SigningKey 走环境变量；SigningKey ≥32 字符，勿入库真密钥
+/// 受保护路由验 JWT；明文 API Key 仅用于 POST /v1/auth/token
+/// Clients 键为稳定 client id；服务端只存 ApiKeyHash；SigningKey 变更后须重启进程
 /// </summary>
 public sealed class AuthOptions
 {
@@ -14,9 +14,20 @@ public sealed class AuthOptions
 
     public string HeaderName { get; set; } = DefaultHeaderName;
 
-    public List<string> ApiKeys { get; set; } = [];
+    public Dictionary<string, ClientOptions> Clients { get; set; } =
+        new(StringComparer.Ordinal);
 
     public JwtOptions Jwt { get; set; } = new();
+}
+
+/// <summary>具名客户端：ApiKeyHash（SHA-256 hex）、Enabled、Scopes</summary>
+public sealed class ClientOptions
+{
+    public string ApiKeyHash { get; set; } = string.Empty;
+
+    public bool Enabled { get; set; } = true;
+
+    public List<string> Scopes { get; set; } = [];
 }
 
 /// <summary>HMAC 对称签 JWT 的 Issuer/Audience/SigningKey/TTL</summary>
