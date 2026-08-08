@@ -406,7 +406,24 @@ public sealed class ModuleSettingsValidatorTests
         Assert.False(settings.ContainsKey("ColSpecs"));
         Assert.False(settings.ContainsKey("IntCols"));
         Assert.False(settings.ContainsKey("WarehouseTaskIdentifier"));
-        Assert.Equal(9, settings["ColFields"]!.AsArray().Count);
+        Assert.Equal(8, settings["ColFields"]!.AsArray().Count);
+        Assert.True(settings["OptPackUnits"] is JsonArray);
+        Assert.True(settings["OptPieceUnits"] is JsonArray);
+        Assert.Contains(
+            settings["ColFields"]!.AsArray(),
+            static n => n?["id"]?.GetValue<string>() == "unit");
+        Assert.DoesNotContain(
+            settings["ColFields"]!.AsArray(),
+            static n => n?["id"]?.GetValue<string>() == "doseUnit");
+        Assert.Contains(
+            settings["OptPackUnits"]!.AsArray(),
+            static n => n?.GetValue<string>() == "盒");
+        Assert.Contains(
+            settings["OptPieceUnits"]!.AsArray(),
+            static n => n?.GetValue<string>() == "瓶");
+        Assert.DoesNotContain(
+            settings["OptPackUnits"]!.AsArray(),
+            static n => n?.GetValue<string>() == "瓶");
     }
 
     [Fact]

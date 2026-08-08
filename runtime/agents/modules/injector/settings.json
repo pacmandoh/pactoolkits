@@ -50,14 +50,6 @@
       "locked": true
     },
     {
-      "id": "doseUnit",
-      "label": "用量单位",
-      "headers": ["用量单位"],
-      "required": false,
-      "asInt": false,
-      "locked": true
-    },
-    {
       "id": "splitFlag",
       "label": "拆零",
       "headers": ["拆零标签", "拆零"],
@@ -87,6 +79,17 @@
   "IptVerifyGridClassNN": "TcxGridSite1",
   "OptInputClassNN": "TMemo2",
   "IptInputClassNN": "TEdit1",
+  "OptPackUnits": [
+    "盒"
+  ],
+  "OptPieceUnits": [
+    "片",
+    "粒",
+    "枚",
+    "丸",
+    "瓶",
+    "支"
+  ],
   "WarehouseEnabled": false,
   "WarehouseAnchorTexts": [
     "患者姓名",

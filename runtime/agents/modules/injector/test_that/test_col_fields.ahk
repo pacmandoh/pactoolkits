@@ -1,13 +1,14 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 ; ColFields 配置模型回归（严格边界）
-; 覆盖：规范化 / 读配置门控 / settings.json 默认 / 表头命中 / bySpec 按 id 取值
+; 覆盖：规范化 / 读配置门控 / settings.json 默认 / 表头命中 / bySpec 按 id / 门诊单位门控
 ; 不覆盖：DB / 事务预留 / 选码策略 / 仓库指纹 / 剪贴板与 UI 网格（解析仅喂静态 TSV）
 
 #Include "%A_ScriptDir%\..\..\..\lib\ahk\JSON.ahk"
 #Include "%A_ScriptDir%\..\src\util_misc.ahk"
 #Include "%A_ScriptDir%\..\src\parse_clipboard.ahk"
 #Include "%A_ScriptDir%\..\src\util_config.ahk"
+#Include "%A_ScriptDir%\..\src\txn_plan.ahk"
 
 global g_pass := 0
 global g_fail := 0
@@ -42,6 +43,9 @@ Main() {
 	Test_Parse_BySpecKeysAndOptional()
 	Test_Parse_AsIntCoerce()
 	Test_Parse_HeaderMissAndEmptyFields()
+
+	; --- 6. 门诊数量.单位门控 ---
+	Test_OptUnitPackWhole_Gate()
 
 	body := "ColFields 配置模型`n"
 		. "pass=" g_pass "  fail=" g_fail "`n"
@@ -293,9 +297,9 @@ Test_SettingsJson_ShipShape() {
 
 	Assert(Type(root["AppWin"]) = "Array", "ship:AppWin is Array")
 	Assert(Type(root["ColFields"]) = "Array", "ship:ColFields is Array")
-	AssertEq(root["ColFields"].Length, 9, "ship:ColFields count=9")
+	AssertEq(root["ColFields"].Length, 8, "ship:ColFields count=8")
 
-	must := ["traceCode", "drugName", "drugSpec", "qty", "unit", "doseUnit", "splitFlag", "billNo", "batchNo"]
+	must := ["traceCode", "drugName", "drugSpec", "qty", "unit", "splitFlag", "billNo", "batchNo"]
 	for _, id in must {
 		found := false
 		for _, row in root["ColFields"] {
@@ -318,6 +322,11 @@ Test_SettingsJson_ShipShape() {
 		if (row["id"] = "qty")
 			AssertTrue(row["asInt"] = true, "ship:qty asInt")
 	}
+
+	Assert(Type(root["OptPackUnits"]) = "Array", "ship:OptPackUnits Array")
+	Assert(Type(root["OptPieceUnits"]) = "Array", "ship:OptPieceUnits Array")
+	AssertTrue(root["OptPackUnits"].Length > 0, "ship:OptPackUnits non-empty")
+	AssertTrue(root["OptPieceUnits"].Length > 0, "ship:OptPieceUnits non-empty")
 }
 
 Test_SettingsJson_LoadViaCfgGet() {
@@ -337,7 +346,7 @@ Test_SettingsJson_LoadViaCfgGet() {
 	AssertTrue(ok, "load:CfgGetColFields ok" (err != "" ? " err=" err : ""))
 	if !ok
 		return
-	AssertEq(fields.Length, 9, "load:runtime field count")
+	AssertEq(fields.Length, 8, "load:runtime field count")
 	; 运行时仅 id/headers/required/asInt（无 label/locked）
 	for _, f in fields {
 		AssertFalse(f.Has("label"), "load:no label on " f["id"])
@@ -353,6 +362,19 @@ Test_SettingsJson_LoadViaCfgGet() {
 	if ok {
 		AssertTrue(set.Has("互慧软件.exe"), "load:AppWin 互慧")
 		AssertTrue(set.Has("ProjectMain.exe"), "load:AppWin ProjectMain")
+	}
+
+	pack := Util_CfgGetAppWin(root, "OptPackUnits", &ok, &err)
+	AssertTrue(ok, "load:OptPackUnits ok")
+	piece := Util_CfgGetAppWin(root, "OptPieceUnits", &ok, &err)
+	AssertTrue(ok, "load:OptPieceUnits ok")
+	if (ok && IsObject(pack) && IsObject(piece)) {
+		AssertTrue(pack.Has("盒"), "load:OptPackUnits 盒")
+		AssertTrue(piece.Has("片"), "load:OptPieceUnits 片")
+		AssertTrue(piece.Has("瓶"), "load:OptPieceUnits 瓶")
+		AssertFalse(pack.Has("瓶"), "load:瓶 not pack")
+		for u, _ in pack
+			AssertFalse(piece.Has(u), "load:no overlap " u)
 	}
 
 	pol := Util_CfgGetOneOf(root, "CodePickPolicy", ["max_level", "min_level"], &ok, &err)
@@ -435,4 +457,41 @@ Test_Parse_HeaderMissAndEmptyFields() {
 
 	rNoRow := Parse_TargetInfo(fields, "", "物资名称`t数量", "A", "", true)
 	AssertFalse(rNoRow["ok"], "parse:header only no data fails")
+}
+
+; ========== 6. 门诊数量.单位门控 ==========
+
+Test_OptUnitPackWhole_Gate() {
+	pack := Map("盒", true)
+	piece := Map("片", true, "粒", true, "瓶", true, "支", true)
+
+	gBox := Txn_OptUnitPackWhole("盒", pack, piece)
+	AssertTrue(gBox["ok"], "gate:盒 ok")
+	if gBox["ok"]
+		AssertTrue(gBox["packWhole"], "gate:盒 → packWhole")
+
+	gBottle := Txn_OptUnitPackWhole("瓶", pack, piece)
+	AssertTrue(gBottle["ok"], "gate:瓶 ok")
+	if gBottle["ok"]
+		AssertFalse(gBottle["packWhole"], "gate:瓶 → not packWhole")
+
+	gTab := Txn_OptUnitPackWhole("片", pack, piece)
+	AssertTrue(gTab["ok"], "gate:片 ok")
+	if gTab["ok"]
+		AssertFalse(gTab["packWhole"], "gate:片 → not packWhole")
+
+	gCap := Txn_OptUnitPackWhole("粒", pack, piece)
+	AssertTrue(gCap["ok"], "gate:粒 ok")
+	if gCap["ok"]
+		AssertFalse(gCap["packWhole"], "gate:粒 → not packWhole")
+
+	gEmpty := Txn_OptUnitPackWhole("", pack, piece)
+	AssertFalse(gEmpty["ok"], "gate:empty unit fail")
+
+	gUnk := Txn_OptUnitPackWhole("mg", pack, piece)
+	AssertFalse(gUnk["ok"], "gate:mg unknown fail")
+
+	both := Map("盒", true)
+	gClash := Txn_OptUnitPackWhole("盒", both, both)
+	AssertFalse(gClash["ok"], "gate:overlap fail")
 }

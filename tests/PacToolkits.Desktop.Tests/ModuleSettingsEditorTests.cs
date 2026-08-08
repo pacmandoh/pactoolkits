@@ -399,9 +399,24 @@ public sealed class ModuleSettingsEditorTests
             .SelectMany(static s => s.Fields)
             .Single(static f => f.Key == "ColFields");
         Assert.True(colField.IsColFieldList);
-        Assert.Equal(9, colField.ColFields.Count);
+        Assert.Equal(8, colField.ColFields.Count);
         Assert.Contains(colField.ColFields, static r => r.Id == "billNo" && r.IsLocked);
         Assert.Contains(colField.ColFields, static r => r.Id == "batchNo");
+        Assert.DoesNotContain(colField.ColFields, static r => r.Id == "doseUnit");
+
+        var packUnits = editor.Sections
+            .SelectMany(static s => s.Fields)
+            .Single(static f => f.Key == "OptPackUnits");
+        Assert.True(packUnits.IsStringList);
+        Assert.Contains(packUnits.ListItems, static r => r.Value == "盒");
+        Assert.DoesNotContain(packUnits.ListItems, static r => r.Value == "瓶");
+
+        var pieceUnits = editor.Sections
+            .SelectMany(static s => s.Fields)
+            .Single(static f => f.Key == "OptPieceUnits");
+        Assert.True(pieceUnits.IsStringList);
+        Assert.Contains(pieceUnits.ListItems, static r => r.Value == "片");
+        Assert.Contains(pieceUnits.ListItems, static r => r.Value == "瓶");
 
         var appWin = editor.Sections
             .SelectMany(static s => s.Fields)
@@ -421,11 +436,13 @@ public sealed class ModuleSettingsEditorTests
         Assert.Null(json["IntCols"]);
         Assert.Null(json["WarehouseTaskIdentifier"]);
         Assert.True(json["AppWin"] is JsonArray);
-        Assert.Equal(9, json["ColFields"]!.AsArray().Count);
+        Assert.Equal(8, json["ColFields"]!.AsArray().Count);
         Assert.Contains(
             json["ColFields"]!.AsArray(),
             static n => n?["id"]?.GetValue<string>() == "drugName"
                 && n?["locked"]?.GetValue<bool>() == true);
+        Assert.True(json["OptPackUnits"] is JsonArray);
+        Assert.True(json["OptPieceUnits"] is JsonArray);
     }
 
     private static string RepoRoot()
