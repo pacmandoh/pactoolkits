@@ -97,7 +97,7 @@ public partial class MainWindowViewModel
                 return;
             }
 
-            // 库存编辑中：仍 Mark dirty + defer Reload；另走静默感知，不 Discard
+            // 库存编辑中：仍 Mark dirty 并 defer Reload；另走静默感知，不 Discard
             if (ActivePage is InventoryOverview inventory
                 && defer.Inventory
                 && inventory.IsStockEditEnabled)

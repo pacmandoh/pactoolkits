@@ -12,7 +12,7 @@ public sealed record AgentsModuleDbBound(
         => !string.IsNullOrWhiteSpace(MinDbSchema) && !string.IsNullOrWhiteSpace(MaxDbSchema);
 }
 
-/// <summary>挂载门禁拒绝原因（仅 policy 侧，不碰 Host 进程）</summary>
+/// <summary>挂载门禁拒绝原因（仅策略侧，不涉及 Host 进程）</summary>
 public enum AgentsAdmitDenyKind
 {
     None = 0,

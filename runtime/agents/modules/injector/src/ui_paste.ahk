@@ -135,7 +135,7 @@ UI_PrepareWarehouseFastTarget(inputClassNN, win := "A") {
 	return Map("ok", true)
 }
 
-; 门诊/住院贴码：取 HWND + WinActivate + WM_SETTEXT + 读回后 Enter
+; 门诊/住院贴码：取 HWND，再 WinActivate、WM_SETTEXT，读回后 Enter
 ; 禁用 ControlFocus；不用剪贴板/WM_PASTE（避免忙/超时与光标追加拼码）
 ; doEnter：true=门诊(KEYDOWN+KEYUP)；false=住院(仅 KEYDOWN，勿发 KEYUP)
 UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
@@ -213,8 +213,8 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 	}
 
 	; doEnter 两种模式必须分开（实测契约，禁止合并成同一种回车）：
-	;   true  → 门诊：KEYDOWN + KEYUP
-	;   false → 住院：仅 KEYDOWN（禁止补发 KEYUP）
+	;   true：门诊 KEYDOWN 与 KEYUP
+	;   false：住院仅 KEYDOWN（禁止补发 KEYUP）
 	Sleep(50)
 	try {
 		if (doEnter) {

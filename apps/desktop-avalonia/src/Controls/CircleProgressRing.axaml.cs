@@ -8,7 +8,7 @@ using Avalonia.Threading;
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// 环形进度条：按百分比绘制弧段，支持 indeterminate 与 0→value 回放动画
+/// 环形进度条：按百分比绘制弧段，支持 indeterminate 与从 0 到 value 的回放动画
 /// </summary>
 public partial class CircleProgressRing : UserControl
 {
@@ -79,7 +79,7 @@ public partial class CircleProgressRing : UserControl
         private set => SetValue(DisplayValueProperty, value);
     }
 
-    // 递增以回放 0→value 动画，无需改 Value
+    // 递增以回放从 0 到 value 的动画，无需改 Value
     public int ReplayTrigger
     {
         get => GetValue(ReplayTriggerProperty);

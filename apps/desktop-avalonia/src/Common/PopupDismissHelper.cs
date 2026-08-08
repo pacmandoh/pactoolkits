@@ -10,7 +10,7 @@ namespace PacToolkits.Desktop.Avalonia.Common;
 
 /// <summary>
 /// TopLevel 内打开中的 Popup / 下拉 light-dismiss
-/// 不强制关 ACB（由控件自身 light-dismiss + SelectionGuard 收口）
+/// 不强制关 ACB（由控件自身 light-dismiss 与 SelectionGuard 收口）
 /// </summary>
 internal static class PopupDismissHelper
 {

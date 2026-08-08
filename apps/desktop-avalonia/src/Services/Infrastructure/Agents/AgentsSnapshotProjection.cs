@@ -7,7 +7,7 @@ using PacToolkits.Agents.Contracts.Models;
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
 /// <summary>
-/// Host Snapshot → Desktop UI 投影（catalog / state / lastError / 版本）
+/// Host Snapshot 投影到 Desktop UI（catalog / state / lastError / 版本）
 ///
 /// 管道缓存优先；status 文件仅观测镜像
 /// </summary>
@@ -289,7 +289,7 @@ internal sealed class AgentsSnapshotProjection
     }
 
     /// <summary>
-    /// 从链路 + 可选文件镜像解析 catalog（长 maxAge，仅 Reload / 启动前）
+    /// 从链路与可选文件镜像解析 catalog（长 maxAge，仅 Reload / 启动前）
     /// </summary>
     public bool TryApplyCatalogFromCaches(
         string? agentsDir,
@@ -334,7 +334,7 @@ internal sealed class AgentsSnapshotProjection
             return fromLink;
         }
 
-        // 文件镜像：未连管道时的观测，不当控制面
+        // 文件镜像：未连管道时的观测，不参与控制决策
         return AgentsStatus.TryRead(agentsDir, AgentsStatus.DefaultMaxAge);
     }
 
@@ -461,7 +461,7 @@ internal sealed class AgentsSnapshotProjection
 
             if (status is not null && status.HostState != AgentsRunState.Unknown)
             {
-                // 仅有效 Snapshot 才清掉冷启 launching，避免 Unknown 帧抹掉 Starting
+                // 仅有效 Snapshot 才清掉 launching（启动中），避免 Unknown 帧抹掉 Starting
                 host.ClearLaunching();
                 return status.HostState;
             }

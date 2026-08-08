@@ -17,10 +17,10 @@ public static class AgentsPaths
 
     public const string ModuleManifestFileName = "module.json";
 
-    // Host 周期发布的运行快照（IPC 推送 + 诊断落盘）
+    // Host 周期发布的运行快照（IPC 推送与诊断落盘）
     public const string HostStatusFileName = "host.status.json";
 
-    // 期望挂载集合（IPC desired 热路径；文件为诊断/冷启动镜像）
+    // 期望挂载集合（IPC desired 为主路径；文件为诊断与冷启动镜像）
     public const string HostDesiredFileName = "host.desired.json";
 
     public const string ModulesDirectoryName = "Modules";

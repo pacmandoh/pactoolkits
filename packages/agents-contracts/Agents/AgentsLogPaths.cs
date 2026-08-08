@@ -19,7 +19,7 @@ public static class AgentsLogPaths
             ProductDirectoryName,
             LogsDirectoryName);
 
-    /// <summary>空 → 默认根目录；否则规范化为绝对路径</summary>
+    /// <summary>空则用默认根目录；否则规范化为绝对路径</summary>
     public static string ResolveRoot(string? configuredRoot)
     {
         if (string.IsNullOrWhiteSpace(configuredRoot))

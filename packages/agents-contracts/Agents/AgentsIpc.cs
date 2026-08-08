@@ -5,10 +5,10 @@ using System.Text.Json;
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Desktop ↔ Host 本地 IPC 契约（命名管道 + 换行 JSON）
+/// Desktop 与 Host 本地 IPC 契约（命名管道与换行 JSON）
 ///
 /// ops：desired / quit / ping / getStatus；evs：status / moduleFailed / ok / pong / error
-/// host.status / host.desired 为管道诊断镜像（Host 侧落盘）；热路径为命名管道
+/// host.status / host.desired 为诊断镜像（Host 写盘）；主路径是命名管道
 /// </summary>
 public static class AgentsIpc
 {

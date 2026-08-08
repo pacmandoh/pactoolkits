@@ -34,25 +34,25 @@ flowchart TB
 
 **允许：**
 
-- Desktop → Application、Infrastructure、Agents.Contracts、Logger
-- API → Application、Infrastructure（csproj 按域路由需要引用）
-- Host → Agents.Contracts、Logger
-- Infrastructure → Application、Core
-- Application → Core
+- Desktop 依赖 Application、Infrastructure、Agents.Contracts、Logger
+- API 依赖 Application、Infrastructure（csproj 按域路由需要引用）
+- Host 依赖 Agents.Contracts、Logger
+- Infrastructure 依赖 Application、Core
+- Application 依赖 Core
 
 **禁止：**
 
-- Application → Infrastructure
-- Core → 任意 I/O（数据库、文件系统、日志框架、配置、桌面端）
-- Application、Core → Avalonia
+- Application 依赖 Infrastructure
+- Core 依赖任意 I/O（数据库、文件系统、日志框架、配置、桌面端）
+- Application、Core 依赖 Avalonia
 - ViewModel 直接引用 Npgsql 或编写 SQL
-- API → Desktop / Avalonia
+- API 依赖 Desktop / Avalonia
 
 ## 各层职责
 
 ### `packages/core`
 
-- 与基础设施无关的纯逻辑（例如 `SemVer` / `SemVerRange` 闭区间分类；schema 门面结果见 `DbSchemaCompatibility`）
+- 与基础设施无关的纯逻辑（例如 `SemVer` / `SemVerRange` 闭区间分类；schema 分类结果见 `DbSchemaCompatibility`）
 - 不引用 Npgsql、Avalonia、Microsoft.Extensions.Configuration 等
 
 ### `packages/application`
@@ -74,10 +74,10 @@ flowchart TB
 
 ### `packages/agents-contracts`
 
-- Desktop ↔ Host 协议：路径、`module.json`、desired/status IPC、Snapshot 模型（**零依赖**）
+- Desktop 与 Host 协议：路径、`module.json`、desired/status IPC、Snapshot 模型（**零依赖**）
 - 运行时：`IAgentsRuntime`（Desktop UI/OS Host，**不**继承 Client）、`IAgentsClient`（管道链路）、`IAgentsManager`
 - 配置校验：`AgentsOptions` / `ModuleOptions` / `AgentsConfigValidator` / `ModuleSettingsValidator`
-- Host 只引用路径与协议类型；模块不引本包（命令行 + 文件）
+- Host 只引用路径与协议类型；模块不引本包（命令行与文件）
 
 进程模型见 [Agents 运行时架构](./agents.md)。
 
@@ -85,16 +85,15 @@ flowchart TB
 
 - Views、ViewModels、Avalonia 样式与行为（ShadUI）
 - **桌面专属**服务：Toast、Dialog、更新、剪贴板、UiBehavior 等
-- DI 组装 Application / Infrastructure；`AgentsRuntime`：**OS 启停 Host** + 会话 **desired** + Snapshot 投影（模块进程在 Host）
+- DI 组装 Application / Infrastructure；`AgentsRuntime`：**OS 启停 Host**、会话 **desired**、Snapshot 投影（模块进程在 Host）
 - 页面连接、可用性和空状态见 [desktop-state.md](./desktop-state.md)
 - 焦点与工作集见 [focus-model.md](../../apps/desktop-avalonia/docs/focus-model.md)
 
 ### `apps/api-asp`
 
-- HTTP 宿主（`PacToolkits.Api`）：API Key → JWT、`/health`、JWT 探针 `/v1/ping`
-- composition root：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）
-- 域路由在 `Endpoints/` 映射 Application 用例；csproj 按需引用 Application / Infrastructure
-- 部署与本地脚本见 [API README](../../apps/api-asp/README.md)
+- HTTP 宿主（`PacToolkits.Api`）：具名客户端用 API Key（散列）换 JWT 与授权策略；`/health` 检查 PostgreSQL 与 schema；LISTEN 写入 SSE 变更流；域路由
+- DI 组装入口：`AddPacToolkitsApi`；全量 Application 与 Infrastructure（Desktop Store 与 MSFX 客户端由宿主适配，见 [api.md](./api.md)）
+- 部署与本地脚本：[API README](../../apps/api-asp/README.md)
 
 ## 典型请求路径（示例）
 
@@ -102,21 +101,21 @@ flowchart TB
 
 ```text
 DashboardViewModel
-  → IDashboardService (application)
-    → IDashboardRepo (abstraction)
-      → DashboardRepo (infrastructure)
-        → PgDb / Npgsql
+  IDashboardService (application)
+    IDashboardRepo (abstraction)
+      DashboardRepo (infrastructure)
+        PgDb / Npgsql
 ```
 
 **Agents 启停：**
 
 ```text
 Settings / MainWindow shell
-  → IAgentsManager.GetRequired(AgentsIds.Agents)
-    → AgentsRuntime
-      → CreateProcess(Agents.exe) / quit + Kill Host 进程树
-      → pipe desired / Snapshot（host.desired|status 仅镜像）
-      → AgentsConfigValidator (agents-contracts)
+  IAgentsManager.GetRequired(AgentsIds.Agents)
+    AgentsRuntime
+      CreateProcess(Agents.exe)；quit 超时则 Kill Host 进程树
+      pipe desired / Snapshot（host.desired|status 仅镜像）
+      AgentsConfigValidator (agents-contracts)
 ```
 
 ## 敏感操作与解锁
@@ -128,4 +127,4 @@ Settings / MainWindow shell
 1. 新业务能力优先在 Application 定义接口和服务，由 Infrastructure 提供外部系统实现
 2. Desktop 与 Host 共享的 Agents 类型放入 `agents-contracts`，模块业务配置不进入 Desktop 全局配置模型
 3. 新模块通过 `module.json` 声明入口、桌面元数据和构建方式，业务自动化保持在独立模块进程
-4. 域数据 HTTP 只经 `apps/api-asp`：路由 → Application 用例 → Infrastructure；Desktop 作 HTTP 客户端，不并行直连 Pg
+4. 域数据 HTTP 只经 `apps/api-asp`：路由调 Application 用例，再进 Infrastructure；Desktop 作 HTTP 客户端，不并行直连 Pg

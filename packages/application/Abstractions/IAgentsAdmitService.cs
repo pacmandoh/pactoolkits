@@ -3,9 +3,9 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 挂载门禁：连库 + 当前 schema ∈ 模块区间
+/// 挂载门禁：连库且当前 schema ∈ 模块区间
 ///
-/// 产出可写 desired 的判定；不碰进程 / Host
+/// 产出可写 desired 的判定；不启停模块进程，也不操作 Host
 /// </summary>
 public interface IAgentsAdmitService
 {

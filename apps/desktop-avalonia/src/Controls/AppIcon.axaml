@@ -9,7 +9,7 @@
   ClipToBounds="True">
 
   <Panel>
-    <!--  Tabler 设计坐标 24×24 + stroke 2，经 Viewbox 等比缩放（含线宽）  -->
+    <!--  Tabler 设计坐标 24×24、stroke 2，经 Viewbox 等比缩放（含线宽）  -->
     <Viewbox
       Width="{Binding IconSize, ElementName=Root}"
       Height="{Binding IconSize, ElementName=Root}"

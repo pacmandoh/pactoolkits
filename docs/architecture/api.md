@@ -1,0 +1,97 @@
+# PacToolkits API
+
+`apps/api-asp`（`PacToolkits.Api`）是站点业务 HTTP 宿主：鉴权、健康检查、变更流、域用例路由。业务数据经 Application 与 Infrastructure 访问 PostgreSQL。Desktop 与 Agents **最终经本 API 读写业务数据**，不长期直连 Pg。
+
+迁移按 **用例级 HTTP 命令** 推进，不是把每个 Repository 方法包成 HTTP。
+
+## 职责边界
+
+| 层                        | 做什么                                                                     | 不做什么                           |
+| ------------------------- | -------------------------------------------------------------------------- | ---------------------------------- |
+| `apps/api-asp`            | HTTP、鉴权/授权、限流、ProblemDetails、审计字段、LISTEN 写入 SSE、端点装配 | 不写 SQL、不做业务计算             |
+| `packages/application`    | 与 Desktop 共用的用例与门禁                                                | 不引用 ASP.NET / Avalonia / Npgsql |
+| `packages/infrastructure` | Pg 连接与仓储                                                              | 不定义 HTTP 协议                   |
+
+依赖方向：API 依赖 Application 与 Infrastructure（见 [layering.md](./layering.md)）。
+
+## 鉴权与授权
+
+```text
+POST /v1/auth/token   Header X-Api-Key，换短期 Bearer JWT
+业务路由               Header Authorization: Bearer <jwt>
+GET  /health          匿名；反映进程、PostgreSQL 与 schema 门禁
+```
+
+- **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）
+- **API Key**：服务端只存 `ApiKeyHash`（SHA-256 hex）；明文仅创建时交给客户端
+- **JWT**：HMAC-SHA256；`Auth:Jwt:SigningKey` 变更后须**重启**进程（不支持运行中轮换密钥）
+- **Scope / Policy**：`read` / `write` / `system.status`；端点 `.RequireAuthorization(...)`
+- **换票**：按来源限流；失败统一 401；不区分 Key 不存在 / 错误 / 已禁用；日志不记明文 Key
+
+## 健康与错误
+
+- `/health`：API 进程、PostgreSQL 可达、且 `SchemaBounds` 通过时返回 **200**，否则 **503**；响应不含连接串、账号、SQL、堆栈
+- `SchemaBounds`：与经 `IDb` 的业务读写同一判定（`IDbAccessGuard`）；中间件对默认的 `/v1` 业务路由（含 `changes/*`）返回 **503**。不拦：`/health`、换票、`/v1/ping`、`/v1/system/*`
+- 错误体：业务路径经 ProblemDetails 时常含 `status` / `code` / `title` / `traceId`；换票失败多为框架最小 401；换票限流 429 未必带统一 ApiProblem
+- 生产不返回内部路径与敏感配置
+
+## 变更流
+
+数据变更仍 `pg_notify('pactoolkits_change', topic)`。
+
+**当前 Desktop（过渡）**：业务页与变更流仍走本机 Infrastructure：`ChangeWatermarkService` 做 LISTEN，并用 watermark 轮询，**不经过** API。Desktop 与 API 可同时 LISTEN 同一 channel（Pg 允许多会话）。
+
+预留实现（`#if false`，不编译、无 DI）：`ApiChangeWatermark` / `PacApiClient`，供日后 Desktop 改走 API SSE；配置形态届时另定，不绑现网 Desktop.config。
+
+**API 侧（已实现，可单独在本机验证）**：
+
+```text
+Pg NOTIFY
+  API PostgresNotifyListener 写入 ChangeBus
+  SSE  GET /v1/changes/stream
+  GET  /v1/changes/watermarks
+```
+
+- SSE：`ready` / `change` / `heartbeat`；单 `client_id` 最多 2 条并发流；订阅通道有界，落后时丢旧 topic；**version 以 GET watermarks 为准**（勿只信 SSE 推送）
+- `Changes:ListenEnabled`：是否启 LISTEN（测试可关）
+
+Desktop 将来改走 API 时：页面仍须保留突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新。
+
+## 审计
+
+请求日志至少含：`traceId`、`clientId`（若有）、方法与路径、HTTP 状态、耗时。禁止记录 API Key、JWT、数据库密码、完整连接串。
+
+## 部署边界
+
+- Kestrel 默认只听本机或受控内网（如 `127.0.0.1:5080`）
+- 公网只经 **HTTPS** 反向代理；配置可信 Forwarded Headers
+- 代理与应用日志均不记录认证头
+
+本地密钥与脚本见 [API README](../../apps/api-asp/README.md)。
+
+## 迁移原则（其余域）
+
+### 红线
+
+1. 不按 Repo / SQL 机械暴露 HTTP
+2. 需要事务的写操作在 API 内完整提交（客户端不跨请求拼事务）
+3. 实时变更走 SSE 与 watermark；不以常规定时轮询作主路径
+4. Agents / AHK 禁止通用 `execute-sql`；只走专用业务 API
+5. 关键写具备幂等（CommandId / 业务键）
+6. 按域单路径切换；禁止双写，也不要一次砍掉全部旧路径
+
+### Desktop 业务数据
+
+页面查询/写库与（当前）变更 LISTEN 均经本机 Infrastructure。变更通知与域数据改走 HTTP 时按域切换；接入时保留页面可用性三层（见 [desktop-state.md](./desktop-state.md)）。
+
+### 配置入口
+
+| 节             | 用途                                                    |
+| -------------- | ------------------------------------------------------- |
+| `Auth:Clients` | 具名客户端、Key 散列、Enabled、Scopes                   |
+| `Auth:Jwt`     | Issuer / Audience / SigningKey / TTL                    |
+| `Postgres`     | 服务端库连接（环境变量覆盖密码）                        |
+| `SchemaBounds` | schema 闭区间；同时约束 `/health` 与经 `IDb` 的业务读写 |
+| `Changes`      | `ListenEnabled` 等变更流宿主开关                        |
+
+DI 组装入口：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）。注册全量 Application 与 Infrastructure；Desktop 专属 Store 与 MSFX 客户端由 API 宿主适配（无 Desktop 配置文件；MSFX 外呼未接）。域用例 HTTP 按域挂到已注册服务。

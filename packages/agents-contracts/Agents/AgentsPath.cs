@@ -423,7 +423,7 @@ public static class AgentsPath
             return null;
         }
 
-        // 完整 minDbSchema+maxDbSchema ⇒ 依赖库；皆缺 ⇒ 不依赖；半套或非法 ⇒ 拒绝
+        // 完整 minDbSchema+maxDbSchema 表示依赖库；皆缺表示不依赖；半套或非法则拒绝
         if (!TryReadDbSchemaRange(root, out var minDbSchema, out var maxDbSchema))
         {
             return null;

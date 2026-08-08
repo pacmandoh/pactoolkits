@@ -1,7 +1,7 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// StatusSnapshot ↔ ModuleDescriptor 映射（UI 目录）
+/// StatusSnapshot 与 ModuleDescriptor 映射（UI 目录）
 /// </summary>
 public static class AgentsStatusCatalog
 {

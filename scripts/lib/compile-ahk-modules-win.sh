@@ -1,7 +1,7 @@
 # Windows 本机 Ahk2Exe 编译 AHK 模块（供 run-desktop-with-agents.sh source）
-# 依赖：jq_r（manifest-v2.sh）、jq、本机 Ahk2Exe.exe + AutoHotkey64.exe
+# 依赖：jq_r（manifest-v2.sh）、jq、本机 Ahk2Exe.exe 与 AutoHotkey64.exe
 # 可选：cygpath（Git Bash）；可用 AHK2EXE_PATH / AHK_BASE_PATH 覆盖探测路径
-# 增量：Debug/bin 已有 exe，且旁路 stamp 的 inputs 指纹与当前源码一致 → 跳过
+# 增量：Debug/bin 已有 exe，且旁路 stamp 的 inputs 指纹与当前源码一致则跳过
 # 强制重编：COMPILE_AHK_FORCE=1
 
 compile_ahk_is_windows() {

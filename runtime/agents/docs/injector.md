@@ -59,7 +59,7 @@ Desktop 仅在用户配置不存在时复制默认配置；升级时若默认配
 - `module.json`：模块发现、桌面展示和构建元数据
 - `settings.json`、`settings.schema.json`：默认业务配置与设置页定义
 - `src/main_semi_auto.ahk`：半自动录入流程（左键拆零 / 右键全量）
-- `src/txn_plan.ahk`：取码计划（整盒数 + 拆零粒）
+- `src/txn_plan.ahk`：取码计划（整盒数与拆零粒）
 - `src/msfx_task.ahk`：仓库任务 Run 流程、行指纹与节拍
 - `src/msfx_sql.ahk`：仓库任务 SQL（领取/防重/回写/事件/结算）
 - `src/msfx_code.ahk`：取码策略与码串分组

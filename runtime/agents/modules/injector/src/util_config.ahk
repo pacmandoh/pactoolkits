@@ -223,7 +223,7 @@ Util_CfgGetOneOf(obj, key, allows, &ok, &err) {
 	return ""
 }
 
-; AppWin：字符串数组 → 成员 Map（供 Has 查询）
+; AppWin：字符串数组转成成员 Map（供 Has 查询）
 Util_CfgGetAppWin(obj, key, &ok, &err) {
 	arr := Util_CfgGetStringArray(obj, key, true, &ok, &err)
 	if !ok

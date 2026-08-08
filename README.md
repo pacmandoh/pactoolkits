@@ -26,7 +26,7 @@
       <br />
       <strong>PacToolkits Agents</strong>
       <br />
-      <sub>Host + Modules Runtime</sub>
+      <sub>Host and modules runtime</sub>
       <br />
       <sub>&nbsp;</sub>
       <br />
@@ -39,14 +39,14 @@
 
 <br />
 
-<sub><strong>Desktop</strong> for business operations · <strong>Agents</strong> for automation execution · <strong>DB</strong> for task orchestration and persistence</sub>
+<sub><strong>Desktop</strong> for business work · <strong>Agents</strong> for automation · <strong>DB</strong> for tasks and durable state</sub>
 
 <br />
 <br />
 
-**Drug Trace-Code Operations Suite for Desktop, Automation, and Database Workflows**
+**Drug trace-code tools: desktop, automation, and PostgreSQL**
 
-PacToolkits Desktop, Agents (Host + modules), and PostgreSQL orchestration for drug trace-code operations.
+PacToolkits Desktop, Agents (Host and modules), and PostgreSQL for drug trace-code operations.
 
 </div>
 
@@ -54,30 +54,31 @@ PacToolkits Desktop, Agents (Host + modules), and PostgreSQL orchestration for d
 
 ## Project Overview
 
-**PacToolkits** is a monorepo for drug trace-code operations, combining:
+**PacToolkits** is a monorepo for drug trace-code work:
 
 - PacToolkits Desktop for business workflows and diagnostics
-- Agents runtime: .NET **Host** (`Agents.exe`) with independently managed automation **Modules**
-- a PostgreSQL schema and migration system for ingestion, mapping, tasking, and execution state
+- Agents runtime: a .NET **Host** (`Agents.exe`) and separately supervised automation **Modules**
+- PostgreSQL schema and migrations for intake, mapping, tasks, and execution state
 
-Primary repository areas:
+Main areas:
 
-- business-facing interaction in [`apps/desktop-avalonia`](./apps/desktop-avalonia/)
+- business UI in [`apps/desktop-avalonia`](./apps/desktop-avalonia/)
+- HTTP host in [`apps/api-asp`](./apps/api-asp/)
 - shared use cases in `packages/application`
 - PostgreSQL implementations in `packages/infrastructure`
-- Agents Host + modules in [`runtime/agents`](./runtime/agents/)
+- Agents Host and modules in [`runtime/agents`](./runtime/agents/)
 - schema evolution in [`database/postgres`](./database/postgres/)
 
 ---
 
 ## Highlights
 
-- Unified desktop + automation + database architecture in one repository
-- Avalonia-based business client with update and diagnostics capabilities
-- Agents runtime: resident .NET Host (module supervision + Snapshot); Desktop owns Host lifecycle / desired
-- PostgreSQL migration-based schema lifecycle with compatibility gates
-- Versioned release pipeline for Desktop, Agents, and DB schema compatibility
-- Operational visibility for inventory, mapping, MSFX linkage, and execution queues
+- Desktop, Agents, and DB live in one repository
+- Avalonia business client with update and diagnostics
+- Resident .NET Host supervises modules and publishes Snapshot; Desktop owns Host lifecycle and session desired
+- PostgreSQL migrations with schema compatibility checks
+- Versioned release pipeline for Desktop, Agents, and DB schema ranges
+- Operational views for inventory, mapping, MSFX linkage, and execution queues
 
 ---
 
@@ -89,9 +90,9 @@ flowchart LR
     PKG["packages/\napplication · infrastructure · core · agents-contracts"]
     HOST["runtime/agents/host\nAgents.exe Host"]
     INJ["runtime/agents/modules/injector\nInjector AHK module"]
-    DB["database/postgres\nPostgreSQL Schema + Migrations"]
-    SCRIPTS["scripts/\nRelease + Version Tooling"]
-    CI[".github/workflows\nBuild + Release Automation"]
+    DB["database/postgres\nPostgreSQL schema and migrations"]
+    SCRIPTS["scripts/\nRelease and version tooling"]
+    CI[".github/workflows\nBuild and release automation"]
 
     DESKTOP --> PKG
     DESKTOP -->|start Host / IPC desired| HOST
@@ -111,18 +112,19 @@ flowchart LR
 ```text
 pactoolkits/
   apps/desktop-avalonia/      Desktop client (Avalonia)
+  apps/api-asp/               HTTP host (PacToolkits.Api)
   packages/
     core/                     Pure domain helpers (no IO)
     application/              Use cases, DTOs, service abstractions
     infrastructure/           PostgreSQL repos and DB services
-    agents-contracts/         Shared Desktop ↔ Agents protocol
+    agents-contracts/         Shared Desktop and Agents protocol
   runtime/agents/             Agents runtime (Host and modules)
   database/postgres/          PostgreSQL bootstrap, migration, verify, deploy
-  docs/                       Cross-cutting architecture and operations docs
+  docs/                       Architecture and operations docs
   scripts/                    Versioning, packaging, release helpers
   .github/workflows/          CI/CD and release workflows
   PacToolkits.sln             .NET solution entry point
-  release-manifest.json       Authoritative version and compatibility manifest
+  release-manifest.json       Version and compatibility manifest
 ```
 
 ---
@@ -134,6 +136,7 @@ pactoolkits/
 - [Monorepo layout](./docs/architecture/monorepo-layout.md)
 - [Layering and dependency rules](./docs/architecture/layering.md)
 - [Agents runtime architecture](./docs/architecture/agents.md)
+- [API host and migration](./docs/architecture/api.md)
 - [Desktop UI state model](./docs/architecture/desktop-state.md)
 - [Release flow](./docs/operations/release-flow.md)
 - [Beta release policy](./docs/operations/beta-release-policy.md)
@@ -142,6 +145,7 @@ pactoolkits/
 ### Modules
 
 - [Desktop](./apps/desktop-avalonia/README.md) · [overview](./apps/desktop-avalonia/docs/overview.md)
+- [API](./apps/api-asp/README.md)
 - [Agents](./runtime/agents/README.md) · [Injector](./runtime/agents/docs/injector.md)
 - [PostgreSQL](./database/postgres/README.md) · [overview](./database/postgres/docs/overview.md)
 - [Scripts tooling](./scripts/docs/tooling.md)
@@ -163,7 +167,7 @@ pactoolkits/
 
 ## Versioning
 
-Single source of truth: [`release-manifest.json`](./release-manifest.json) (schema v2).
+Versions and compatibility ranges live in [`release-manifest.json`](./release-manifest.json) (schema v2).
 
 ```bash
 ./scripts/check-version.sh
@@ -183,6 +187,7 @@ dotnet build PacToolkits.sln
 ```
 
 - Desktop: see [apps/desktop-avalonia/README.md](./apps/desktop-avalonia/README.md)
+- API: see [apps/api-asp/README.md](./apps/api-asp/README.md)
 - Agents: see [runtime/agents/README.md](./runtime/agents/README.md)
 - Database: see [database/postgres/README.md](./database/postgres/README.md)
 
@@ -190,12 +195,12 @@ dotnet build PacToolkits.sln
 
 ## Design Principles
 
-- A single release manifest is authoritative for versioning
-- Desktop, Agents, and DB evolve together
-- Business-facing flows stay observable
-- Automation remains configurable, not page-hardcoded
-- Database is authoritative for task and execution state
-- Runtime, Desktop, and persistence boundaries stay explicit
+- Versioning follows a single release manifest
+- Desktop, Agents, and DB advance together under published ranges
+- Business flows stay observable (logs, status, queues)
+- Automation is configured, not hard-coded into UI pages
+- Task and execution state live in the database
+- Desktop, runtime, and persistence boundaries stay explicit
 
 ---
 

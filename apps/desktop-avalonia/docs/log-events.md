@@ -11,11 +11,11 @@
   - macOS：`~/Library/Application Support/PacToolkits/logs`
   - Linux：`~/.local/share/PacToolkits/logs`
   - Windows：`%LocalAppData%\PacToolkits\logs`
-- 相对目录布局：Desktop → `desktop/`；Host → `agents/host/`；模块 → `agents/modules/<Id>/`
+- 相对目录布局：Desktop 写 `desktop/`；Host 写 `agents/host/`；模块写 `agents/modules/<Id>/`
 - 日志文件：`YYYY-MM-DD.log`（同日滚动为 `YYYY-MM-DD.N.log`）
 - 格式：JSON Lines；关键字段包括 `ts`、`level`、`module`、`event`、`message`、`exception`（可选）、`version` 和 `context`
-- Agents **控制面**事件仍由 Desktop 的 `Agents`、`MainWindowVM`、`Settings.Agents` 写入 `desktop/`；Host/模块进程内日志写入 `agents/`
-- **控制面**：设置页「日志与诊断」的 `Logging.Enabled` / `MinimumLevel` / `RetentionDays` / `MaxFileSizeMb` / `LogDirectory`（根目录）；模块级别门控在「模块配置」中设置
+- Agents 启停与 desired 相关事件仍由 Desktop 的 `Agents`、`MainWindowVM`、`Settings.Agents` 写入 `desktop/`；Host/模块进程内日志写入 `agents/`
+- **设置入口**：设置页「日志与诊断」的 `Logging.Enabled` / `MinimumLevel` / `RetentionDays` / `MaxFileSizeMb` / `LogDirectory`（根目录）；模块级别门控在「模块配置」中设置
 
 ## 2. 按严重度分层（排障优先级）
 

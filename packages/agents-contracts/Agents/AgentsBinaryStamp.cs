@@ -1,7 +1,7 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// 入口二进制指纹（长度 + mtime），供 Host 模块热更与 Desktop Host 热重载共用
+/// 入口二进制指纹（长度与 mtime），供 Host 模块热更与 Desktop Host 热重载共用
 /// </summary>
 public readonly record struct AgentsBinaryStamp(long Length, long LastWriteUtcTicks);
 

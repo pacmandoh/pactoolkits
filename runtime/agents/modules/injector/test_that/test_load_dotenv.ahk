@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
-; 校验 modules/injector/.env.local：路径约定 + PG_* 连库键（业务 AppWin 在 settings.json）
+; 校验 modules/injector/.env.local：路径约定与 PG_* 连库键（业务 AppWin 在 settings.json）
 #Include "%A_ScriptDir%\..\..\..\lib\ahk\JSON.ahk"
 #Include "%A_ScriptDir%\..\..\..\lib\ahk\path.ahk"
 #Include "%A_ScriptDir%\..\src\util_misc.ahk"
@@ -12,7 +12,7 @@ ExitApp 0
 Main() {
 	loaded := Test_LoadEnvLocal()
 	if !loaded["ok"] {
-		MsgBox "[读取错误] 未找到 env 文件`n期望位置：`n" loaded["path"] "`n`n可复制：modules/injector/.env.example → .env.local"
+		MsgBox "[读取错误] 未找到 env 文件`n期望位置：`n" loaded["path"] "`n`n可复制：modules/injector/.env.example 为 .env.local"
 		ExitApp 1
 	}
 

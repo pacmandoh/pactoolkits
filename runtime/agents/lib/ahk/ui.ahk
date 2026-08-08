@@ -12,6 +12,6 @@ UI_Fail(event, text, title, context := unset) {
 		Log_Error(event, text, context)
 	else
 		Log_Error(event, text)
-	; 置顶 + 系统模态，避免被目标 HIS 窗口挡住
+	; 置顶且系统模态，避免被目标 HIS 窗口挡住
 	return MsgBox(text, title, 0x40000 | 0x1000)
 }

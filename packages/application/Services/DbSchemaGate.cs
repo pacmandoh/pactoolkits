@@ -5,7 +5,7 @@ using PacToolkits.Core;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 库 schema 小门：读取 + 任意区间 Match（<see cref="SemVerRange.Classify"/>，纯 X.Y.Z）
+/// 库 schema 小门：读取与任意区间 Match（<see cref="SemVerRange.Classify"/>，纯 X.Y.Z）
 /// </summary>
 public sealed class DbSchemaGate : IDbSchemaGate
 {

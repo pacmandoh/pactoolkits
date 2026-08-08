@@ -3,7 +3,7 @@ using PacToolkits.Agents.Contracts.Agents;
 namespace PacToolkits.Agents.Contracts.Abstractions;
 
 /// <summary>
-/// Desktop ↔ Host 链路：Connect / Send / Snapshot（+ ModuleFailed 同义推送）
+/// Desktop 与 Host 链路：Connect / Send / Snapshot（含 ModuleFailed 同义推送）
 ///
 /// 不监管模块进程、不扫 discovery、不写 module.ready
 /// </summary>

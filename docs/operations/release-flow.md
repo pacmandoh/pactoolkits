@@ -168,7 +168,7 @@ cp scripts/config.example.json scripts/config.json
 
 模块默认配置首次复制到 `{ConfigDir}/agents/modules/<Id>/settings.json`。后续模块升级不会覆盖该用户文件。
 
-Desktop 启动 Host：`--config <AppConfig 绝对路径>`；Host 转发给模块，自身不解析该文件。控制面为管道 desired/quit；启停 Host 超时仅强杀 **Host 进程树**。
+Desktop 启动 Host：`--config <AppConfig 绝对路径>`；Host 转发给模块，自身不解析该文件。desired/quit 走管道；启停 Host 超时仅强杀 **Host 进程树**。
 
 ## 相关文档
 

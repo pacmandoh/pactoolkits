@@ -1,7 +1,7 @@
-; 聚焦/命中/HWND 工具（Delphi + DevExpress）
+; 聚焦/命中/HWND 工具（Delphi 与 DevExpress）
 ;
-;   1) 网格 FocusGrid — TcxGridSite2 → 类名+序位 HWND → ControlFocus(HWND)；缓存 winHwnd|类|序
-;   2) 编辑框 FocusClassNN — TMemo 等 → 精确 ClassNN
+;   1) 网格 FocusGrid — TcxGridSite2 按类名+序位取 HWND，再 ControlFocus(HWND)；缓存 winHwnd|类|序
+;   2) 编辑框 FocusClassNN — TMemo 等用精确 ClassNN
 ;   3) 命中 FindAncestor/MouseOn — 父链完整 ClassNN（禁止去尾数字当序位）
 global __UI_FAST_CTRL_CACHE := Map()
 ; 网格 site：key = hwndWin|baseClass|n，IsWindow 失败即丢弃
@@ -52,7 +52,7 @@ UI_PostClick(hwndCtrl, x := 30, y := 40) {
 	}
 }
 
-; --- (1) 网格 FocusGrid：序 + HWND ---
+; --- (1) 网格 FocusGrid：序与 HWND ---
 ; 配置 ClassNN 形如 TcxGridSite2：尾数=同 Win 类名的第 N 个；勿对输入框走此路径
 UI_FocusGridClassNN(classNN, win := "A", control := true) {
 	nn := Trim("" classNN)
@@ -399,7 +399,7 @@ UI_GetCursorPosScreen(&sx, &sy) {
 	return true
 }
 
-; 屏幕坐标 → 控件客户区坐标
+; 屏幕坐标换算为控件客户区坐标
 UI_ScreenToClient(hwnd, sx, sy, &cx, &cy) {
 	cx := 0, cy := 0
 	if !hwnd
