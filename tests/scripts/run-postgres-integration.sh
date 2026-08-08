@@ -46,7 +46,7 @@ load_env_file "$ENV_FILE"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export PGPORT="${PGPORT:-5432}"
 export PGUSER="${PGUSER:-postgres}"
-export PGDATABASE="${PGDATABASE:-codepool_dev}"
+export PGDATABASE="${PGDATABASE:-postgres}"
 
 require_cmd() { command -v "$1" >/dev/null 2>&1 || die "command not found: $1"; }
 require_cmd psql

@@ -7,7 +7,7 @@ namespace PacToolkits.Infrastructure.Database;
 /// 按 <c>PgOptions</c> 构造/打开一次性 Npgsql 连接（不经运行时池）
 /// 供配置探测、LISTEN 等旁路路径使用
 /// </summary>
-internal static class PgConnectionFactory
+public static class PgConnectionFactory
 {
     public static string BuildConnectionString(PgOptions opt, bool includeKeepAlive = true, int? timeoutSeconds = null)
     {

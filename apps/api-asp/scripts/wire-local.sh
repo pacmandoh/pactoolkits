@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 本机启动 api-asp：复用 .env.asp 密钥 → 后台常驻 API → health + token + ping 探活
+# 本机启动 api-asp：读 .env.asp，后台常驻，并校验 health、换票与 ping
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -20,9 +20,9 @@ usage() {
 Usage:
   wire-local.sh [--no-probe] [--base-url URL]
 
-  1) 确保 apps/api-asp/.env.asp 有 Auth 密钥（可复用）
+  1) 确保 apps/api-asp/.env.asp 有 Auth 与 Postgres（见 gen-dev-secrets；手改 Enabled/Scopes 会保留）
   2) 后台启动 api-asp（nohup，关掉终端也活着）
-  3) health + 换票 + /v1/ping 探活（--no-probe 跳过）
+  3) 校验 health、换票与 /v1/ping（--no-probe 跳过；client 禁用时 probe 会失败，可加 --no-probe）
 USAGE
 }
 
@@ -52,17 +52,41 @@ done
 mkdir -p "${LOG_DIR}"
 
 "${GEN_SECRETS}" >/dev/null
+# 清掉父 shell 遗留的 Auth scopes / SchemaBounds / Changes，避免盖掉 .env.asp
+for i in 0 1 2 3 4 5 6 7 8 9; do
+  unset "Auth__Clients__dev__Scopes__${i}" 2>/dev/null || true
+done
+unset SchemaBounds__MinDbSchema SchemaBounds__MaxDbSchema Changes__ListenEnabled 2>/dev/null || true
 # shellcheck disable=SC1090
 set -a
 # shellcheck source=/dev/null
-source <(grep -E '^Auth__' "${ENV_FILE}" | sed 's/\r$//')
+# 含 SchemaBounds / Changes，避免本机校验时门禁与 Listen 开关未注入进程
+source <(grep -E '^(PAC_API_KEY|Auth__|Postgres__|ASPNETCORE_|SchemaBounds__|Changes__)' "${ENV_FILE}" | sed 's/\r$//')
 set +a
-[[ -n "${Auth__ApiKeys__0:-}" && -n "${Auth__Jwt__SigningKey:-}" ]] || die "Auth 密钥未就绪: ${ENV_FILE}"
+[[ -n "${PAC_API_KEY:-}" && -n "${Auth__Clients__dev__ApiKeyHash:-}" && -n "${Auth__Jwt__SigningKey:-}" ]] \
+  || die "Auth 密钥未就绪: ${ENV_FILE}"
+[[ -n "${Postgres__Host:-}" && -n "${Postgres__Database:-}" && -n "${Postgres__Username:-}" ]] \
+  || die "Postgres 连接未就绪: ${ENV_FILE}"
+if [[ -z "${Postgres__Password:-}" ]]; then
+  log "warn: Postgres__Password 为空，/health 多半 503；在 ${ENV_FILE} 填写后重跑"
+fi
 
-export Auth__ApiKeys__0 Auth__Jwt__SigningKey
+export PAC_API_KEY
+export Auth__Clients__dev__ApiKeyHash Auth__Clients__dev__Enabled
+# 只 export 文件里出现的 Scopes 行，避免旧进程环境里残留 Scopes__1/2
+while IFS= read -r line; do
+  key="${line%%=*}"
+  export "${key?}"
+done < <(grep -E '^Auth__Clients__dev__Scopes__[0-9]+=' "${ENV_FILE}" | sed 's/\r$//' || true)
+export Auth__Jwt__SigningKey
+export Postgres__Host Postgres__Port Postgres__Database Postgres__Username Postgres__Password
 export ASPNETCORE_ENVIRONMENT="${ASPNETCORE_ENVIRONMENT:-dev}"
-# 监听与探活共用 BASE_URL，避免双源漂移
 export ASPNETCORE_URLS="${BASE_URL}"
+# SchemaBounds / Changes 若在 .env.asp 中则导出
+while IFS= read -r line; do
+  key="${line%%=*}"
+  export "${key?}"
+done < <(grep -E '^(SchemaBounds__|Changes__)' "${ENV_FILE}" | sed 's/\r$//' || true)
 
 LISTEN_PORT="$(
   python3 - "${BASE_URL}" <<'PY'
@@ -103,8 +127,10 @@ for i in $(seq 1 60); do
     tail -n 40 "${LOG_FILE}" >&2 || true
     die "API exited early (see ${LOG_FILE})"
   fi
-  if curl -fsS "${BASE_URL}/health" >/dev/null 2>&1; then
-    log "health ok (${i}s) pid=${API_PID}"
+  # 等进程处理 /health（200 就绪；503 也说明 HTTP 已起，校验阶段再判是否健康）
+  code="$(curl -sS -o /dev/null -w '%{http_code}' "${BASE_URL}/health" 2>/dev/null || true)"
+  if [[ "${code}" == "200" || "${code}" == "503" ]]; then
+    log "http up (${i}s) health=${code} pid=${API_PID}"
     break
   fi
   if [[ "${i}" -eq 60 ]]; then
@@ -115,10 +141,18 @@ for i in $(seq 1 60); do
 done
 
 if [[ "${NO_PROBE}" != "true" ]]; then
-  log "probe token + ping"
+  log "校验 health、换票与 ping"
+  HEALTH_CODE="$(curl -sS -o /tmp/pac-api-wire-health.json -w '%{http_code}' "${BASE_URL}/health" || true)"
+  if [[ "${HEALTH_CODE}" != "200" ]]; then
+    cat /tmp/pac-api-wire-health.json 2>/dev/null || true
+    if [[ -z "${Postgres__Password:-}" ]]; then
+      die "health HTTP ${HEALTH_CODE}（Postgres__Password 为空时常见 503；在 ${ENV_FILE} 填密码后重跑）"
+    fi
+    die "health HTTP ${HEALTH_CODE}（须 200：进程、PostgreSQL 与 SchemaBounds 均 ok）"
+  fi
   TOKEN="$(
     curl -fsS -X POST "${BASE_URL}/v1/auth/token" \
-      -H "X-Api-Key: ${Auth__ApiKeys__0}" \
+      -H "X-Api-Key: ${PAC_API_KEY}" \
       | python3 -c "import sys,json; print(json.load(sys.stdin)['accessToken'])"
   )"
   [[ -n "${TOKEN}" ]] || die "empty accessToken"

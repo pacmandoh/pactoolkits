@@ -38,7 +38,7 @@ load_db_env_from_json() {
 
   export PGHOST="$(jq -r '.PGHOST // "127.0.0.1"' "$cfg")"
   export PGPORT="$(jq -r '.PGPORT // 5432' "$cfg")"
-  export PGDATABASE="$(jq -r '.PGDATABASE // "codepool_dev"' "$cfg")"
+  export PGDATABASE="$(jq -r '.PGDATABASE // "postgres"' "$cfg")"
   export PGUSER="$(jq -r '.PGUSER // "postgres"' "$cfg")"
   export PGPASSWORD="$(jq -r '.PGPASSWORD // empty' "$cfg")"
 }

@@ -31,7 +31,20 @@ public sealed class AuthEndpointsTests
     }
 
     [Fact]
-    public async Task Token_returns_bearer_jwt()
+    public async Task Token_rejects_oversized_api_key_header()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/auth/token");
+        request.Headers.Add(AuthOptions.DefaultHeaderName, new string('a', JwtTokenIssuer.MaxApiKeyHeaderLength + 1));
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Token_returns_bearer_jwt_with_stable_client_id()
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
@@ -46,6 +59,6 @@ public sealed class AuthEndpointsTests
         Assert.Equal("Bearer", doc.RootElement.GetProperty("tokenType").GetString());
         Assert.False(string.IsNullOrWhiteSpace(doc.RootElement.GetProperty("accessToken").GetString()));
         Assert.True(doc.RootElement.GetProperty("expiresIn").GetInt32() > 0);
-        Assert.Equal("site-0", doc.RootElement.GetProperty("clientId").GetString());
+        Assert.Equal(ApiFactory.TestClientId, doc.RootElement.GetProperty("clientId").GetString());
     }
 }

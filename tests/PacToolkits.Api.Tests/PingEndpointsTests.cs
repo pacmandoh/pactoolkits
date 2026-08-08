@@ -31,6 +31,6 @@ public sealed class PingEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var doc = JsonDocument.Parse(body);
         Assert.Equal("pong", doc.RootElement.GetProperty("status").GetString());
-        Assert.Equal("site-0", doc.RootElement.GetProperty("clientId").GetString());
+        Assert.Equal(ApiFactory.TestClientId, doc.RootElement.GetProperty("clientId").GetString());
     }
 }
