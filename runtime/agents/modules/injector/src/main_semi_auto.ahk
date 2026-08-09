@@ -63,6 +63,25 @@ Semi_Auto_Fill(opt, ipt, colFields, timeoutMs, optParseGridClassNN, iptParseGrid
 	Log_Debug("semi_auto.fields", "关键字段", Map(
 		"mode", mode, "injectMode", injectMode, "drugId", drugId, "spec", spec, "qty", qtyVal
 	))
+	if (mode = "门诊") {
+		capturedAt := clickAnchor.Has("capturedAt") ? clickAnchor["capturedAt"] : 0
+		Log_Debug("semi_auto.anchor_identity", "锚点采集后首次解析身份", Map(
+			"drugId", drugId, "spec", spec, "qty", qtyVal,
+			"targetNN", parseGridClassNN,
+			"sourceHwnd", clickAnchor.Has("sourceHwnd") ? clickAnchor["sourceHwnd"] : 0,
+			"sourceNN", clickAnchor.Has("sourceNN") ? clickAnchor["sourceNN"] : "",
+			"siteHwnd", clickAnchor.Has("siteHwnd") ? clickAnchor["siteHwnd"] : 0,
+			"siteNN", clickAnchor.Has("siteNN") ? clickAnchor["siteNN"] : "",
+			"usedProvidedCtrl", clickAnchor.Has("usedProvidedCtrl") ? clickAnchor["usedProvidedCtrl"] : false,
+			"sx", clickAnchor.Has("screenX") ? clickAnchor["screenX"] : "",
+			"sy", clickAnchor.Has("screenY") ? clickAnchor["screenY"] : "",
+			"cx", clickAnchor.Has("clientX") ? clickAnchor["clientX"] : "",
+			"cy", clickAnchor.Has("clientY") ? clickAnchor["clientY"] : "",
+			"clientW", clickAnchor.Has("clientW") ? clickAnchor["clientW"] : "",
+			"clientH", clickAnchor.Has("clientH") ? clickAnchor["clientH"] : "",
+			"anchorAgeMs", capturedAt > 0 ? A_TickCount - capturedAt : -1
+		))
+	}
 	if (drugId = "" || spec = "") {
 		Log_Debug("semi_auto.fields_miss", "缺药品名或规格", Map("drugId", drugId, "spec", spec))
 		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n解析结果缺少关键字段`n药品名称=" drugId "`n规格=" spec)

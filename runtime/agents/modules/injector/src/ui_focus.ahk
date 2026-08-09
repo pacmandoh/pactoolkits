@@ -417,11 +417,13 @@ UI_ScreenToClient(hwnd, sx, sy, &cx, &cy) {
 ; 采集网格点击锚点：仓库防重用 rowSlot；门诊点回用客户区 (cx,cy)
 ; 屏幕坐标来自 GetCursorPos（不受 CoordMode 影响）
 UI_CaptureGridClickAnchor(targetNN, ctrlHwnd := 0) {
+	capturedAt := A_TickCount
 	sx := 0, sy := 0
 	if !UI_GetCursorPosScreen(&sx, &sy)
 		return Map("ok", false)
 
 	h0 := ctrlHwnd
+	usedProvidedCtrl := !!h0
 	if !h0 {
 		h0 := DllCall("user32\WindowFromPoint", "Int64", (Integer(sy) << 32) | (Integer(sx) & 0xFFFFFFFF), "Ptr")
 	}
@@ -432,6 +434,11 @@ UI_CaptureGridClickAnchor(targetNN, ctrlHwnd := 0) {
 	hSite := UI_FindAncestorByClassNN(h0, nnTarget)
 	if !hSite
 		return Map("ok", false)
+
+	sourceNN := ""
+	siteNN := ""
+	try sourceNN := ControlGetClassNN(h0)
+	try siteNN := ControlGetClassNN(hSite)
 
 	x := 0, y := 0, w := 0, h := 0
 	if !UI_GetWindowRect(hSite, &x, &y, &w, &h)
@@ -457,6 +464,12 @@ UI_CaptureGridClickAnchor(targetNN, ctrlHwnd := 0) {
 
 	return Map(
 		"ok", true,
+		"capturedAt", capturedAt,
+		"sourceHwnd", h0,
+		"sourceNN", sourceNN,
+		"siteHwnd", hSite,
+		"siteNN", siteNN,
+		"usedProvidedCtrl", usedProvidedCtrl,
 		"rowSlot", rowSlot,
 		"clientX", cx,
 		"clientY", cy,
@@ -490,6 +503,8 @@ UI_RestoreGridClick(anchor, classNN, win := "A") {
 	cy := Integer(anchor["clientY"])
 	savedW := anchor.Has("clientW") ? Integer(anchor["clientW"]) : 0
 	savedH := anchor.Has("clientH") ? Integer(anchor["clientH"]) : 0
+	savedSiteHwnd := anchor.Has("siteHwnd") ? anchor["siteHwnd"] : 0
+	capturedAt := anchor.Has("capturedAt") ? anchor["capturedAt"] : 0
 
 	hwndSite := UI_FocusGridClassNN(classNN, win, true)
 	if !hwndSite {
@@ -499,6 +514,13 @@ UI_RestoreGridClick(anchor, classNN, win := "A") {
 	if !DllCall("IsWindow", "Ptr", hwndSite, "Int") {
 		Log_Debug("ui.restore_click.dead_hwnd", "网格 HWND 已失效", Map("nn", classNN, "hwnd", hwndSite))
 		return Map("ok", false, "reason", "dead_hwnd")
+	}
+
+	focusBeforeNN := ""
+	focusBeforeHwnd := 0
+	try focusBeforeNN := ControlGetFocus(win)
+	if (focusBeforeNN != "") {
+		try focusBeforeHwnd := ControlGetHwnd(focusBeforeNN, win)
 	}
 
 	curW := 0, curH := 0
@@ -537,9 +559,19 @@ UI_RestoreGridClick(anchor, classNN, win := "A") {
 
 	UI_PostClick(hwndSite, clickX, cy)
 	Sleep(40)
-	Log_Debug("ui.restore_click.ok", "已单次点回网格行", Map(
+	focusAfterNN := ""
+	focusAfterHwnd := 0
+	try focusAfterNN := ControlGetFocus(win)
+	if (focusAfterNN != "") {
+		try focusAfterHwnd := ControlGetHwnd(focusAfterNN, win)
+	}
+	Log_Debug("ui.restore_click.ok", "已投递单次网格行点回", Map(
 		"nn", classNN, "hwnd", hwndSite, "cx", clickX, "cy", cy,
-		"srcCx", cx, "clientW", curW, "clientH", curH
+		"srcCx", cx, "clientW", curW, "clientH", curH,
+		"savedSiteHwnd", savedSiteHwnd, "sameSiteHwnd", savedSiteHwnd = hwndSite,
+		"anchorAgeMs", capturedAt > 0 ? A_TickCount - capturedAt : -1,
+		"focusBeforeNN", focusBeforeNN, "focusBeforeHwnd", focusBeforeHwnd,
+		"focusAfterNN", focusAfterNN, "focusAfterHwnd", focusAfterHwnd
 	))
 	return Map("ok", true, "reason", "ok", "hwnd", hwndSite, "cx", clickX, "cy", cy, "clientW", curW, "clientH", curH)
 }
