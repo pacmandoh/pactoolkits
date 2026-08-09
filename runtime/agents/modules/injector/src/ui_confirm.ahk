@@ -266,6 +266,10 @@ UI_WaitConfirm_Opt(codes, timeoutMs, gridClassNN, win, optCtx, t0) {
 	restoreUsed := 0
 	restored := false
 	delay := 15
+
+	; HIS 异步提交完成后会再次重置当前记录；等待稳定后再点回
+	Sleep(100)
+
 	while (restoreUsed < maxRestore) {
 		rr := UI_RestoreGridClick(anchor, gridClassNN, win)
 		restoreUsed += 1

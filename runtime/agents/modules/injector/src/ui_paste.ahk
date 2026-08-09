@@ -190,26 +190,36 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 	}
 
 	; 读回须严格等于当前码才 Enter：写入失败/旧码残留一律回滚
-	Sleep(30)
-	got := ""
-	if DllCall("IsWindow", "Ptr", hwndCtrl, "Int") {
-		try got := ControlGetText(hwndCtrl)
-		catch
-			got := ""
-	}
-	got := Trim(got, " `t`r`n")
-	want := Trim("" text)
-	if (want = "" || got != want) {
-		Log_Debug("ui.paste_impl.verify_fail", "写入后读回非当前码，跳过 Enter", Map(
-			"ctrl", classNN, "hwnd", hwndCtrl, "codeLen", codeLen, "codeTail", codeTail,
-			"gotLen", StrLen(got), "gotTail", (StrLen(got) <= 4) ? got : SubStr(got, -3),
-			"closed", !WinExist(winTitle)
-		))
-		return Map(
-			"ok", false, "level", "Warn",
-			"message", "[窗口错误] 追溯码未写入输入框，已中止回车以免误提交",
-			"reason", "write_verify_fail", "ctrl", classNN
-		)
+	if !doEnter {
+		Sleep(30)
+		got := ""
+		if DllCall("IsWindow", "Ptr", hwndCtrl, "Int") {
+			try got := ControlGetText(hwndCtrl)
+			catch
+				got := ""
+		}
+
+		got := Trim(got, " `t`r`n")
+		want := Trim("" text)
+
+		if (want = "" || got != want) {
+			Log_Debug("ui.paste_impl.verify_fail", "写入后读回非当前码，跳过 Enter", Map(
+				"ctrl", classNN,
+				"hwnd", hwndCtrl,
+				"codeLen", codeLen,
+				"codeTail", codeTail,
+				"gotLen", StrLen(got),
+				"gotTail", (StrLen(got) <= 4) ? got : SubStr(got, -3),
+				"closed", !WinExist(winTitle)
+			))
+			return Map(
+				"ok", false,
+				"level", "Warn",
+				"message", "[窗口错误] 追溯码未写入输入框，已中止回车以免误提交",
+				"reason", "write_verify_fail",
+				"ctrl", classNN
+			)
+		}
 	}
 
 	; doEnter 两种模式必须分开（实测契约，禁止合并成同一种回车）：
