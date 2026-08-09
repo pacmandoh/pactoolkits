@@ -162,15 +162,45 @@ Semi_Auto_Fill(opt, ipt, colFields, timeoutMs, optParseGridClassNN, iptParseGrid
 			Txn_Rollback(txnId)
 			return Map("ok", false, "level", pr["level"], "message", "注入失败（第" i "条）：`n" pr["message"])
 		}
+
 		if (mode = "住院") {
-			dlg := UI_PollIptDialogs(450)
-			if (dlg = "abort") {
-				Log_Debug("semi_auto.paste_dialog_abort", "贴码后失败弹窗", Map("txn", txnId, "idx", i))
+			; 住院新注入码固定出现在验证区第一行：每注一条立即验证当前条
+			wcOne := UI_WaitConfirm(
+				[code],
+				timeoutMs,
+				opt,
+				ipt,
+				parseGridClassNN,
+				iptVerifyGridClassNN,
+				win,
+				false
+			)
+
+			if !wcOne["ok"] {
+				Log_Debug("semi_auto.ipt_code_fail", "住院逐码验证失败", Map(
+					"txn", txnId,
+					"idx", i,
+					"codes", codes.Length,
+					"codeTail", (StrLen(code) <= 4) ? code : SubStr(code, -3),
+					"reason", wcOne.Has("reason") ? wcOne["reason"] : "",
+					"elapsedMs", A_TickCount - flowT0
+				))
 				Txn_Rollback(txnId)
-				return Map("ok", false, "level", "Warn", "message", "[录入验证错误] 重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
+				return Map(
+					"ok", false,
+					"level", wcOne.Has("level") ? wcOne["level"] : "Error",
+					"message", "注入验证失败（第" i "条）：`n"
+					. (wcOne.Has("message") ? wcOne["message"] : "[录入验证错误] 当前追溯码未出现在验证区")
+				)
 			}
-			if (dlg = "force")
-				iptSawForce := true
+
+			Log_Debug("semi_auto.ipt_code_ok", "住院逐码验证通过", Map(
+				"txn", txnId,
+				"idx", i,
+				"codes", codes.Length,
+				"codeTail", (StrLen(code) <= 4) ? code : SubStr(code, -3),
+				"elapsedMs", A_TickCount - flowT0
+			))
 		}
 	}
 
@@ -195,7 +225,25 @@ Semi_Auto_Fill(opt, ipt, colFields, timeoutMs, optParseGridClassNN, iptParseGrid
 		"iptSawForce", iptSawForce, "timeoutMs", confirmMs, "parseNn", parseGridClassNN,
 		"injectMode", injectMode
 	))
-	wc := UI_WaitConfirm(codes, confirmMs, opt, ipt, parseGridClassNN, iptVerifyGridClassNN, win, iptSawForce, optCtx)
+
+	if (mode = "门诊") {
+		; 门诊全部注入后，以 alreadyScanned 是否达到目标值统一确认
+		wc := UI_WaitConfirm(
+			codes,
+			confirmMs,
+			opt,
+			ipt,
+			parseGridClassNN,
+			iptVerifyGridClassNN,
+			win,
+			iptSawForce,
+			optCtx
+		)
+	} else {
+		; 住院已经在注入循环内逐码确认
+		wc := Map("ok", true)
+	}
+
 	Log_Debug("semi_auto.confirm", wc["ok"] ? "校验通过" : "校验失败", Map(
 		"txn", txnId,
 		"ok", wc["ok"],
