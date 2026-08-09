@@ -315,6 +315,10 @@ UI_WaitConfirm_Opt(codes, timeoutMs, gridClassNN, win, optCtx, t0) {
 		if !(IsObject(p) && p.Has("ok") && p["ok"]) {
 			Log_Debug("ui.confirm.opt_candidates", "点回后解析失败", Map(
 				"lines", StrSplit(Trim(txt), "`n").Length, "txtLen", StrLen(txt),
+				"reason", IsObject(p) && p.Has("reason") ? p["reason"] : "invalid_result",
+				"header", UI_ConfirmLinePreview(txt, 1),
+				"firstRow", UI_ConfirmLinePreview(txt, 2),
+				"anchorSiteHwnd", IsObject(anchor) && anchor.Has("siteHwnd") ? anchor["siteHwnd"] : 0,
 				"restoreUsed", restoreUsed, "elapsedMs", A_TickCount - t0
 			))
 			Sleep(delay)
@@ -426,4 +430,20 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 
 	Log_Debug("ui.confirm.wh_fail", "仓库首条校验超时", Map("elapsedMs", A_TickCount - t0, "codeTail", codeTail))
 	return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n仓库窗口首条注入验证失败，未匹配到目标码")
+}
+
+; 诊断仅保留指定行的短预览；长数字统一脱敏，避免记录处方号/追溯码原文
+UI_ConfirmLinePreview(txt, lineNo, maxLen := 220) {
+	text := Trim("" txt, " `t`r`n")
+	if (text = "")
+		return ""
+	lines := StrSplit(text, "`n")
+	if (lineNo < 1 || lineNo > lines.Length)
+		return ""
+	line := StrReplace(lines[lineNo], "`r", "")
+	line := StrReplace(line, "`t", " | ")
+	line := RegExReplace(line, "\d{5,}", "<digits>")
+	if (StrLen(line) > maxLen)
+		line := SubStr(line, 1, maxLen) "…"
+	return line
 }
