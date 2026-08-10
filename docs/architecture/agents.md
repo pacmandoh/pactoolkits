@@ -17,14 +17,14 @@ Desktop **不**枚举/Kill 模块 PID（启停 Host 闸门的入口孤儿扫杀�
 
 ## 术语
 
-| 术语         | 定义                                                                           |
-| ------------ | ------------------------------------------------------------------------------ |
-| **Agents**   | Host、模块与发布清单，默认安装在 `Agents/`                                     |
-| **Host**     | `Agents.exe`：desired reconcile、模块进程监管、Snapshot / moduleFailed         |
+| 术语         | 定义                                                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| **Agents**   | Host、模块与发布清单，默认安装在 `Agents/`                                                                 |
+| **Host**     | `Agents.exe`：desired reconcile、模块进程监管、Snapshot / moduleFailed                                     |
 | **Module**   | `Modules/<Id>/` 独立进程；`module.json` 描述入口与桌面元数据；库区间由清单 export 写入（运行时只读此文件） |
-| **Desktop**  | 配置与 UI；CreateProcess/超时强杀 **Host 树**；会话 **desired**；展示 Snapshot |
-| **desired**  | 期望挂载的模块 ID 集合（持续意图，非一次性 start 命令）                        |
-| **Snapshot** | Host 发布的 status schema v2（主路径走管道；磁盘为镜像）                       |
+| **Desktop**  | 配置与 UI；CreateProcess/超时强杀 **Host 树**；会话 **desired**；展示 Snapshot                             |
+| **desired**  | 期望挂载的模块 ID 集合（持续意图，非一次性 start 命令）                                                    |
+| **Snapshot** | Host 发布的 status schema v2（主路径走管道；磁盘为镜像）                                                   |
 
 ## 部署布局
 

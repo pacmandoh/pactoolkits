@@ -6,18 +6,18 @@
 
 文件：[release-manifest.json](../../release-manifest.json)
 
-| 字段                                     | 用途                                |
-| ---------------------------------------- | ----------------------------------- |
-| `product.version`                        | 产品总版本；Velopack `packVersion`  |
-| `components.desktop.avalonia.version`    | Avalonia Desktop 组件版本           |
-| `components.agents.version`              | Agents 容器版本                     |
-| `components.agents.modules.<Id>.version` | 各 Agents 模块版本（如 `Injector`） |
-| `components.agents.modules.<Id>.minDbSchema` / `maxDbSchema` | 可选；依赖库模块的 schema 闭区间；export 写入对应 `module.json` |
-| `components.api.version` | API 制品版本；export 写入 `apps/api-asp/src/Version.g.props` |
-| `components.api.contractVersion` | HTTP 协议 SemVer；export 写入 `ApiContract.g.cs`（协议字段；与制品版本解耦） |
-| `components.api.minDbSchema` / `maxDbSchema` | API 宿主 SchemaBounds；export 写入 `SchemaBounds.g.cs` 与 `appsettings.json` |
-| `components.database.postgres.version`   | PostgreSQL migration 目标版本       |
-| `release.channel`                        | 发布通道：`stable` 或 `beta`        |
+| 字段                                                         | 用途                                                                         |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `product.version`                                            | 产品总版本；Velopack `packVersion`                                           |
+| `components.desktop.avalonia.version`                        | Avalonia Desktop 组件版本                                                    |
+| `components.agents.version`                                  | Agents 容器版本                                                              |
+| `components.agents.modules.<Id>.version`                     | 各 Agents 模块版本（如 `Injector`）                                          |
+| `components.agents.modules.<Id>.minDbSchema` / `maxDbSchema` | 可选；依赖库模块的 schema 闭区间；export 写入对应 `module.json`              |
+| `components.api.version`                                     | API 制品版本；export 写入 `apps/api-asp/src/Version.g.props`                 |
+| `components.api.contractVersion`                             | HTTP 协议 SemVer；export 写入 `ApiContract.g.cs`（协议字段；与制品版本解耦） |
+| `components.api.minDbSchema` / `maxDbSchema`                 | API 宿主 SchemaBounds；export 写入 `SchemaBounds.g.cs` 与 `appsettings.json` |
+| `components.database.postgres.version`                       | PostgreSQL migration 目标版本                                                |
+| `release.channel`                                            | 发布通道：`stable` 或 `beta`                                                 |
 
 使用下列脚本维护和验证派生文件：
 
@@ -29,24 +29,24 @@
 
 `bump-version.sh` 常用参数（可单条或多条组合；细则见 `--help`）：
 
-| 改什么 | 参数 |
-|--------|------|
-| 组件制品版本 | `--component api=…` / `agents=…` 等 |
-| Desktop / DB | `--desktop` / `--db` |
-| API 协议 | `--api-contract X.Y.Z` |
-| Desktop 与 API 的 schema 闭区间 | `--component-min-db` / `--component-max-db desktop\|api=…`（Desktop 亦可用 `--desktop-min-db` / `--desktop-max-db`） |
-| 单模块 version | `--module Injector=…` |
-| 单模块 schema 区间 | `--module-min-db` / `--module-max-db MODULE=…`（成对有效；皆缺=不依赖库） |
-| Agents 与 Desktop 区间 | `--agents-min-desktop` / `--agents-max-desktop`（同通道显式 `--desktop` 不改区间；stable 切 beta 且未写区间时跟 Desktop；beta 上 product 代填 Desktop 且原为单点钉住时整段平移；宽区间则只补越界侧） |
+| 改什么                          | 参数                                                                                                                                                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 组件制品版本                    | `--component api=…` / `agents=…` 等                                                                                                                                                                  |
+| Desktop / DB                    | `--desktop` / `--db`                                                                                                                                                                                 |
+| API 协议                        | `--api-contract X.Y.Z`                                                                                                                                                                               |
+| Desktop 与 API 的 schema 闭区间 | `--component-min-db` / `--component-max-db desktop\|api=…`（Desktop 亦可用 `--desktop-min-db` / `--desktop-max-db`）                                                                                 |
+| 单模块 version                  | `--module Injector=…`                                                                                                                                                                                |
+| 单模块 schema 区间              | `--module-min-db` / `--module-max-db MODULE=…`（成对有效；皆缺=不依赖库）                                                                                                                            |
+| Agents 与 Desktop 区间          | `--agents-min-desktop` / `--agents-max-desktop`（同通道显式 `--desktop` 不改区间；stable 切 beta 且未写区间时跟 Desktop；beta 上 product 代填 Desktop 且原为单点钉住时整段平移；宽区间则只补越界侧） |
 
 `export-version.sh` 按产物写只读字段：
 
-| 生成文件 | 内容 |
-|----------|------|
-| Desktop `ReleaseManifest.json` | product、desktop、agents.version、database、release |
-| Agents Host `ReleaseManifest.json` | agents.version、minDesktop、maxDesktop、modules 各版本 |
-| 各模块 `module.json` | version，以及可选的 minDbSchema、maxDbSchema |
-| API | Version.g.props、ApiContract.g.cs、SchemaBounds.g.cs、appsettings 的 SchemaBounds |
+| 生成文件                           | 内容                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| Desktop `ReleaseManifest.json`     | product、desktop、agents.version、database、release                               |
+| Agents Host `ReleaseManifest.json` | agents.version、minDesktop、maxDesktop、modules 各版本                            |
+| 各模块 `module.json`               | version，以及可选的 minDbSchema、maxDbSchema                                      |
+| API                                | Version.g.props、ApiContract.g.cs、SchemaBounds.g.cs、appsettings 的 SchemaBounds |
 
 Feed 发布全量 `release-manifest.json`（更新探测）。`check-version` 按各产物文件字段与清单逐项核对。源码树 `runtime/agents/host/ReleaseManifest.json` 供校验与打包；Host 进程不读该文件。
 
