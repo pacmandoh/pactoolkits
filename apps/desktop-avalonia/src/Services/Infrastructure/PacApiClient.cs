@@ -21,6 +21,7 @@ public sealed class PacApiClient : IDisposable
     public static readonly TimeSpan ApiTimeout = TimeSpan.FromSeconds(30);
 
     private static readonly HttpRequestOptionsKey<bool> ForceTokenRefreshKey = new("pac.forceTokenRefresh");
+    private static readonly HttpRequestOptionsKey<string> StaleAccessTokenKey = new("pac.staleAccessToken");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -127,18 +128,26 @@ public sealed class PacApiClient : IDisposable
             return response;
         }
 
+        // 记下触发 401 的 Bearer；并发重试进锁后若已换新票则复用
+        var staleAccessToken = request.Headers.Authorization?.Parameter;
         response.Dispose();
         using var retry = createRequest();
         retry.Options.Set(ForceTokenRefreshKey, true);
+        if (!string.IsNullOrEmpty(staleAccessToken))
+        {
+            retry.Options.Set(StaleAccessTokenKey, staleAccessToken);
+        }
+
         return await http.SendAsync(retry, HttpCompletionOption.ResponseHeadersRead, ct)
             .ConfigureAwait(false);
     }
 
-    private async Task EnsureTokenAsync(CancellationToken ct, bool forceRefresh = false)
+    private async Task EnsureTokenAsync(
+        CancellationToken ct,
+        bool forceRefresh = false,
+        string? staleAccessToken = null)
     {
-        if (!forceRefresh
-            && !string.IsNullOrEmpty(_accessToken)
-            && _tokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
+        if (!forceRefresh && HasFreshAccessToken())
         {
             return;
         }
@@ -146,11 +155,15 @@ public sealed class PacApiClient : IDisposable
         await _tokenGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (!forceRefresh
-                && !string.IsNullOrEmpty(_accessToken)
-                && _tokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
+            if (HasFreshAccessToken())
             {
-                return;
+                // 非强制；或强制但当前票已不是触发 401 的那张（并发已换过）
+                if (!forceRefresh
+                    || (!string.IsNullOrEmpty(staleAccessToken)
+                        && !string.Equals(_accessToken, staleAccessToken, StringComparison.Ordinal)))
+                {
+                    return;
+                }
             }
 
             if (!IsConfigured)
@@ -191,7 +204,11 @@ public sealed class PacApiClient : IDisposable
         }
     }
 
-    /// <summary>为出站请求附加 Bearer；401 重试经 ForceTokenRefreshKey 强制换票</summary>
+    private bool HasFreshAccessToken()
+        => !string.IsNullOrEmpty(_accessToken)
+            && _tokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1);
+
+    /// <summary>附加 Bearer；401 重试可带旧票，避免并发连打换票</summary>
     private sealed class JwtHandler : DelegatingHandler
     {
         private readonly PacApiClient _client;
@@ -206,7 +223,9 @@ public sealed class PacApiClient : IDisposable
             CancellationToken cancellationToken)
         {
             var force = request.Options.TryGetValue(ForceTokenRefreshKey, out var refresh) && refresh;
-            await _client.EnsureTokenAsync(cancellationToken, forceRefresh: force).ConfigureAwait(false);
+            _ = request.Options.TryGetValue(StaleAccessTokenKey, out string? stale);
+            await _client.EnsureTokenAsync(cancellationToken, forceRefresh: force, staleAccessToken: stale)
+                .ConfigureAwait(false);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _client._accessToken);
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }

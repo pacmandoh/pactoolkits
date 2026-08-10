@@ -53,7 +53,9 @@ GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 
 预留：`PacApiClient` / `ApiChangeWatermark` 已编译、无 DI（与本机 `ChangeWatermarkService` 互斥，接入时二选一）。Desktop 日后可改走 API SSE；配置另行约定，不沿用现 Desktop.config。
 
-`PacApiClient` 分三个 `HttpClient`：换票（短超时、无 JWT）、普通 API（短超时 + JWT）、SSE（长连接 + JWT）。正式 DI 用 `IHttpClientFactory` 注册命名客户端。SSE `ready`（含重连）与 `change` 均 GET watermarks 补 version；`ready` 不对首见 topic 刷页，避免冷启动连环刷新。
+`PacApiClient` 分三个 `HttpClient`：换票（短超时、无 JWT）、普通 API（短超时 + JWT）、SSE（长连接 + JWT）。正式 DI 用 `IHttpClientFactory` 注册命名客户端。并发 401 重试记下旧 Bearer，锁内若已换新票则复用，不连打 `/token`。
+
+`ApiChangeWatermark`：SSE `ready`（含重连）与 `change` 均 GET watermarks 补 version；`ready` 不对首见 topic 刷页，避免冷启动连环刷新。脉冲为容量 1 唤醒并在锁内合并；`TopicChanged` 按订阅者隔离，单页异常不中断其它 topic。
 
 **API 侧（已实现，可单独在本机验证）**：
 

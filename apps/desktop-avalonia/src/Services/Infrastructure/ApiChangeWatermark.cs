@@ -37,9 +37,16 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
     private readonly TimeSpan _reconnectDelay;
     private readonly TimeSpan _notifyCoalesceWindow;
 
-    // 脉冲载荷：emitOnBootstrap（change=true，ready=false）
-    private readonly Channel<bool> _pulses = Channel.CreateUnbounded<bool>(
-        new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+    // 容量 1 唤醒 + 锁内 OR 合并 emitOnBootstrap（对齐 API LISTEN pending）
+    private readonly object _pulseGate = new();
+    private bool _pendingEmitOnBootstrap;
+    private readonly Channel<bool> _wake = Channel.CreateBounded<bool>(
+        new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true,
+            SingleWriter = false,
+        });
 
     private Task? _streamLoop;
     private Task? _pollLoop;
@@ -96,7 +103,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
             _logger.Warn("ChangeStream", "dispose.cancel_fail", "Failed to cancel change stream", ex);
         }
 
-        try { _pulses.Writer.TryComplete(); }
+        try { _wake.Writer.TryComplete(); }
         catch (Exception ex)
         {
             _logger.Warn("ChangeStream", "dispose.channel_fail", "Failed to close change stream channel", ex);
@@ -181,12 +188,12 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
                     if (string.Equals(eventName, "change", StringComparison.OrdinalIgnoreCase))
                     {
-                        _pulses.Writer.TryWrite(true);
+                        EnqueuePulse(emitOnBootstrap: true);
                     }
                     else if (string.Equals(eventName, "ready", StringComparison.OrdinalIgnoreCase))
                     {
                         // ready：立刻 GET watermark；首见 topic 不刷页（与冷启动 poll 一致）
-                        _pulses.Writer.TryWrite(false);
+                        EnqueuePulse(emitOnBootstrap: false);
                     }
                 }
             }
@@ -209,6 +216,16 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
         }
     }
 
+    private void EnqueuePulse(bool emitOnBootstrap)
+    {
+        lock (_pulseGate)
+        {
+            _pendingEmitOnBootstrap |= emitOnBootstrap;
+        }
+
+        _wake.Writer.TryWrite(true);
+    }
+
     private async Task DispatchLoopAsync(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
@@ -216,11 +233,16 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
             bool emitOnBootstrap;
             try
             {
-                emitOnBootstrap = await _pulses.Reader.ReadAsync(ct).ConfigureAwait(false);
+                _ = await _wake.Reader.ReadAsync(ct).ConfigureAwait(false);
                 await Task.Delay(_notifyCoalesceWindow, ct).ConfigureAwait(false);
-                while (_pulses.Reader.TryRead(out var flag))
+                while (_wake.Reader.TryRead(out _))
                 {
-                    emitOnBootstrap |= flag;
+                }
+
+                lock (_pulseGate)
+                {
+                    emitOnBootstrap = _pendingEmitOnBootstrap;
+                    _pendingEmitOnBootstrap = false;
                 }
             }
             catch (OperationCanceledException)
@@ -264,7 +286,33 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
             if (shouldEmit)
             {
-                TopicChanged?.Invoke(row.Topic);
+                RaiseTopicChanged(row.Topic);
+            }
+        }
+    }
+
+    private void RaiseTopicChanged(string topic)
+    {
+        var handler = TopicChanged;
+        if (handler is null)
+        {
+            return;
+        }
+
+        // 单页订阅抛错不得挡住其余 topic / 订阅者
+        foreach (var subscriber in handler.GetInvocationList())
+        {
+            try
+            {
+                ((Action<string>)subscriber).Invoke(topic);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(
+                    "ChangeStream",
+                    "topic.notify.fail",
+                    $"TopicChanged handler failed for {topic}",
+                    ex);
             }
         }
     }
