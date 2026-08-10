@@ -19,8 +19,9 @@ apps/api-asp/
 POST /v1/auth/token   Header X-Api-Key: <plaintext>，换 JWT
 GET  /v1/ping         Authorization: Bearer <jwt>（需 scope read）
 GET  /v1/system/info  Bearer（需 scope system.status）
+GET  /v1/system/status Bearer（需 scope system.status；database/schema 诊断）
 GET  /v1/changes/*    Bearer（需 scope read）
-GET  /health          匿名；200 表示进程、PostgreSQL 与 schema 可用，否则 503（SchemaBounds 同时挡业务 IDb）
+GET  /health          匿名探活；仅 status；200=可用、503=不可用
 ```
 
 | 项 | 说明 |
@@ -82,10 +83,11 @@ Postgres__Password=<secret>
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| GET | `/health` | 否 | 进程、PostgreSQL 与 schema；SchemaBounds 同时拦业务 IDb（见架构文档） |
+| GET | `/health` | 否 | 匿名探活，仅 `status`；SchemaBounds 同时拦业务 IDb |
 | POST | `/v1/auth/token` | API Key（限流） | 换 JWT |
 | GET | `/v1/ping` | JWT `read` | 校验 JWT 与 read scope |
-| GET | `/v1/system/info` | JWT `system.status` | 非敏感系统信息 |
+| GET | `/v1/system/info` | JWT `system.status` | 非敏感静态信息 |
+| GET | `/v1/system/status` | JWT `system.status` | 连库/schema 诊断 |
 | GET | `/v1/changes/watermarks` | JWT `read` | 变更水位快照 |
 | GET | `/v1/changes/stream` | JWT `read` | SSE 变更流；JWT `exp` 时服务端关闭 |
 

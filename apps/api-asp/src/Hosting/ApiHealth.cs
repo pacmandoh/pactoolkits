@@ -17,12 +17,23 @@ public interface IApiHealth
     Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default);
 }
 
-/// <summary>连库探测并 Match SchemaBounds</summary>
+/// <summary>
+/// 连库探测并 Match SchemaBounds
+///
+/// 短缓存与 single-flight，避免匿名 /health 压库
+/// </summary>
 public sealed class ApiHealth : IApiHealth
 {
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(3);
+
     private readonly IDbConfigService _db;
     private readonly IDbSchemaGate _schemaGate;
     private readonly SchemaBoundsOptions _bounds;
+    private readonly SemaphoreSlim _probeGate = new(1, 1);
+    private readonly object _cacheGate = new();
+
+    private ApiHealthSnapshot? _cache;
+    private DateTimeOffset _cacheUtc;
 
     public ApiHealth(
         IDbConfigService db,
@@ -35,6 +46,52 @@ public sealed class ApiHealth : IApiHealth
     }
 
     public async Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default)
+    {
+        var hit = TryGetFreshCache();
+        if (hit is not null)
+        {
+            return hit;
+        }
+
+        await _probeGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            hit = TryGetFreshCache();
+            if (hit is not null)
+            {
+                return hit;
+            }
+
+            var snap = await ProbeAsync(ct).ConfigureAwait(false);
+            lock (_cacheGate)
+            {
+                _cache = snap;
+                _cacheUtc = DateTimeOffset.UtcNow;
+            }
+
+            return snap;
+        }
+        finally
+        {
+            _probeGate.Release();
+        }
+    }
+
+    private ApiHealthSnapshot? TryGetFreshCache()
+    {
+        lock (_cacheGate)
+        {
+            var cached = _cache;
+            if (cached is not null && DateTimeOffset.UtcNow - _cacheUtc < CacheTtl)
+            {
+                return cached;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<ApiHealthSnapshot> ProbeAsync(CancellationToken ct)
     {
         var reachable = await _db.TestConnectionAsync(_db.Current, ct).ConfigureAwait(false);
         if (!reachable)

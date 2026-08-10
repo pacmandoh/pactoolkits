@@ -21,7 +21,7 @@ usage() {
 Usage:
   run-api-manual-regression.sh [--skip-wire] [--skip-notify] [--base-url URL]
 
-  默认：wire-local（/health 须 200）后校验换票、ping、system/info、watermarks、SSE ready；
+  默认：wire-local（/health 须 200 / status=ok）后校验换票、ping、system/info、system/status、watermarks、SSE ready；
         条件允许时再校验 app_touch_watermark 与 SSE change。
   --skip-wire    假定 API 已在 BASE 上跑着（.env.asp 仍须有 PAC_API_KEY）
   --skip-notify  跳过 psql 触发与 SSE change
@@ -70,7 +70,7 @@ http_code() {
 
 log "=== 1 health ==="
 code="$(http_code GET "${BASE_URL}/health")"
-if [[ "${code}" == "200" ]] && jq -e '.status=="ok" and .database=="ok" and .schema=="ok"' /tmp/pac-api-reg-body.json >/dev/null 2>&1; then
+if [[ "${code}" == "200" ]] && jq -e '.status=="ok"' /tmp/pac-api-reg-body.json >/dev/null 2>&1; then
   ok "health 200 ok"
 else
   fail "health code=${code} body=$(cat /tmp/pac-api-reg-body.json 2>/dev/null || true)"
@@ -116,6 +116,14 @@ if [[ "${code}" == "200" ]]; then
   ok "system/info"
 else
   fail "system/info code=${code} (若 403 检查 client scopes 含 system.status)"
+fi
+
+log "=== 5b system/status ==="
+code="$(http_code GET "${BASE_URL}/v1/system/status" "${AUTH[@]}")"
+if [[ "${code}" == "200" ]] && jq -e '.status=="ok" and .database=="ok" and .schema=="ok"' /tmp/pac-api-reg-body.json >/dev/null 2>&1; then
+  ok "system/status diagnostics"
+else
+  fail "system/status code=${code} body=$(cat /tmp/pac-api-reg-body.json 2>/dev/null || true)"
 fi
 
 log "=== 6 watermarks ==="

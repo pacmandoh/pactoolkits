@@ -148,7 +148,7 @@ if [[ "${NO_PROBE}" != "true" ]]; then
     if [[ -z "${Postgres__Password:-}" ]]; then
       die "health HTTP ${HEALTH_CODE}（Postgres__Password 为空时常见 503；在 ${ENV_FILE} 填密码后重跑）"
     fi
-    die "health HTTP ${HEALTH_CODE}（须 200：进程、PostgreSQL 与 SchemaBounds 均 ok）"
+    die "health HTTP ${HEALTH_CODE}（须 200：status=ok，进程与库门禁均通过）"
   fi
   TOKEN="$(
     curl -fsS -X POST "${BASE_URL}/v1/auth/token" \

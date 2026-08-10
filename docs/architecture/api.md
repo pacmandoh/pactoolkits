@@ -19,7 +19,8 @@
 ```text
 POST /v1/auth/token   Header X-Api-Key，换短期 Bearer JWT
 业务路由               Header Authorization: Bearer <jwt>
-GET  /health          匿名；反映进程、PostgreSQL 与 schema 门禁
+GET  /health          匿名探活；仅 status ok/unavailable
+GET  /v1/system/status  Bearer system.status；database/schema 诊断
 ```
 
 - **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）
@@ -30,7 +31,8 @@ GET  /health          匿名；反映进程、PostgreSQL 与 schema 门禁
 
 ## 健康与错误
 
-- `/health`：API 进程、PostgreSQL 可达、且 `SchemaBounds` 通过时返回 **200**，否则 **503**；响应不含连接串、账号、SQL、堆栈
+- `/health`：匿名探活，只返回 `status`（`ok` / `unavailable`）；进程、PostgreSQL 与 `SchemaBounds` 通过为 **200**，否则 **503**；探针短缓存 + single-flight（约 3s）；不暴露连接串、schema 版本、账号
+- `GET /v1/system/status`（JWT `system.status`）：`database`、`schema`、`schemaVersion`、`reason`
 - `SchemaBounds`：
   - 启动时校验 `MinDbSchema` / `MaxDbSchema` 为发布用 `X.Y.Z`，且 `min <= max`
   - `IDbAccessGuard` 默认 `schema_bounds:not_ready`；`SchemaBoundsAccessHost` 在接受请求前完成首检
