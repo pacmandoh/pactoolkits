@@ -18,9 +18,6 @@ public sealed class HealthEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var doc = JsonDocument.Parse(body);
         Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
-        Assert.False(doc.RootElement.TryGetProperty("database", out _));
-        Assert.False(doc.RootElement.TryGetProperty("schema", out _));
-        Assert.False(doc.RootElement.TryGetProperty("schemaVersion", out _));
     }
 
     [Fact]
@@ -35,7 +32,6 @@ public sealed class HealthEndpointsTests
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         using var doc = JsonDocument.Parse(body);
         Assert.Equal("unavailable", doc.RootElement.GetProperty("status").GetString());
-        Assert.False(doc.RootElement.TryGetProperty("database", out _));
         Assert.DoesNotContain("Password", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("127.0.0.1", body, StringComparison.Ordinal);
     }

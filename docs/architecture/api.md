@@ -20,7 +20,8 @@
 POST /v1/auth/token   Header X-Api-Key，换短期 Bearer JWT
 业务路由               Header Authorization: Bearer <jwt>
 GET  /health          匿名探活；仅 status ok/unavailable
-GET  /v1/system/status  Bearer system.status；database/schema 诊断
+GET  /v1/system/info  Bearer system.status；product、apiVersion、contractVersion
+GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 ```
 
 - **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）
@@ -28,6 +29,7 @@ GET  /v1/system/status  Bearer system.status；database/schema 诊断
 - **JWT**：HMAC-SHA256；`Auth:Jwt:SigningKey` 变更后须**重启**进程（不支持运行中轮换密钥）
 - **Scope / Policy**：`read` / `write` / `system.status`；端点 `.RequireAuthorization(...)`
 - **换票**：按来源限流；失败统一 401；不区分 Key 不存在 / 错误 / 已禁用；日志不记明文 Key
+- **协议版本**：`GET /v1/system/info` 返回 `contractVersion`（协议 SemVer，来自清单 `components.api.contractVersion`，export 为 `ApiContract.Version`）。客户端用该字段判断协议是否兼容；`apiVersion` 只标识进程构建（清单 `components.api.version`），不参与协议判断
 
 ## 健康与错误
 

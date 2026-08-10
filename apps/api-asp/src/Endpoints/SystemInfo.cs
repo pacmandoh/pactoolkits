@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.Extensions.Options;
 using PacToolkits.Api.Auth;
 using PacToolkits.Api.Hosting;
 
@@ -17,19 +16,18 @@ public static class SystemInfoEndpoints
         return routes;
     }
 
-    private static IResult GetInfo(IOptions<SchemaBoundsOptions> bounds)
+    private static IResult GetInfo()
     {
-        var version = Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        var asm = Assembly.GetExecutingAssembly();
+        var version = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion
-            ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+            ?? asm.GetName().Version?.ToString()
             ?? "unknown";
 
         return Results.Ok(new SystemInfoResponse(
             Product: "pactoolkits-api",
             ApiVersion: version,
-            MinDbSchema: bounds.Value.MinDbSchema,
-            MaxDbSchema: bounds.Value.MaxDbSchema,
+            ContractVersion: ApiContract.Version,
             Utc: DateTimeOffset.UtcNow));
     }
 
@@ -69,8 +67,7 @@ public static class SystemInfoEndpoints
 public sealed record SystemInfoResponse(
     string Product,
     string ApiVersion,
-    string MinDbSchema,
-    string MaxDbSchema,
+    string ContractVersion,
     DateTimeOffset Utc);
 
 public sealed record SystemStatusResponse(
