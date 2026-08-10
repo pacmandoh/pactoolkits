@@ -91,7 +91,7 @@ flowchart TB
 
 ### `apps/api-asp`
 
-- HTTP 宿主（`PacToolkits.Api`）：具名客户端用 API Key（散列）换 JWT 与授权策略；`/health` 检查 PostgreSQL 与 schema；LISTEN 写入 SSE 变更流；域路由
+- HTTP 宿主（`PacToolkits.Api`）：具名客户端用 API Key（散列）换 JWT 与授权策略；匿名 `/health` 探活；LISTEN 写入 SSE 变更流；域路由
 - DI 组装入口：`AddPacToolkitsApi`；全量 Application 与 Infrastructure（Desktop Store 与 MSFX 客户端由宿主适配，见 [api.md](./api.md)）
 - 部署与本地脚本：[API README](../../apps/api-asp/README.md)
 

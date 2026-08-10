@@ -2,7 +2,7 @@ using PacToolkits.Api.Hosting;
 
 namespace PacToolkits.Api.Endpoints;
 
-/// <summary>进程、PostgreSQL 与 schema 门禁的健康检查</summary>
+/// <summary>匿名探活：只返回 status，不露 schema 细节</summary>
 public static class HealthEndpoints
 {
     public static IEndpointRouteBuilder MapHealth(this IEndpointRouteBuilder routes)
@@ -14,12 +14,7 @@ public static class HealthEndpoints
     private static async Task<IResult> Check(IApiHealth health, CancellationToken ct)
     {
         var snapshot = await health.CheckAsync(ct).ConfigureAwait(false);
-        var body = new HealthResponse(
-            snapshot.Ok ? "ok" : "unavailable",
-            DateTimeOffset.UtcNow,
-            snapshot.Database,
-            snapshot.Schema,
-            snapshot.SchemaVersion);
+        var body = new HealthResponse(snapshot.Ok ? "ok" : "unavailable");
 
         return snapshot.Ok
             ? Results.Ok(body)
@@ -27,9 +22,4 @@ public static class HealthEndpoints
     }
 }
 
-public sealed record HealthResponse(
-    string Status,
-    DateTimeOffset Utc,
-    string Database,
-    string Schema,
-    string? SchemaVersion);
+public sealed record HealthResponse(string Status);
