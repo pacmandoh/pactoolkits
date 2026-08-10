@@ -360,13 +360,13 @@ if [[ -n "$CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$DESKTOP_MAX_DB$API_CONTRACT$AGENTS_MIN_DESKTOP$AGENTS_MAX_DESKTOP$CHANNEL" \
-  && ${#COMPONENT_UPDATES[@]} -eq 0 \
-  && ${#MODULE_UPDATES[@]} -eq 0 \
-  && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 \
-  && ${#COMPONENT_MAX_DB_UPDATES[@]} -eq 0 \
-  && ${#MODULE_MIN_DB_UPDATES[@]} -eq 0 \
-  && ${#MODULE_MAX_DB_UPDATES[@]} -eq 0 ]]; then
+if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$DESKTOP_MAX_DB$API_CONTRACT$AGENTS_MIN_DESKTOP$AGENTS_MAX_DESKTOP$CHANNEL" &&
+  ${#COMPONENT_UPDATES[@]} -eq 0 &&
+  ${#MODULE_UPDATES[@]} -eq 0 &&
+  ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 &&
+  ${#COMPONENT_MAX_DB_UPDATES[@]} -eq 0 &&
+  ${#MODULE_MIN_DB_UPDATES[@]} -eq 0 &&
+  ${#MODULE_MAX_DB_UPDATES[@]} -eq 0 ]]; then
   echo "ERROR: nothing to update" >&2
   usage
   exit 1
@@ -574,9 +574,9 @@ fi
 if [[ "$desktop_from_product" == "true" && -n "$DESKTOP" && "$DESKTOP" != "$current_desktop" ]]; then
   current_agents_min="$(manifest_agents_min_desktop "$MANIFEST")"
   current_agents_max="$(manifest_agents_max_desktop "$MANIFEST")"
-  if [[ -z "$AGENTS_MIN_DESKTOP" && -z "$AGENTS_MAX_DESKTOP" \
-    && -n "$current_agents_min" && "$current_agents_min" == "$current_agents_max" \
-    && "$current_agents_max" == "$current_desktop" ]]; then
+  if [[ -z "$AGENTS_MIN_DESKTOP" && -z "$AGENTS_MAX_DESKTOP" &&
+    -n "$current_agents_min" && "$current_agents_min" == "$current_agents_max" &&
+    "$current_agents_max" == "$current_desktop" ]]; then
     AGENTS_MIN_DESKTOP="$DESKTOP"
     AGENTS_MAX_DESKTOP="$DESKTOP"
   else
