@@ -112,10 +112,14 @@ fi
 
 log "=== 5 system/info ==="
 code="$(http_code GET "${BASE_URL}/v1/system/info" "${AUTH[@]}")"
-if [[ "${code}" == "200" ]]; then
-  ok "system/info"
+if [[ "${code}" == "200" ]] && jq -e '
+  (.contractVersion | type == "string") and
+  (.contractVersion | test("^[0-9]+\\.[0-9]+\\.[0-9]+$")) and
+  has("apiVersion")
+' /tmp/pac-api-reg-body.json >/dev/null 2>&1; then
+  ok "system/info contract"
 else
-  fail "system/info code=${code} (若 403 检查 client scopes 含 system.status)"
+  fail "system/info code=${code} body=$(cat /tmp/pac-api-reg-body.json 2>/dev/null || true) (若 403 检查 client scopes 含 system.status)"
 fi
 
 log "=== 5b system/status ==="

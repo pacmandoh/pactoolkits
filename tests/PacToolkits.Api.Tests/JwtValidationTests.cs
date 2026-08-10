@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using PacToolkits.Api.Auth;
+using PacToolkits.Api.Hosting;
 
 namespace PacToolkits.Api.Tests;
 
@@ -98,7 +100,7 @@ public sealed class JwtValidationTests
     }
 
     [Fact]
-    public async Task SystemInfo_accepts_system_status_scope()
+    public async Task SystemInfo_returns_contract_fields()
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
@@ -106,7 +108,11 @@ public sealed class JwtValidationTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/system/info", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal(ApiContract.Version, doc.RootElement.GetProperty("contractVersion").GetString());
+        Assert.False(string.IsNullOrEmpty(doc.RootElement.GetProperty("apiVersion").GetString()));
     }
 }

@@ -18,8 +18,8 @@ apps/api-asp/
 ```text
 POST /v1/auth/token   Header X-Api-Key: <plaintext>，换 JWT
 GET  /v1/ping         Authorization: Bearer <jwt>（需 scope read）
-GET  /v1/system/info  Bearer（需 scope system.status）
-GET  /v1/system/status Bearer（需 scope system.status；database/schema 诊断）
+GET  /v1/system/info  Bearer（需 system.status；含 contractVersion）
+GET  /v1/system/status Bearer（需 system.status；database 与 schema 诊断）
 GET  /v1/changes/*    Bearer（需 scope read）
 GET  /health          匿名探活；仅 status；200=可用、503=不可用
 ```
@@ -86,12 +86,14 @@ Postgres__Password=<secret>
 | GET | `/health` | 否 | 匿名探活，仅 `status`；SchemaBounds 同时拦业务 IDb |
 | POST | `/v1/auth/token` | API Key（限流） | 换 JWT |
 | GET | `/v1/ping` | JWT `read` | 校验 JWT 与 read scope |
-| GET | `/v1/system/info` | JWT `system.status` | 非敏感静态信息 |
-| GET | `/v1/system/status` | JWT `system.status` | 连库/schema 诊断 |
+| GET | `/v1/system/info` | JWT `system.status` | 静态：product、构建用 apiVersion、协议 SemVer contractVersion |
+| GET | `/v1/system/status` | JWT `system.status` | 连库与 schema 诊断 |
 | GET | `/v1/changes/watermarks` | JWT `read` | 变更水位快照 |
 | GET | `/v1/changes/stream` | JWT `read` | SSE 变更流；JWT `exp` 时服务端关闭 |
 
 DI 组装入口：`AddPacToolkitsApi`。注册全量 Application 与 Infrastructure；Desktop 专属 Store 与 MSFX 外呼由宿主适配（无本地配置文件；MSFX HTTP 未接）。
+
+版本与 schema：`export-version.sh` 从清单 `components.api`（version、contractVersion、minDbSchema、maxDbSchema）写出 `Version.g.props`、`ApiContract.g.cs`、`SchemaBounds.g.cs` 以及 appsettings 的 SchemaBounds。
 
 ## 测试
 
