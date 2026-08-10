@@ -31,7 +31,11 @@ GET  /health          匿名；反映进程、PostgreSQL 与 schema 门禁
 ## 健康与错误
 
 - `/health`：API 进程、PostgreSQL 可达、且 `SchemaBounds` 通过时返回 **200**，否则 **503**；响应不含连接串、账号、SQL、堆栈
-- `SchemaBounds`：与经 `IDb` 的业务读写同一判定（`IDbAccessGuard`）；中间件对默认的 `/v1` 业务路由（含 `changes/*`）返回 **503**。不拦：`/health`、换票、`/v1/ping`、`/v1/system/*`
+- `SchemaBounds`：
+  - 启动时校验 `MinDbSchema` / `MaxDbSchema` 为发布用 `X.Y.Z`，且 `min <= max`
+  - `IDbAccessGuard` 默认 `schema_bounds:not_ready`；`SchemaBoundsAccessHost` 在接受请求前完成首检
+  - schema 兼容才放行数据面；schema 不合或库不可达均为 **503**
+  - 中间件拦默认 `/v1` 业务路由（含 `changes/*`）；不拦 `/health`、换票、`/v1/ping`、`/v1/system/*`
 - 错误体：业务路径经 ProblemDetails 时常含 `status` / `code` / `title` / `traceId`；换票失败多为框架最小 401；换票限流 429 未必带统一 ApiProblem
 - 生产不返回内部路径与敏感配置
 

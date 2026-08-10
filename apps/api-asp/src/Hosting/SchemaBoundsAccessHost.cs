@@ -5,10 +5,12 @@ namespace PacToolkits.Api.Hosting;
 /// <summary>
 /// 周期对齐 SchemaBounds 与 <see cref="IDbAccessGuard"/>（以 <see cref="IApiHealth"/> 判定为据）
 ///
-/// /health 与经 IDb 的业务读写共用同一判定；库不可达不设 Block
+/// 默认阻断数据面至首检通过；库不可达或 schema 不合保持 503
 /// </summary>
 public sealed class SchemaBoundsAccessHost : BackgroundService
 {
+    public const string NotReadyReason = "schema_bounds:not_ready";
+
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(15);
 
     private readonly IApiHealth _health;
@@ -25,24 +27,17 @@ public sealed class SchemaBoundsAccessHost : BackgroundService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    public override async Task StartAsync(CancellationToken cancellationToken)
+    {
+        // 宿主接受请求前先完成首检，避免 Kestrel 已监听而 gate 仍未就绪
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        await base.StartAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                var snap = await _health.CheckAsync(stoppingToken).ConfigureAwait(false);
-                Apply(snap);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "schema_bounds.access refresh failed");
-            }
-
             try
             {
                 await Task.Delay(Interval, stoppingToken).ConfigureAwait(false);
@@ -51,12 +46,31 @@ public sealed class SchemaBoundsAccessHost : BackgroundService
             {
                 break;
             }
+
+            await RefreshAsync(stoppingToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RefreshAsync(CancellationToken ct)
+    {
+        try
+        {
+            var snap = await _health.CheckAsync(ct).ConfigureAwait(false);
+            Apply(snap);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // 关停时不再改写 gate
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "schema_bounds.access refresh failed");
+            SetBlocked("schema_bounds:check_failed");
         }
     }
 
     private void Apply(ApiHealthSnapshot snap)
     {
-        // schema 不合才 Block；库不可达走传输错误，避免长期误设 Block
         if (snap.Ok)
         {
             if (_guard.IsBlocked)
@@ -68,23 +82,26 @@ public sealed class SchemaBoundsAccessHost : BackgroundService
             return;
         }
 
-        if (snap.Database == "ok" && snap.Schema is "incompatible" or "metadata_missing" or "unavailable")
+        if (snap.Database == "ok"
+            && snap.Schema is "incompatible" or "metadata_missing" or "unavailable")
         {
             var version = string.IsNullOrWhiteSpace(snap.SchemaVersion) ? "-" : snap.SchemaVersion;
-            var reason = $"schema_bounds:{snap.Schema} version={version}";
-            if (!_guard.IsBlocked || !string.Equals(_guard.BlockReason, reason, StringComparison.Ordinal))
-            {
-                _guard.Block(reason);
-                _logger.LogWarning("schema_bounds.access blocked {Reason}", reason);
-            }
-
+            SetBlocked($"schema_bounds:{snap.Schema} version={version}");
             return;
         }
 
-        if (_guard.IsBlocked)
+        // 库不可达等非 schema 失败：数据面继续 503（与 /health 一致，不靠 Clear 放行）
+        SetBlocked("schema_bounds:db_unavailable");
+    }
+
+    private void SetBlocked(string reason)
+    {
+        if (_guard.IsBlocked && string.Equals(_guard.BlockReason, reason, StringComparison.Ordinal))
         {
-            _guard.Clear();
-            _logger.LogInformation("schema_bounds.access cleared (db not reachable or non-schema fail)");
+            return;
         }
+
+        _guard.Block(reason);
+        _logger.LogWarning("schema_bounds.access blocked {Reason}", reason);
     }
 }

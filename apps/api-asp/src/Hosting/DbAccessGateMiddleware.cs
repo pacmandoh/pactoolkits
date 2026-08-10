@@ -3,7 +3,7 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Api.Hosting;
 
 /// <summary>
-/// SchemaBounds 阻断时：业务 IDb 相关路由返回 503（与 /health 一致）
+/// <see cref="IDbAccessGuard"/> 阻断时对数据面返回 503
 ///
 /// 不拦：/health、换票、/v1/ping、/v1/system/*
 /// </summary>
