@@ -15,14 +15,20 @@ NO_PROBE=false
 log() { printf '[wire-local] %s\n' "$*"; }
 die() { printf '[wire-local][error] %s\n' "$*" >&2; exit 1; }
 
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
 usage() {
   cat <<'USAGE'
 Usage:
   wire-local.sh [--no-probe] [--base-url URL]
 
-  1) 确保 apps/api-asp/.env.asp 有 Auth 与 Postgres（见 gen-dev-secrets；手改 Enabled/Scopes 会保留）
-  2) 后台启动 api-asp（nohup，关掉终端也活着）
-  3) 校验 health、换票与 /v1/ping（--no-probe 跳过；client 禁用时 probe 会失败，可加 --no-probe）
+  1) Ensure apps/api-asp/.env.asp has Auth and Postgres (see gen-dev-secrets;
+     hand-edited Enabled/Scopes are preserved)
+  2) Start api-asp in the background (nohup; survives terminal close)
+  3) Probe health, token exchange, and /v1/ping
+     (--no-probe skips; use when the client is disabled and probe would fail)
 USAGE
 }
 
@@ -46,6 +52,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+require_cmd jq
+require_cmd curl
+
 [[ -f "${APP_PROJ}" ]] || die "project not found: ${APP_PROJ}"
 [[ -x "${GEN_SECRETS}" ]] || chmod +x "${GEN_SECRETS}"
 
@@ -64,11 +73,11 @@ set -a
 source <(grep -E '^(PAC_API_KEY|Auth__|Postgres__|ASPNETCORE_|SchemaBounds__|Changes__)' "${ENV_FILE}" | sed 's/\r$//')
 set +a
 [[ -n "${PAC_API_KEY:-}" && -n "${Auth__Clients__dev__ApiKeyHash:-}" && -n "${Auth__Jwt__SigningKey:-}" ]] \
-  || die "Auth 密钥未就绪: ${ENV_FILE}"
+  || die "Auth secrets not ready: ${ENV_FILE}"
 [[ -n "${Postgres__Host:-}" && -n "${Postgres__Database:-}" && -n "${Postgres__Username:-}" ]] \
-  || die "Postgres 连接未就绪: ${ENV_FILE}"
+  || die "Postgres connection not ready: ${ENV_FILE}"
 if [[ -z "${Postgres__Password:-}" ]]; then
-  log "warn: Postgres__Password 为空，/health 多半 503；在 ${ENV_FILE} 填写后重跑"
+  log "warn: Postgres__Password is empty; /health will likely be 503 — set it in ${ENV_FILE} and rerun"
 fi
 
 export PAC_API_KEY
@@ -88,15 +97,11 @@ while IFS= read -r line; do
   export "${key?}"
 done < <(grep -E '^(SchemaBounds__|Changes__)' "${ENV_FILE}" | sed 's/\r$//' || true)
 
-LISTEN_PORT="$(
-  python3 - "${BASE_URL}" <<'PY'
-import sys
-from urllib.parse import urlparse
-raw = sys.argv[1].strip()
-u = urlparse(raw if "://" in raw else f"http://{raw}")
-print(u.port or 80)
-PY
-)"
+# 本机 wire 只需 host:port；从 BASE_URL 取端口
+LISTEN_HOSTPORT="${BASE_URL#*://}"
+LISTEN_HOSTPORT="${LISTEN_HOSTPORT%%/*}"
+LISTEN_PORT="${LISTEN_HOSTPORT##*:}"
+[[ "${LISTEN_PORT}" =~ ^[0-9]+$ ]] || die "BASE_URL must include an explicit port (got ${BASE_URL})"
 
 if command -v lsof >/dev/null 2>&1; then
   for pid in $(lsof -nP -tiTCP:"${LISTEN_PORT}" -sTCP:LISTEN 2>/dev/null || true); do
@@ -141,19 +146,19 @@ for i in $(seq 1 60); do
 done
 
 if [[ "${NO_PROBE}" != "true" ]]; then
-  log "校验 health、换票与 ping"
+  log "probe health, token exchange, and ping"
   HEALTH_CODE="$(curl -sS -o /tmp/pac-api-wire-health.json -w '%{http_code}' "${BASE_URL}/health" || true)"
   if [[ "${HEALTH_CODE}" != "200" ]]; then
     cat /tmp/pac-api-wire-health.json 2>/dev/null || true
     if [[ -z "${Postgres__Password:-}" ]]; then
-      die "health HTTP ${HEALTH_CODE}（Postgres__Password 为空时常见 503；在 ${ENV_FILE} 填密码后重跑）"
+      die "health HTTP ${HEALTH_CODE} (empty Postgres__Password often yields 503; set it in ${ENV_FILE} and rerun)"
     fi
-    die "health HTTP ${HEALTH_CODE}（须 200：status=ok，进程与库门禁均通过）"
+    die "health HTTP ${HEALTH_CODE} (want 200: status=ok; process and DB gates must pass)"
   fi
   TOKEN="$(
     curl -fsS -X POST "${BASE_URL}/v1/auth/token" \
       -H "X-Api-Key: ${PAC_API_KEY}" \
-      | python3 -c "import sys,json; print(json.load(sys.stdin)['accessToken'])"
+      | jq -r '.accessToken // empty'
   )"
   [[ -n "${TOKEN}" ]] || die "empty accessToken"
   curl -fsS "${BASE_URL}/v1/ping" \
