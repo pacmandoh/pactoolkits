@@ -1,5 +1,4 @@
-#if false
-// 暂缓接入：迁到 API 变更流前不编译；注册 DI 后再启用
+// 暂缓 DI：未注册
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -34,9 +33,9 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
     private readonly Dictionary<string, long> _versions = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
-    private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(20);
-    private readonly TimeSpan _reconnectDelay = TimeSpan.FromSeconds(2);
-    private readonly TimeSpan _notifyCoalesceWindow = TimeSpan.FromMilliseconds(120);
+    private readonly TimeSpan _pollInterval;
+    private readonly TimeSpan _reconnectDelay;
+    private readonly TimeSpan _notifyCoalesceWindow;
 
     // 脉冲载荷：emitOnBootstrap（change=true，ready=false）
     private readonly Channel<bool> _pulses = Channel.CreateUnbounded<bool>(
@@ -49,9 +48,28 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
     public event Action<string>? TopicChanged;
 
     public ApiChangeWatermark(PacApiClient api, IAppLogger logger)
+        : this(
+            api,
+            logger,
+            pollInterval: TimeSpan.FromSeconds(20),
+            reconnectDelay: TimeSpan.FromSeconds(2),
+            notifyCoalesceWindow: TimeSpan.FromMilliseconds(120))
+    {
+    }
+
+    /// <summary>单测缩短重连 / 合并窗 / 轮询间隔</summary>
+    internal ApiChangeWatermark(
+        PacApiClient api,
+        IAppLogger logger,
+        TimeSpan pollInterval,
+        TimeSpan reconnectDelay,
+        TimeSpan notifyCoalesceWindow)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _pollInterval = pollInterval;
+        _reconnectDelay = reconnectDelay;
+        _notifyCoalesceWindow = notifyCoalesceWindow;
     }
 
     public void Start()
@@ -265,4 +283,3 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
     private sealed record WatermarksResponse(IReadOnlyList<ChangeWatermarkItem> Items);
 }
-#endif
