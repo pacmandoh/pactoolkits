@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
@@ -9,6 +10,7 @@ namespace PacToolkits.Api.Changes;
 /// API 进程侧 LISTEN <c>pactoolkits_change</c>，分发到 <see cref="ChangeBus"/>
 ///
 /// 过渡期 Desktop 仍可对本库各自 LISTEN；Pg 允许多会话同时听同一 channel
+/// NOTIFY 只作唤醒：按 topic 记 pending，突发合并或丢弃；version 以 watermark 为准
 /// </summary>
 public sealed class PostgresNotifyListener : BackgroundService
 {
@@ -41,8 +43,19 @@ public sealed class PostgresNotifyListener : BackgroundService
             return;
         }
 
-        var pending = ChannelCreate();
-        var coalesce = Task.Run(() => CoalesceLoopAsync(pending.Reader, stoppingToken), stoppingToken);
+        // topic 集合 + 容量 1 的唤醒信号：NOTIFY 洪峰不堆积字符串队列
+        var pendingGate = new object();
+        var pendingTopics = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true,
+            SingleWriter = false,
+        });
+
+        var coalesce = Task.Run(
+            () => CoalesceLoopAsync(pendingGate, pendingTopics, wake.Reader, stoppingToken),
+            stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -53,7 +66,13 @@ public sealed class PostgresNotifyListener : BackgroundService
 
                 conn.Notification += (_, e) =>
                 {
-                    pending.Writer.TryWrite(TopicFromPayload(e.Payload));
+                    var topic = TopicFromPayload(e.Payload);
+                    lock (pendingGate)
+                    {
+                        pendingTopics.Add(topic);
+                    }
+
+                    wake.Writer.TryWrite(true);
                 };
 
                 await using (var listen = new NpgsqlCommand($"LISTEN {NotifyChannel};", conn))
@@ -86,29 +105,35 @@ public sealed class PostgresNotifyListener : BackgroundService
             }
         }
 
-        pending.Writer.TryComplete();
+        wake.Writer.TryComplete();
         try { await coalesce.ConfigureAwait(false); }
         catch (OperationCanceledException) { }
     }
 
     private async Task CoalesceLoopAsync(
-        System.Threading.Channels.ChannelReader<string> reader,
+        object pendingGate,
+        HashSet<string> pendingTopics,
+        ChannelReader<bool> wake,
         CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
             try
             {
-                var first = await reader.ReadAsync(ct).ConfigureAwait(false);
+                _ = await wake.ReadAsync(ct).ConfigureAwait(false);
                 await Task.Delay(_coalesceWindow, ct).ConfigureAwait(false);
-
-                // 合并窗内多 topic 均 Publish；客户端宜 GET watermarks 再按 topic 处理
-                var topics = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { first };
-                while (reader.TryRead(out var topic))
+                while (wake.TryRead(out _))
                 {
-                    topics.Add(topic);
                 }
 
+                string[] topics;
+                lock (pendingGate)
+                {
+                    topics = pendingTopics.ToArray();
+                    pendingTopics.Clear();
+                }
+
+                // 合并窗内多 topic 均 Publish；客户端宜 GET watermarks 再按 topic 处理
                 foreach (var topic in topics)
                 {
                     _bus.Publish(topic);
@@ -120,14 +145,6 @@ public sealed class PostgresNotifyListener : BackgroundService
             }
         }
     }
-
-    private static System.Threading.Channels.Channel<string> ChannelCreate()
-        => System.Threading.Channels.Channel.CreateUnbounded<string>(
-            new System.Threading.Channels.UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-            });
 
     private string BuildListenConnectionString()
     {
