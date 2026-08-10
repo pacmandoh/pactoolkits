@@ -11,6 +11,7 @@ public static class AuthServiceExtensions
 
     public static IServiceCollection AddPacToolkitsAuth(this IServiceCollection services, IConfiguration config)
     {
+        services.AddSingleton<IValidateOptions<AuthOptions>, AuthOptionsValidator>();
         services
             .AddOptions<AuthOptions>()
             .Bind(config.GetSection(AuthOptions.SectionName))
@@ -29,12 +30,6 @@ public static class AuthServiceExtensions
             .Validate(
                 o => o.Jwt.ExpiresMinutes > 0,
                 "Auth:Jwt:ExpiresMinutes must be greater than 0")
-            .Validate(
-                o => o.Clients.Values.All(c =>
-                    c is null
-                    || string.IsNullOrWhiteSpace(c.ApiKeyHash)
-                    || ApiKeyHasher.IsSha256Hex(c.ApiKeyHash)),
-                "Auth:Clients:*:ApiKeyHash must be 64-char SHA-256 hex when set")
             .ValidateOnStart();
 
         services.AddSingleton(sp =>
