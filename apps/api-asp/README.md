@@ -25,12 +25,13 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 ```
 
 | 项 | 说明 |
-|----|------|
-| Clients | `Auth:Clients:<id>`：`ApiKeyHash`（SHA-256 hex）、`Enabled`、`Scopes` |
-| Key | 明文只在客户端；服务端只比散列 |
+| ---- | ------ |
+| Clients | `Auth:Clients:<id>`：`ApiKeyHash`（SHA-256 hex）、`Enabled`、`Scopes`；ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白 |
+| Key | 明文只在客户端；服务端只比散列；同一散列不得分给多个 ClientId |
 | JWT | HMAC-SHA256；`Auth:Jwt:SigningKey` ≥32；**改密钥须重启** |
-| Policy | `read` / `write` / `system.status` |
+| Policy | `read` / `write` / `system.status`（配置未知 scope 则启动失败） |
 | Header | `Auth:HeaderName`（默认 `X-Api-Key`） |
+| 启动校验 | Production 至少要有一个 Enabled client（合法 hash + 至少一个已知 scope）；`dev` 等非 Production 允许空 `Clients` |
 
 ## 本地开发
 
@@ -45,14 +46,14 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 `.env.asp` 含：
 
 | 键 | 用途 |
-|----|------|
+| ---- | ------ |
 | `PAC_API_KEY` | 本地 curl 换票明文 Key（API 进程不读明文，只读散列） |
 | `Auth__Clients__dev__ApiKeyHash` | 服务端比对的 Key 散列 |
 | `Auth__Jwt__SigningKey` | JWT HMAC |
 | `Postgres__Host` / `Port` / `Database` / `Username` / `Password` | 覆盖 `appsettings` 的 Postgres 节；`Password` 须本机手填 |
 
-`gen-dev-secrets.sh` 与 `wire-local.sh` 会复用已有 Auth，并补齐缺省 Postgres（与 `appsettings.json` 对齐）；`--force` 只换 Auth，Postgres 手改仍保留。  
-配置覆盖顺序：`appsettings.json`，再 `appsettings.{Environment}.json`，再环境变量。  
+`gen-dev-secrets.sh` 与 `wire-local.sh` 会复用已有 Auth，并补齐缺省 Postgres（与 `appsettings.json` 对齐）；`--force` 只换 Auth，Postgres 手改仍保留。
+配置覆盖顺序：`appsettings.json`，再 `appsettings.{Environment}.json`，再环境变量。
 默认监听 `http://127.0.0.1:5080`。
 
 ## 生产部署
@@ -61,7 +62,7 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 dotnet publish apps/api-asp/src/PacToolkits.Api.csproj -c Release -o /opt/pactoolkits/api --no-restore
 ```
 
-生产密钥：**`/etc/pactoolkits/.env.asp`**（`chmod 600`），systemd `EnvironmentFile=`。  
+生产密钥：**`/etc/pactoolkits/.env.asp`**（`chmod 600`），systemd `EnvironmentFile=`。
 公网只经 Nginx HTTPS 反代本机 5080；勿把明文 Key 写进服务端配置。
 
 ```bash
@@ -79,10 +80,29 @@ Postgres__Password=<secret>
 
 生成散列：`printf '%s' "$PLAINTEXT_KEY" | openssl dgst -sha256 -hex`
 
+换票限流按 `RemoteIpAddress`（30 次/分钟）。多终端经同一机器转发或 NAT 时共用额度。Nginx 用 `$remote_addr` **覆盖**转发头（勿用 `$proxy_add_x_forwarded_for`）。API 默认只信任环回代理；Nginx 不在本机时须把其地址配进 `KnownProxies` / `KnownIPNetworks`。
+
+```nginx
+# 反代到本机 API（片段）；X-Forwarded-For 必须覆盖，禁止追加客户端原值
+location / {
+    proxy_pass http://127.0.0.1:5080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+上线前在真实中转拓扑手工验证：
+
+1. 路径经中转 → Nginx → API（与生产一致）
+2. 约 10 台终端同时冷启动，或同分钟内密集换票
+3. 记录 429 次数与成功换票数
+4. 直连 API（绕过 Nginx）并带伪造 `X-Forwarded-For`：限流键仍应为直连 IP，不得因伪造头被当成多个来源
+
 ## 路由
 
 | 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | GET | `/health` | 否 | 匿名探活，仅 `status`；SchemaBounds 同时拦业务 IDb |
 | POST | `/v1/auth/token` | API Key（限流） | 换 JWT |
 | GET | `/v1/ping` | JWT `read` | 校验 JWT 与 read scope |

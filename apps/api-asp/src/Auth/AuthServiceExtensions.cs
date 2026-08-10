@@ -63,6 +63,7 @@ public static class AuthServiceExtensions
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            // 按 RemoteIp：同一机器转发或 NAT 会共用额度；伪造 XFF 依赖代理覆盖与 KnownProxies
             options.AddPolicy(TokenRateLimitPolicy, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
