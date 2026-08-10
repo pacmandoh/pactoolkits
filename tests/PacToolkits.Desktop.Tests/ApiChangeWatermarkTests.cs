@@ -107,6 +107,53 @@ public sealed class ApiChangeWatermarkTests
             TestContext.Current.CancellationToken);
     }
 
+    [Fact]
+    public async Task TopicChanged_handler_exception_does_not_block_other_topics()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        var version = 1L;
+        api.FallbackFactory = _ =>
+            $$"""{"items":[{"topic":"inventory","version":{{version}}},{"topic":"trace","version":{{version}}}]}""";
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+
+        var seen = new List<string>();
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac);
+        watermark.TopicChanged += topic =>
+        {
+            if (string.Equals(topic, "inventory", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("subscriber boom");
+            }
+
+            lock (seen)
+            {
+                seen.Add(topic);
+            }
+        };
+        watermark.Start();
+
+        await WaitAsync(
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 2,
+            TestContext.Current.CancellationToken);
+
+        version = 2;
+        sse.EnqueueSse("event: change\ndata: {\"topic\":\"inventory\"}\n\n");
+
+        await WaitAsync(
+            () =>
+            {
+                lock (seen)
+                {
+                    return seen.Contains("trace");
+                }
+            },
+            TestContext.Current.CancellationToken);
+    }
+
     private static PacApiClient CreatePac(ScriptedHandler token, ScriptedHandler api, ScriptedHandler sse)
         => new(
             "http://127.0.0.1:5080",

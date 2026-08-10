@@ -87,10 +87,54 @@ public sealed class PacApiClientTests
         Assert.Empty(api.Calls);
     }
 
+    [Fact]
+    public async Task Concurrent_401_refreshes_token_once()
+    {
+        var token = new ScriptedHandler();
+        var api = new ConcurrentStaleBearerHandler("tok-1");
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(
+            HttpStatusCode.OK,
+            """{"accessToken":"tok-1","tokenType":"Bearer","expiresIn":3600,"clientId":"c1"}""");
+        token.EnqueueJson(
+            HttpStatusCode.OK,
+            """{"accessToken":"tok-2","tokenType":"Bearer","expiresIn":3600,"clientId":"c1"}""");
+
+        using var client = CreateClient(token, api, sse);
+        var ct = TestContext.Current.CancellationToken;
+
+        // 先拿到 tok-1，再并发打满三路 401，避免冷启动与换票交错
+        api.WarmupRemaining = 1;
+        using (var warm = await client.SendAsync(
+                   () => new HttpRequestMessage(HttpMethod.Get, client.Resolve("/v1/ping")),
+                   ct))
+        {
+            Assert.Equal(HttpStatusCode.OK, warm.StatusCode);
+        }
+
+        var tasks = Enumerable.Range(0, 3)
+            .Select(_ => client.SendAsync(
+                () => new HttpRequestMessage(HttpMethod.Get, client.Resolve("/v1/ping")),
+                ct))
+            .ToArray();
+
+        var responses = await Task.WhenAll(tasks);
+        foreach (var response in responses)
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            response.Dispose();
+        }
+
+        // 预热换票 1 次 + 并发 401 共享换票 1 次；不是 1+3
+        Assert.Equal(2, token.Calls.Count);
+        Assert.Equal(4, api.Calls.Count(c => c.Bearer == "tok-1"));
+        Assert.Equal(3, api.Calls.Count(c => c.Bearer == "tok-2"));
+    }
+
     private static PacApiClient CreateClient(
-        ScriptedHandler token,
-        ScriptedHandler api,
-        ScriptedHandler sse)
+        HttpMessageHandler token,
+        HttpMessageHandler api,
+        HttpMessageHandler sse)
         => new(
             "http://127.0.0.1:5080",
             "test-key",
@@ -104,28 +148,34 @@ public sealed class PacApiClientTests
 
     private sealed class ScriptedHandler : HttpMessageHandler
     {
+        private readonly object _gate = new();
         private readonly Queue<Func<HttpRequestMessage, HttpResponseMessage>> _responses = new();
 
         public List<Call> Calls { get; } = [];
 
         public void EnqueueJson(HttpStatusCode status, string json)
-            => _responses.Enqueue(_ => new HttpResponseMessage(status)
+        {
+            lock (_gate)
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json"),
-            });
+                _responses.Enqueue(_ => new HttpResponseMessage(status)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json"),
+                });
+            }
+        }
 
         public void EnqueueStatus(HttpStatusCode status)
-            => _responses.Enqueue(_ => new HttpResponseMessage(status));
+        {
+            lock (_gate)
+            {
+                _responses.Enqueue(_ => new HttpResponseMessage(status));
+            }
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            if (_responses.Count == 0)
-            {
-                throw new InvalidOperationException($"unexpected request {request.Method} {request.RequestUri}");
-            }
-
             string? bearer = null;
             if (request.Headers.Authorization is { Scheme: "Bearer" } auth)
             {
@@ -138,14 +188,80 @@ public sealed class PacApiClientTests
                 apiKey = keys.FirstOrDefault();
             }
 
-            Calls.Add(new Call(
-                request.Method,
-                request.RequestUri ?? new Uri("http://invalid/"),
-                bearer,
-                apiKey));
+            lock (_gate)
+            {
+                if (_responses.Count == 0)
+                {
+                    throw new InvalidOperationException($"unexpected request {request.Method} {request.RequestUri}");
+                }
 
-            return Task.FromResult(_responses.Dequeue()(request));
+                Calls.Add(new Call(
+                    request.Method,
+                    request.RequestUri ?? new Uri("http://invalid/"),
+                    bearer,
+                    apiKey));
+                return Task.FromResult(_responses.Dequeue()(request));
+            }
         }
+    }
+
+    // 预热放行；其后旧票凑齐 3 路再一齐 401，新票直接 200
+    private sealed class ConcurrentStaleBearerHandler(string staleBearer) : HttpMessageHandler
+    {
+        private readonly TaskCompletionSource _staleBarrier = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _staleHits;
+
+        public int WarmupRemaining { get; set; }
+
+        public List<Call> Calls { get; } = [];
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            string? bearer = null;
+            if (request.Headers.Authorization is { Scheme: "Bearer" } auth)
+            {
+                bearer = auth.Parameter;
+            }
+
+            var uri = request.RequestUri ?? new Uri("http://invalid/");
+            if (WarmupRemaining > 0)
+            {
+                WarmupRemaining--;
+                Record(request.Method, uri, bearer);
+                return Ok();
+            }
+
+            if (string.Equals(bearer, staleBearer, StringComparison.Ordinal))
+            {
+                if (Interlocked.Increment(ref _staleHits) >= 3)
+                {
+                    _staleBarrier.TrySetResult();
+                }
+
+                await _staleBarrier.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                Record(request.Method, uri, bearer);
+                return new HttpResponseMessage(HttpStatusCode.Unauthorized);
+            }
+
+            Record(request.Method, uri, bearer);
+            return Ok();
+        }
+
+        private void Record(HttpMethod method, Uri uri, string? bearer)
+        {
+            lock (Calls)
+            {
+                Calls.Add(new Call(method, uri, bearer, ApiKey: null));
+            }
+        }
+
+        private static HttpResponseMessage Ok()
+            => new(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"ok":true}""", Encoding.UTF8, "application/json"),
+            };
     }
 
     private sealed class NullLogger : IAppLogger
