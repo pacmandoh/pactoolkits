@@ -51,7 +51,9 @@ GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 
 **当前 Desktop（过渡）**：业务页与变更流仍走本机 Infrastructure：`ChangeWatermarkService` 做 LISTEN，并用 watermark 轮询，**不经过** API。Desktop 与 API 可同时 LISTEN 同一 channel（Pg 允许多会话）。
 
-预留实现（`#if false`，不编译、无 DI）：`ApiChangeWatermark` / `PacApiClient`，供日后 Desktop 改走 API SSE。配置另行约定，不沿用现 Desktop.config。SSE `ready`（含重连）与 `change` 均 GET watermarks 补 version；`ready` 不对首见 topic 刷页，避免冷启动连环刷新。
+预留：`PacApiClient` 已编译、无 DI；`ApiChangeWatermark` 仍 `#if false`。Desktop 日后可改走 API SSE；配置另行约定，不沿用现 Desktop.config。
+
+`PacApiClient` 分三个 `HttpClient`：换票（短超时、无 JWT）、普通 API（短超时 + JWT）、SSE（长连接 + JWT）。正式 DI 用 `IHttpClientFactory` 注册命名客户端。SSE `ready`（含重连）与 `change` 均 GET watermarks 补 version；`ready` 不对首见 topic 刷页，避免冷启动连环刷新。
 
 **API 侧（已实现，可单独在本机验证）**：
 
