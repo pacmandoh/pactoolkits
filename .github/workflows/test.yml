@@ -32,10 +32,17 @@ jobs:
       - name: Setup shfmt
         run: |
           set -euo pipefail
+          # 版本以 scripts/lib/format-text.sh 的 SHFMT_VERSION 为准
+          SHFMT_VERSION="$(sed -nE 's/^SHFMT_VERSION="\$\{SHFMT_VERSION:-([^}]+)\}"$/\1/p' scripts/lib/format-text.sh)"
+          [[ -n "$SHFMT_VERSION" ]] || {
+            echo "ERROR: SHFMT_VERSION missing in scripts/lib/format-text.sh" >&2
+            exit 1
+          }
           curl -sSLo "$RUNNER_TEMP/shfmt" \
-            "https://github.com/mvdan/sh/releases/download/v3.10.0/shfmt_v3.10.0_linux_amd64"
+            "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_amd64"
           chmod +x "$RUNNER_TEMP/shfmt"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/shfmt" --version
 
       - name: Restore
         run: dotnet restore PacToolkits.sln --locked-mode

@@ -1,4 +1,6 @@
 PRETTIER_VERSION="${PRETTIER_VERSION:-3.5.3}"
+# CI Setup shfmt 从此默认值取版本；本地须安装同版
+SHFMT_VERSION="${SHFMT_VERSION:-3.13.1}"
 SHFMT="${SHFMT:-shfmt}"
 TEXT_FORMAT_PATHS=(scripts docs .github/workflows)
 SHFMT_FLAGS=(-i 2 -ci -bn -sr)
@@ -34,9 +36,16 @@ load_nvm_node() {
 
 require_text_format_tools() {
   command -v "$SHFMT" > /dev/null || {
-    echo "ERROR: shfmt not found (set SHFMT or install https://github.com/mvdan/sh)" >&2
+    echo "ERROR: shfmt not found (set SHFMT or install https://github.com/mvdan/sh/releases/tag/v${SHFMT_VERSION})" >&2
     exit 1
   }
+  local shfmt_actual
+  shfmt_actual="$("$SHFMT" --version 2> /dev/null | head -n1 | tr -d '[:space:]')"
+  shfmt_actual="${shfmt_actual#v}"
+  if [[ "$shfmt_actual" != "$SHFMT_VERSION" ]]; then
+    echo "ERROR: shfmt version $shfmt_actual != required $SHFMT_VERSION (install v${SHFMT_VERSION} or set SHFMT/SHFMT_VERSION)" >&2
+    exit 1
+  fi
   load_nvm_node
   command -v node > /dev/null || {
     echo "ERROR: node not found (Node.js is required for Prettier; run 'nvm use' or set a default nvm alias)" >&2
