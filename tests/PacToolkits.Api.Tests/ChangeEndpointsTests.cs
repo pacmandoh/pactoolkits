@@ -83,6 +83,26 @@ public sealed class ChangeEndpointsTests
     }
 
     [Fact]
+    public async Task Stream_rejects_third_subscription_with_429()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(10));
+
+        using var first = await OpenStreamAsync(client, cts.Token);
+        using var second = await OpenStreamAsync(client, cts.Token);
+        using var third = await OpenStreamAsync(client, cts.Token);
+
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
+    }
+
+    [Fact]
     public async Task Stream_ends_when_jwt_expires()
     {
         await using var factory = new ApiFactory();
@@ -129,5 +149,12 @@ public sealed class ChangeEndpointsTests
             elapsedMs < 10_000,
             $"SSE should end near JWT exp, elapsed={elapsedMs}ms");
         Assert.Contains("event: ready", buffer.ToString(), StringComparison.Ordinal);
+    }
+
+    private static async Task<HttpResponseMessage> OpenStreamAsync(HttpClient client, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/v1/changes/stream");
+        return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+            .ConfigureAwait(false);
     }
 }
