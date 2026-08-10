@@ -5,7 +5,7 @@ public sealed class SchemaBoundsOptions
 {
     public const string SectionName = "SchemaBounds";
 
-    public string MinDbSchema { get; set; } = "1.2.25";
+    public string MinDbSchema { get; set; } = SchemaBoundsManifest.MinDbSchema;
 
-    public string MaxDbSchema { get; set; } = "1.2.25";
+    public string MaxDbSchema { get; set; } = SchemaBoundsManifest.MaxDbSchema;
 }

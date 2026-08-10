@@ -263,7 +263,11 @@ trap cleanup_release_temp EXIT
 
 if [[ -n "$BUMP_DESKTOP$BUMP_PRODUCT$BUMP_AGENTS$BUMP_DB$BUMP_CHANNEL" ]]; then
   bump_args=("$ROOT_DIR/scripts/bump-version.sh")
-  [[ -n "$BUMP_DESKTOP" ]] && bump_args+=(--desktop "$BUMP_DESKTOP")
+  if [[ -n "$BUMP_DESKTOP" ]]; then
+    bump_args+=(--desktop "$BUMP_DESKTOP")
+    # 同仓 Desktop 发版：agents 配套区间与本次 Desktop 对齐
+    bump_args+=(--agents-min-desktop "$BUMP_DESKTOP" --agents-max-desktop "$BUMP_DESKTOP")
+  fi
   [[ -n "$BUMP_PRODUCT" ]] && bump_args+=(--product "$BUMP_PRODUCT")
   [[ -n "$BUMP_AGENTS" ]] && bump_args+=(--component "agents=$BUMP_AGENTS")
   [[ -n "$BUMP_DB" ]] && bump_args+=(--db "$BUMP_DB")

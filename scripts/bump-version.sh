@@ -11,18 +11,30 @@ Usage:
   bump-version.sh [--product X.Y.Z|X.Y.Z-beta.N|auto] [--desktop X.Y.Z|X.Y.Z-beta.N]
                   [--db X.Y.Z] [--component COMPONENT_ID=X.Y.Z]...
                   [--module MODULE_ID=X.Y.Z]...
-                  [--component-min-db COMPONENT_ID=X.Y.Z]...
-                  [--desktop-min-db X.Y.Z]
+                  [--component-min-db desktop|api=X.Y.Z]...
+                  [--component-max-db desktop|api=X.Y.Z]...
+                  [--desktop-min-db X.Y.Z] [--desktop-max-db X.Y.Z]
+                  [--module-min-db MODULE_ID=X.Y.Z]...
+                  [--module-max-db MODULE_ID=X.Y.Z]...
+                  [--api-contract X.Y.Z]
                   [--agents-min-desktop X.Y.Z|X.Y.Z-beta.N]
                   [--agents-max-desktop X.Y.Z|X.Y.Z-beta.N]
                   [--channel stable|beta] [--date YYYY-MM-DD]
                   [--output PATH] [--dry-run]
 
+Fields are independent: same-channel --desktop does not rewrite agents bounds;
+version bumps do not rewrite schema bounds. On stable-to-beta with no agents flags,
+min/maxDesktop follow the Desktop being written. On beta, when product fills Desktop
+and agents were pinned to the previous Desktop, that pin moves with it; wide
+agents ranges only expand edges that the new Desktop would otherwise break.
+
 Examples:
-  bump-version.sh --product 0.4.1 --desktop 0.4.1 --component agents=0.3.1
-  bump-version.sh --module Injector=0.6.2
-  bump-version.sh --product auto --desktop 0.4.4
-  bump-version.sh --db 1.2.1 --channel beta
+  bump-version.sh --component api=0.1.1
+  bump-version.sh --component-min-db api=1.2.26 --component-max-db api=1.2.26
+  bump-version.sh --module Injector=0.7.1
+  bump-version.sh --module-min-db Injector=1.2.26 --module-max-db Injector=1.2.26
+  bump-version.sh --api-contract 1.1.0
+  bump-version.sh --db 1.2.26 --channel beta
 USAGE
 }
 
@@ -115,28 +127,73 @@ max_level() {
   if ((rank_b > rank_a)); then echo "$b"; else echo "$a"; fi
 }
 
-report_duplicate_component_version() {
-  local component_id="$1"
-  local previous="$2"
-  local current="$3"
+report_duplicate_update() {
+  local label="$1"
+  local key="$2"
+  local previous="$3"
+  local current="$4"
   if [[ "$previous" != "$current" ]]; then
-    echo "ERROR: conflicting component version for $component_id: $previous vs $current" >&2
+    echo "ERROR: conflicting $label for $key: $previous vs $current" >&2
   else
-    echo "ERROR: duplicate component update for $component_id" >&2
+    echo "ERROR: duplicate $label update for $key" >&2
   fi
   exit 1
 }
 
-report_duplicate_component_min_db() {
-  local component_id="$1"
-  local previous="$2"
-  local current="$3"
-  if [[ "$previous" != "$current" ]]; then
-    echo "ERROR: conflicting component minDbSchema for $component_id: $previous vs $current" >&2
-  else
-    echo "ERROR: duplicate component minDbSchema update for $component_id" >&2
-  fi
-  exit 1
+json_put_kv() {
+  jq -n --argjson base "$1" --arg id "$2" --arg ver "$3" '$base + {($id): $ver}'
+}
+
+# 解析 ID=X.Y.Z 列表为 jq 对象；scope 取 desktop_api 或 module
+collect_id_ver_map() {
+  local flag="$1"
+  local bound="$2"
+  local scope="$3"
+  shift 3
+  local out='{}' item id ver existing
+  for item in "$@"; do
+    [[ "$item" == *=* ]] || {
+      case "$scope" in
+        desktop_api) echo "ERROR: $flag expects desktop|api=X.Y.Z, got: $item" >&2 ;;
+        module) echo "ERROR: $flag expects MODULE_ID=X.Y.Z, got: $item" >&2 ;;
+        *) echo "ERROR: $flag expects ID=X.Y.Z, got: $item" >&2 ;;
+      esac
+      exit 1
+    }
+    id="${item%%=*}"
+    ver="${item#*=}"
+    existing="$(jq -r --arg id "$id" '.[$id] // empty' <<< "$out")"
+    if [[ -n "$existing" ]]; then
+      report_duplicate_update "$bound" "$id" "$existing" "$ver"
+    fi
+    is_semver "$ver" || {
+      echo "ERROR: invalid $bound for $id: $ver" >&2
+      exit 1
+    }
+    case "$scope" in
+      desktop_api)
+        case "$id" in
+          desktop | api) ;;
+          *)
+            echo "ERROR: $flag only supports desktop|api (got $id); agents uses --agents-min-desktop/--agents-max-desktop" >&2
+            exit 1
+            ;;
+        esac
+        ;;
+      module)
+        jq -e --arg id "$id" '.components.agents.modules[$id] | type == "object"' "$MANIFEST" > /dev/null || {
+          echo "ERROR: unknown agents module for $bound: $id" >&2
+          exit 1
+        }
+        ;;
+      *)
+        echo "ERROR: internal collect scope: $scope" >&2
+        exit 1
+        ;;
+    esac
+    out="$(json_put_kv "$out" "$id" "$ver")"
+  done
+  printf '%s' "$out"
 }
 
 MANIFEST="$ROOT_DIR/release-manifest.json"
@@ -144,6 +201,8 @@ PRODUCT=""
 DESKTOP=""
 DB=""
 DESKTOP_MIN_DB=""
+DESKTOP_MAX_DB=""
+API_CONTRACT=""
 AGENTS_MIN_DESKTOP=""
 AGENTS_MAX_DESKTOP=""
 CHANNEL=""
@@ -153,6 +212,9 @@ OUTPUT_FILE=""
 declare -a COMPONENT_UPDATES=()
 declare -a MODULE_UPDATES=()
 declare -a COMPONENT_MIN_DB_UPDATES=()
+declare -a COMPONENT_MAX_DB_UPDATES=()
+declare -a MODULE_MIN_DB_UPDATES=()
+declare -a MODULE_MAX_DB_UPDATES=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -176,12 +238,32 @@ while [[ $# -gt 0 ]]; do
       COMPONENT_MIN_DB_UPDATES+=("${2:-}")
       shift 2
       ;;
+    --component-max-db)
+      COMPONENT_MAX_DB_UPDATES+=("${2:-}")
+      shift 2
+      ;;
+    --module-min-db)
+      MODULE_MIN_DB_UPDATES+=("${2:-}")
+      shift 2
+      ;;
+    --module-max-db)
+      MODULE_MAX_DB_UPDATES+=("${2:-}")
+      shift 2
+      ;;
     --db)
       DB="${2:-}"
       shift 2
       ;;
     --desktop-min-db)
       DESKTOP_MIN_DB="${2:-}"
+      shift 2
+      ;;
+    --desktop-max-db)
+      DESKTOP_MAX_DB="${2:-}"
+      shift 2
+      ;;
+    --api-contract)
+      API_CONTRACT="${2:-}"
       shift 2
       ;;
     --agents-min-desktop)
@@ -226,11 +308,10 @@ require_cmd jq
   exit 1
 }
 
-effective_channel="$CHANNEL"
-if [[ -z "$effective_channel" ]]; then
-  effective_channel="$(manifest_release_channel "$MANIFEST")"
+final_channel="$CHANNEL"
+if [[ -z "$final_channel" ]]; then
+  final_channel="$(manifest_release_channel "$MANIFEST")"
 fi
-final_channel="$effective_channel"
 
 if [[ -n "$PRODUCT" && "$PRODUCT" != "auto" ]]; then
   is_product_semver_arg "$PRODUCT" "$final_channel" || {
@@ -258,7 +339,7 @@ if [[ -n "$DESKTOP" ]]; then
     exit 1
   }
 fi
-for v in "$DB" "$DESKTOP_MIN_DB"; do
+for v in "$DB" "$DESKTOP_MIN_DB" "$DESKTOP_MAX_DB" "$API_CONTRACT"; do
   [[ -z "$v" ]] || is_semver "$v" || {
     echo "ERROR: invalid semver arg" >&2
     exit 1
@@ -279,7 +360,13 @@ if [[ -n "$CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$AGENTS_MIN_DESKTOP$AGENTS_MAX_DESKTOP$CHANNEL" && ${#COMPONENT_UPDATES[@]} -eq 0 && ${#MODULE_UPDATES[@]} -eq 0 && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 ]]; then
+if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$DESKTOP_MAX_DB$API_CONTRACT$AGENTS_MIN_DESKTOP$AGENTS_MAX_DESKTOP$CHANNEL" \
+  && ${#COMPONENT_UPDATES[@]} -eq 0 \
+  && ${#MODULE_UPDATES[@]} -eq 0 \
+  && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 \
+  && ${#COMPONENT_MAX_DB_UPDATES[@]} -eq 0 \
+  && ${#MODULE_MIN_DB_UPDATES[@]} -eq 0 \
+  && ${#MODULE_MAX_DB_UPDATES[@]} -eq 0 ]]; then
   echo "ERROR: nothing to update" >&2
   usage
   exit 1
@@ -306,7 +393,7 @@ for item in "${COMPONENT_UPDATES[@]}"; do
   component_version="${item#*=}"
   existing_version="$(jq -r --arg id "$component_id" '.[$id] // empty' <<< "$component_updates_json")"
   if [[ -n "$existing_version" ]]; then
-    report_duplicate_component_version "$component_id" "$existing_version" "$component_version"
+    report_duplicate_update "component version" "$component_id" "$existing_version" "$component_version"
   fi
   is_semver "$component_version" || {
     echo "ERROR: invalid component version for $component_id: $component_version" >&2
@@ -341,11 +428,7 @@ for item in "${COMPONENT_UPDATES[@]}"; do
     exit 1
   }
   product_auto_level="$(max_level "$product_auto_level" "$component_level")"
-  component_updates_json="$(jq -n \
-    --argjson base "$component_updates_json" \
-    --arg id "$component_id" \
-    --arg ver "$component_version" \
-    '$base + {($id): $ver}')"
+  component_updates_json="$(json_put_kv "$component_updates_json" "$component_id" "$component_version")"
 done
 
 for item in "${MODULE_UPDATES[@]}"; do
@@ -357,12 +440,7 @@ for item in "${MODULE_UPDATES[@]}"; do
   module_version="${item#*=}"
   existing_version="$(jq -r --arg id "$module_id" '.[$id] // empty' <<< "$module_updates_json")"
   if [[ -n "$existing_version" ]]; then
-    if [[ "$existing_version" != "$module_version" ]]; then
-      echo "ERROR: conflicting module version for $module_id: $existing_version vs $module_version" >&2
-    else
-      echo "ERROR: duplicate module update for $module_id" >&2
-    fi
-    exit 1
+    report_duplicate_update "module version" "$module_id" "$existing_version" "$module_version"
   fi
   is_semver "$module_version" || {
     echo "ERROR: invalid module version for $module_id: $module_version" >&2
@@ -379,11 +457,7 @@ for item in "${MODULE_UPDATES[@]}"; do
     exit 1
   }
   product_auto_level="$(max_level "$product_auto_level" "$module_level")"
-  module_updates_json="$(jq -n \
-    --argjson base "$module_updates_json" \
-    --arg id "$module_id" \
-    --arg ver "$module_version" \
-    '$base + {($id): $ver}')"
+  module_updates_json="$(json_put_kv "$module_updates_json" "$module_id" "$module_version")"
 done
 
 if [[ -n "$DESKTOP" ]]; then
@@ -397,7 +471,6 @@ if [[ -n "$DESKTOP" ]]; then
     exit 1
   fi
 else
-  # --component desktop=... alone still pins agents bounds below
   DESKTOP="$(jq -r '.desktop // empty' <<< "$component_updates_json")"
 fi
 
@@ -413,40 +486,8 @@ if [[ -n "$DB" ]]; then
   fi
 fi
 
-component_min_db_json='{}'
-for item in "${COMPONENT_MIN_DB_UPDATES[@]}"; do
-  [[ "$item" == *=* ]] || {
-    echo "ERROR: --component-min-db expects COMPONENT_ID=X.Y.Z, got: $item" >&2
-    exit 1
-  }
-  component_id="${item%%=*}"
-  min_db_version="${item#*=}"
-  existing_min_db="$(jq -r --arg id "$component_id" '.[$id] // empty' <<< "$component_min_db_json")"
-  if [[ -n "$existing_min_db" ]]; then
-    report_duplicate_component_min_db "$component_id" "$existing_min_db" "$min_db_version"
-  fi
-  is_semver "$min_db_version" || {
-    echo "ERROR: invalid component minDbSchema for $component_id: $min_db_version" >&2
-    exit 1
-  }
-  case "$component_id" in
-    desktop)
-      jq -e '.components.desktop.avalonia.minDbSchema' "$MANIFEST" > /dev/null || {
-        echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
-        exit 1
-      }
-      ;;
-    *)
-      echo "ERROR: --component-min-db only supports desktop (got $component_id); agents uses minDesktop/maxDesktop" >&2
-      exit 1
-      ;;
-  esac
-  component_min_db_json="$(jq -n \
-    --argjson base "$component_min_db_json" \
-    --arg id "$component_id" \
-    --arg ver "$min_db_version" \
-    '$base + {($id): $ver}')"
-done
+component_min_db_json="$(collect_id_ver_map --component-min-db "component minDbSchema" desktop_api "${COMPONENT_MIN_DB_UPDATES[@]}")"
+component_max_db_json="$(collect_id_ver_map --component-max-db "component maxDbSchema" desktop_api "${COMPONENT_MAX_DB_UPDATES[@]}")"
 
 if [[ -n "$DESKTOP_MIN_DB" ]]; then
   existing_desktop_min_db="$(jq -r '.desktop // empty' <<< "$component_min_db_json")"
@@ -459,6 +500,21 @@ if [[ -n "$DESKTOP_MIN_DB" ]]; then
     exit 1
   fi
 fi
+
+if [[ -n "$DESKTOP_MAX_DB" ]]; then
+  existing_desktop_max_db="$(jq -r '.desktop // empty' <<< "$component_max_db_json")"
+  if [[ -n "$existing_desktop_max_db" ]]; then
+    if [[ "$existing_desktop_max_db" != "$DESKTOP_MAX_DB" ]]; then
+      echo "ERROR: conflicting desktop maxDbSchema: --desktop-max-db $DESKTOP_MAX_DB vs --component-max-db desktop=$existing_desktop_max_db" >&2
+    else
+      echo "ERROR: duplicate desktop maxDbSchema update: use --desktop-max-db or --component-max-db desktop=..., not both" >&2
+    fi
+    exit 1
+  fi
+fi
+
+module_min_db_json="$(collect_id_ver_map --module-min-db "module minDbSchema" module "${MODULE_MIN_DB_UPDATES[@]}")"
+module_max_db_json="$(collect_id_ver_map --module-max-db "module maxDbSchema" module "${MODULE_MAX_DB_UPDATES[@]}")"
 
 [[ -n "$DESKTOP" ]] && desktop_level="$(semver_change_level "$(semver_stable_base "$current_desktop")" "$(semver_stable_base "$DESKTOP")")"
 [[ -n "$DB" ]] && db_level="$(semver_change_level "$current_db" "$DB")"
@@ -497,17 +553,41 @@ elif [[ -z "$PRODUCT" ]]; then
   PRODUCT=""
 fi
 
+# beta 且未传 Desktop 时与 product 对齐（与 Velopack packVersion 同号）
+desktop_from_product=false
 if [[ "$final_channel" == "beta" && -z "$DESKTOP" && -n "$PRODUCT" ]]; then
   DESKTOP="$PRODUCT"
+  desktop_from_product=true
 fi
 
-# Desktop 版本推进时若未显式改配套范围，将 agents min/maxDesktop 钉到该 Desktop（同仓发版）
-if [[ -n "$DESKTOP" ]]; then
+# 仅 stable 切 beta：未传 agents 区间时 min/maxDesktop 取本次 Desktop
+if [[ "$entering_beta_channel" == "true" && -n "$DESKTOP" ]]; then
   if [[ -z "$AGENTS_MIN_DESKTOP" ]]; then
     AGENTS_MIN_DESKTOP="$DESKTOP"
   fi
   if [[ -z "$AGENTS_MAX_DESKTOP" ]]; then
     AGENTS_MAX_DESKTOP="$DESKTOP"
+  fi
+fi
+
+# product 代填抬 Desktop：原先单点钉住当前 Desktop 则整段平移，否则只补越界未写侧
+if [[ "$desktop_from_product" == "true" && -n "$DESKTOP" && "$DESKTOP" != "$current_desktop" ]]; then
+  current_agents_min="$(manifest_agents_min_desktop "$MANIFEST")"
+  current_agents_max="$(manifest_agents_max_desktop "$MANIFEST")"
+  if [[ -z "$AGENTS_MIN_DESKTOP" && -z "$AGENTS_MAX_DESKTOP" \
+    && -n "$current_agents_min" && "$current_agents_min" == "$current_agents_max" \
+    && "$current_agents_max" == "$current_desktop" ]]; then
+    AGENTS_MIN_DESKTOP="$DESKTOP"
+    AGENTS_MAX_DESKTOP="$DESKTOP"
+  else
+    if [[ -z "$AGENTS_MAX_DESKTOP" && -n "$current_agents_max" ]] \
+      && ! semver_lte_full "$DESKTOP" "$current_agents_max"; then
+      AGENTS_MAX_DESKTOP="$DESKTOP"
+    fi
+    if [[ -z "$AGENTS_MIN_DESKTOP" && -n "$current_agents_min" ]] \
+      && ! semver_gte_full "$DESKTOP" "$current_agents_min"; then
+      AGENTS_MIN_DESKTOP="$DESKTOP"
+    fi
   fi
 fi
 
@@ -528,6 +608,8 @@ jq \
   --arg desktop "$DESKTOP" \
   --arg db "$DB" \
   --arg desktop_min_db "$DESKTOP_MIN_DB" \
+  --arg desktop_max_db "$DESKTOP_MAX_DB" \
+  --arg api_contract "$API_CONTRACT" \
   --arg agents_min_desktop "$AGENTS_MIN_DESKTOP" \
   --arg agents_max_desktop "$AGENTS_MAX_DESKTOP" \
   --arg channel "$CHANNEL" \
@@ -535,6 +617,9 @@ jq \
   --argjson component_updates "$component_updates_json" \
   --argjson module_updates "$module_updates_json" \
   --argjson component_min_db_updates "$component_min_db_json" \
+  --argjson component_max_db_updates "$component_max_db_json" \
+  --argjson module_min_db_updates "$module_min_db_json" \
+  --argjson module_max_db_updates "$module_max_db_json" \
   '
   .product.version = (if $product == "" then .product.version else $product end) |
   reduce ($component_updates | to_entries[]) as $item (.;
@@ -552,9 +637,26 @@ jq \
   reduce ($component_min_db_updates | to_entries[]) as $item (.;
     if $item.key == "desktop" then
       .components.desktop.avalonia.minDbSchema = $item.value
+    elif $item.key == "api" then
+      .components.api.minDbSchema = $item.value
     else
       .
     end
+  ) |
+  reduce ($component_max_db_updates | to_entries[]) as $item (.;
+    if $item.key == "desktop" then
+      .components.desktop.avalonia.maxDbSchema = $item.value
+    elif $item.key == "api" then
+      .components.api.maxDbSchema = $item.value
+    else
+      .
+    end
+  ) |
+  reduce ($module_min_db_updates | to_entries[]) as $item (.;
+    .components.agents.modules[$item.key].minDbSchema = $item.value
+  ) |
+  reduce ($module_max_db_updates | to_entries[]) as $item (.;
+    .components.agents.modules[$item.key].maxDbSchema = $item.value
   ) |
   .components.desktop.avalonia.version = (
     if $desktop == "" then .components.desktop.avalonia.version else $desktop end
@@ -562,6 +664,12 @@ jq \
   .components.database.postgres.version = (if $db == "" then .components.database.postgres.version else $db end) |
   .components.desktop.avalonia.minDbSchema = (
     if $desktop_min_db == "" then .components.desktop.avalonia.minDbSchema else $desktop_min_db end
+  ) |
+  .components.desktop.avalonia.maxDbSchema = (
+    if $desktop_max_db == "" then .components.desktop.avalonia.maxDbSchema else $desktop_max_db end
+  ) |
+  .components.api.contractVersion = (
+    if $api_contract == "" then .components.api.contractVersion else $api_contract end
   ) |
   .components.agents.minDesktop = (
     if $agents_min_desktop == "" then .components.agents.minDesktop else $agents_min_desktop end

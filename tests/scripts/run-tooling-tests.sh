@@ -13,6 +13,23 @@ run() {
 cd "$ROOT_DIR"
 chmod +x scripts/*.sh tests/scripts/*.sh
 
+# 临时改写仓根清单执行命令，结束后始终还原
+with_root_manifest() {
+  local fixture="$1"
+  shift
+  local backup status=0
+  backup="$(mktemp)"
+  cp "$ROOT_DIR/release-manifest.json" "$backup"
+  cp "$fixture" "$ROOT_DIR/release-manifest.json"
+  set +e
+  "$@"
+  status=$?
+  set -e
+  cp "$backup" "$ROOT_DIR/release-manifest.json"
+  rm -f "$backup"
+  return "$status"
+}
+
 run ./scripts/export-version.sh
 run ./scripts/check-version.sh
 (
@@ -250,6 +267,8 @@ jq \
   .components.agents.maxDesktop = "0.18.0-beta.1" |
   .components.desktop.avalonia.minDbSchema = $db |
   .components.desktop.avalonia.maxDbSchema = $db |
+  .components.api.minDbSchema = $db |
+  .components.api.maxDbSchema = $db |
   .components.database.postgres.version = $db
 ' "$stable_fixture_manifest" > "$beta_db_upgrade_manifest"
 ./scripts/validate-database-policy.sh \
@@ -391,12 +410,12 @@ if validate_manifest_v2 "$leading_zero_manifest" >/dev/null 2>&1; then
 fi
 
 beta_auto_expected="$(resolve_product_auto_version "$(manifest_product_version "$stable_fixture_manifest")" "beta" "none")"
-manifest_backup="$(mktemp)"
-cp "$ROOT_DIR/release-manifest.json" "$manifest_backup"
-cp "$stable_fixture_manifest" "$ROOT_DIR/release-manifest.json"
-beta_auto_out="$(./scripts/bump-version.sh --channel beta --product auto --dry-run 2>&1)"
-cp "$manifest_backup" "$ROOT_DIR/release-manifest.json"
-rm -f "$manifest_backup"
+beta_auto_out="$(with_root_manifest "$stable_fixture_manifest" \
+  ./scripts/bump-version.sh --channel beta --product auto --dry-run 2>&1)" || {
+  echo "ERROR: beta auto bump dry-run failed" >&2
+  echo "$beta_auto_out" >&2
+  exit 1
+}
 echo "$beta_auto_out" | grep -Fq "\"version\": \"$beta_auto_expected\"" || {
   echo "ERROR: --channel beta --product auto should produce $beta_auto_expected" >&2
   exit 1
@@ -426,10 +445,46 @@ if validate_manifest_v2 "$invalid_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
+invalid_module_db_half_manifest="$(mktemp)"
+jq 'del(.components.agents.modules.Injector.maxDbSchema)' \
+  "$ROOT_DIR/release-manifest.json" > "$invalid_module_db_half_manifest"
+if validate_manifest_v2 "$invalid_module_db_half_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject half agents.modules db bounds" >&2
+  exit 1
+fi
+
+invalid_module_db_order_manifest="$(mktemp)"
+jq '
+  .components.agents.modules.Injector.minDbSchema = "1.2.30" |
+  .components.agents.modules.Injector.maxDbSchema = "1.2.20"
+' "$ROOT_DIR/release-manifest.json" > "$invalid_module_db_order_manifest"
+if validate_manifest_v2 "$invalid_module_db_order_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject agents.modules minDbSchema > maxDbSchema" >&2
+  exit 1
+fi
+
+invalid_api_contract_manifest="$(mktemp)"
+jq '.components.api.contractVersion = "not-semver"' \
+  "$ROOT_DIR/release-manifest.json" > "$invalid_api_contract_manifest"
+if validate_manifest_v2 "$invalid_api_contract_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject invalid api.contractVersion" >&2
+  exit 1
+fi
+
+invalid_api_bounds_manifest="$(mktemp)"
+jq '
+  .components.api.minDbSchema = "1.2.30" |
+  .components.api.maxDbSchema = "1.2.20"
+' "$ROOT_DIR/release-manifest.json" > "$invalid_api_bounds_manifest"
+if validate_manifest_v2 "$invalid_api_bounds_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject api minDbSchema > maxDbSchema" >&2
+  exit 1
+fi
+
 invalid_bundle_version_manifest="$(mktemp)"
 invalid_module_id_manifest="$(mktemp)"
 agents_staging_fixture="$(mktemp -d)"
-trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_bundle_version_manifest" "$invalid_module_id_manifest"; rm -rf "$agents_staging_fixture"' EXIT
+trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_module_db_half_manifest" "$invalid_module_db_order_manifest" "$invalid_api_contract_manifest" "$invalid_api_bounds_manifest" "$invalid_bundle_version_manifest" "$invalid_module_id_manifest"; rm -rf "$agents_staging_fixture"' EXIT
 jq '.components["agents"].version = "not-semver"' "$ROOT_DIR/release-manifest.json" > "$invalid_bundle_version_manifest"
 if validate_manifest_v2 "$invalid_bundle_version_manifest" >/dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid agents host versions" >&2
@@ -508,12 +563,12 @@ echo "$agents_plan_out" | grep -Fq "PacToolkits-Agents-win-x64-${next_agents}-" 
   exit 1
 }
 
-manifest_backup="$(mktemp)"
-cp "$ROOT_DIR/release-manifest.json" "$manifest_backup"
-cp "$stable_fixture_manifest" "$ROOT_DIR/release-manifest.json"
-desktop_plan_out="$(./scripts/release-desktop.sh --bump-desktop 9.9.9 --dry-run --skip-upload 2>&1)"
-cp "$manifest_backup" "$ROOT_DIR/release-manifest.json"
-rm -f "$manifest_backup"
+desktop_plan_out="$(with_root_manifest "$stable_fixture_manifest" \
+  ./scripts/release-desktop.sh --bump-desktop 9.9.9 --dry-run --skip-upload 2>&1)" || {
+  echo "ERROR: release-desktop dry-run with desktop bump failed" >&2
+  echo "$desktop_plan_out" >&2
+  exit 1
+}
 echo "$desktop_plan_out" | grep -Fq "desktop.avalonia.version: 9.9.9" || {
   echo "ERROR: dry-run desktop release plan should reflect bumped desktop version (9.9.9)" >&2
   exit 1
@@ -562,6 +617,144 @@ echo "$desktop_min_db_conflict_out" | grep -Fq "conflicting desktop minDbSchema"
   echo "ERROR: expected bump-version desktop minDbSchema conflict error message" >&2
   exit 1
 }
+
+desktop_max_db_conflict_out="$(./scripts/bump-version.sh --desktop-max-db "$current_db" --component-max-db "desktop=9.9.9" --dry-run 2>&1)" && {
+  echo "ERROR: bump-version.sh should reject conflicting desktop maxDbSchema flags" >&2
+  exit 1
+}
+echo "$desktop_max_db_conflict_out" | grep -Fq "conflicting desktop maxDbSchema" || {
+  echo "ERROR: expected bump-version desktop maxDbSchema conflict error message" >&2
+  exit 1
+}
+
+# 独立字段：只改 api bounds、module bounds 或 contract 时，其它字段须保持不变
+api_bounds_preview="$(mktemp)"
+api_bounds_out="$(./scripts/bump-version.sh \
+  --component-min-db "api=$current_db" \
+  --component-max-db "api=$current_db" \
+  --output "$api_bounds_preview" \
+  --dry-run 2>&1)" || {
+  echo "ERROR: bump-version api min/maxDbSchema independent update failed" >&2
+  echo "$api_bounds_out" >&2
+  exit 1
+}
+jq -e --arg db "$current_db" --slurpfile root "$ROOT_DIR/release-manifest.json" '
+  .components.api.minDbSchema == $db and
+  .components.api.maxDbSchema == $db and
+  .components.api.version == $root[0].components.api.version and
+  .components.desktop.avalonia.version == $root[0].components.desktop.avalonia.version and
+  .components.agents.minDesktop == $root[0].components.agents.minDesktop and
+  .components.agents.maxDesktop == $root[0].components.agents.maxDesktop
+' "$api_bounds_preview" > /dev/null || {
+  echo "ERROR: api bounds bump should only touch api min/maxDbSchema" >&2
+  exit 1
+}
+rm -f "$api_bounds_preview"
+
+module_bounds_preview="$(mktemp)"
+module_bounds_out="$(./scripts/bump-version.sh \
+  --module-min-db "Injector=$current_db" \
+  --module-max-db "Injector=$current_db" \
+  --output "$module_bounds_preview" \
+  --dry-run 2>&1)" || {
+  echo "ERROR: bump-version module min/maxDbSchema independent update failed" >&2
+  echo "$module_bounds_out" >&2
+  exit 1
+}
+jq -e --arg db "$current_db" --slurpfile root "$ROOT_DIR/release-manifest.json" '
+  .components.agents.modules.Injector.minDbSchema == $db and
+  .components.agents.modules.Injector.maxDbSchema == $db and
+  .components.agents.modules.Injector.version == $root[0].components.agents.modules.Injector.version and
+  .components.agents.modules.Scanner == $root[0].components.agents.modules.Scanner
+' "$module_bounds_preview" > /dev/null || {
+  echo "ERROR: module bounds bump should only touch target module min/maxDbSchema" >&2
+  exit 1
+}
+rm -f "$module_bounds_preview"
+
+contract_preview="$(mktemp)"
+current_contract="$(jq -r '.components.api.contractVersion' "$ROOT_DIR/release-manifest.json")"
+contract_out="$(./scripts/bump-version.sh \
+  --api-contract "$current_contract" \
+  --output "$contract_preview" \
+  --dry-run 2>&1)" || {
+  echo "ERROR: bump-version --api-contract independent update failed" >&2
+  echo "$contract_out" >&2
+  exit 1
+}
+jq -e --arg c "$current_contract" --slurpfile root "$ROOT_DIR/release-manifest.json" '
+  .components.api.contractVersion == $c and
+  .components.api.version == $root[0].components.api.version
+' "$contract_preview" > /dev/null || {
+  echo "ERROR: --api-contract should not change api packaging version" >&2
+  exit 1
+}
+rm -f "$contract_preview"
+
+# 显式升 desktop 不得改写 agents minDesktop / maxDesktop
+desktop_no_pin_preview="$(mktemp)"
+current_desktop="$(manifest_desktop_version "$ROOT_DIR/release-manifest.json")"
+current_agents_min="$(jq -r '.components.agents.minDesktop' "$ROOT_DIR/release-manifest.json")"
+current_agents_max="$(jq -r '.components.agents.maxDesktop' "$ROOT_DIR/release-manifest.json")"
+desktop_no_pin_out="$(./scripts/bump-version.sh \
+  --desktop "$current_desktop" \
+  --product "$current_desktop" \
+  --output "$desktop_no_pin_preview" \
+  --dry-run 2>&1)" || {
+  echo "ERROR: bump-version desktop-only should succeed without auto-pinning agents" >&2
+  echo "$desktop_no_pin_out" >&2
+  exit 1
+}
+jq -e --arg amin "$current_agents_min" --arg amax "$current_agents_max" '
+  .components.agents.minDesktop == $amin and
+  .components.agents.maxDesktop == $amax
+' "$desktop_no_pin_preview" > /dev/null || {
+  echo "ERROR: desktop bump must not auto rewrite agents min/maxDesktop" >&2
+  exit 1
+}
+rm -f "$desktop_no_pin_preview"
+
+# 只升 agents：product 代填抬 Desktop；原 agents 单点钉住时整段平移
+agents_only_preview="$(mktemp)"
+current_agents_ver="$(manifest_agents_version "$ROOT_DIR/release-manifest.json")"
+IFS='.' read -r a_maj a_min a_pat <<< "$current_agents_ver"
+agents_only_next="${a_maj}.${a_min}.$((a_pat + 1))"
+agents_only_out="$(./scripts/bump-version.sh \
+  --component "agents=$agents_only_next" \
+  --output "$agents_only_preview" \
+  --dry-run 2>&1)" || {
+  echo "ERROR: beta agents-only component bump should succeed and move pinned agents Desktop bounds" >&2
+  echo "$agents_only_out" >&2
+  exit 1
+}
+jq -e --arg av "$agents_only_next" '
+  .components.agents.version == $av and
+  .components.desktop.avalonia.version == .product.version and
+  .components.agents.minDesktop == .components.desktop.avalonia.version and
+  .components.agents.maxDesktop == .components.desktop.avalonia.version
+' "$agents_only_preview" > /dev/null || {
+  echo "ERROR: agents-only bump should pin minDesktop/maxDesktop to product-derived Desktop when previously pinned" >&2
+  jq '{product: .product.version, desktop: .components.desktop.avalonia.version, agents: .components.agents}' \
+    "$agents_only_preview" >&2
+  exit 1
+}
+rm -f "$agents_only_preview"
+
+# 显式 --desktop 越过 maxDesktop 且未改 agents 区间时仍应失败
+if [[ "$current_agents_max" == "$current_desktop" ]]; then
+  out_of_range_desktop="$(./scripts/bump-version.sh \
+    --desktop 9.9.9-beta.1 \
+    --product 9.9.9-beta.1 \
+    --dry-run 2>&1)" && {
+    echo "ERROR: explicit desktop above agents.maxDesktop should fail without agents flags" >&2
+    exit 1
+  }
+  echo "$out_of_range_desktop" | grep -Fq "must be <= agents.maxDesktop" || {
+    echo "ERROR: expected desktop vs agents.maxDesktop validation error" >&2
+    echo "$out_of_range_desktop" >&2
+    exit 1
+  }
+fi
 
 [[ ! -f database/postgres/verify/04_environment_settings.sql ]] || {
   echo "ERROR: environment settings verify should be removed after dropping app_environment_settings" >&2

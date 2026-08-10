@@ -1,20 +1,6 @@
 {
   "components": {
     "agents": {
-      "artifact": {
-        "installDir": ".",
-        "windows-x64": "Agents.exe"
-      },
-      "maxDesktop": "1.0.2-beta.8",
-      "minDesktop": "1.0.2-beta.8",
-      "modules": {
-        "Injector": {
-          "version": "0.7.0"
-        },
-        "Scanner": {
-          "version": "0.1.0"
-        }
-      },
       "version": "0.1.2"
     },
     "database": {

@@ -4,9 +4,9 @@
 
 ## 版本与发布
 
-- `bump-version.sh` — 更新 product、Desktop、Agents 和数据库 schema 版本
+- `bump-version.sh` — 更新 product、Desktop、Agents、API 和数据库 schema 版本
 - `check-version.sh` — 校验发布清单、生成文件和模块版本一致性
-- `export-version.sh` — 从 `release-manifest.json` 生成 `Version.g.props`、各组件 `ReleaseManifest.json`，并同步 `module.json` 版本
+- `export-version.sh` — 按仓根清单写出各产物 `ReleaseManifest.json`、`Version.g.props`、`module.json` 字段与 API 生成代码
 - `release-desktop.sh` — 打包并发布 Desktop（Velopack）产物
 - `release-agents.sh` — 校验并打包 Agents staging，包括 Host 和发布清单中的全部模块
 - `resolve-release-plan.sh` — 解析本地或 CI 使用的发布计划
