@@ -55,7 +55,7 @@ public sealed class JwtTokenIssuer
             }
 
             clientId = id.Trim();
-            scopes = NormalizeScopes(client.Scopes);
+            scopes = AuthPolicies.NormalizeScopes(client.Scopes);
             return true;
         }
 
@@ -102,19 +102,5 @@ public sealed class JwtTokenIssuer
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
         return (accessToken, (int)TimeSpan.FromMinutes(expiresMinutes).TotalSeconds);
-    }
-
-    private static IReadOnlyList<string> NormalizeScopes(IEnumerable<string>? scopes)
-    {
-        if (scopes is null)
-        {
-            return Array.Empty<string>();
-        }
-
-        return scopes
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
     }
 }
