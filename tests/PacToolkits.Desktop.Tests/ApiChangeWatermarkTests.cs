@@ -154,6 +154,60 @@ public sealed class ApiChangeWatermarkTests
             TestContext.Current.CancellationToken);
     }
 
+    [Fact]
+    public async Task Burst_change_pulses_coalesce_watermark_gets_without_losing_notify()
+    {
+        const int pulseCount = 80;
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        var version = 1L;
+        api.FallbackFactory = _ =>
+            $$"""{"items":[{"topic":"inventory","version":{{version}}},{"topic":"trace","version":{{version}}}]}""";
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac);
+        watermark.TopicChanged += topic =>
+        {
+            lock (seen)
+            {
+                seen.Add(topic);
+            }
+        };
+        watermark.Start();
+
+        await WaitAsync(
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 2,
+            TestContext.Current.CancellationToken);
+        var baselineGets = api.WatermarkGets;
+
+        version = 2;
+        sse.EnqueueSse(BuildChangeBurst(pulseCount));
+        // 洪峰结束后挂住 SSE，避免重连抢时序
+        sse.EnqueueHangingSse();
+
+        await WaitAsync(
+            () =>
+            {
+                lock (seen)
+                {
+                    return seen.Contains("inventory") && seen.Contains("trace");
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        // 再等一窗合并结束，确认没有按脉冲数打满 GET
+        await Task.Delay(120, TestContext.Current.CancellationToken);
+        var burstGets = api.WatermarkGets - baselineGets;
+        Assert.True(
+            burstGets > 0 && burstGets <= 5,
+            $"expected coalesced watermark GETs in 1..5 after {pulseCount} pulses, got {burstGets}");
+        Assert.True(burstGets < pulseCount / 8, $"watermark GETs {burstGets} not coalesced vs {pulseCount} pulses");
+    }
+
     private static PacApiClient CreatePac(ScriptedHandler token, ScriptedHandler api, ScriptedHandler sse)
         => new(
             "http://127.0.0.1:5080",
@@ -177,6 +231,19 @@ public sealed class ApiChangeWatermarkTests
 
     private static string WatermarkJson(long version)
         => $$"""{"items":[{"topic":"inventory","version":{{version}}}]}""";
+
+    private static string BuildChangeBurst(int pulseCount)
+    {
+        var sb = new StringBuilder(pulseCount * 48);
+        for (var i = 0; i < pulseCount; i++)
+        {
+            // 交替 topic：合并后两个 version bump 都要通知到
+            var topic = (i & 1) == 0 ? "inventory" : "trace";
+            sb.Append("event: change\ndata: {\"topic\":\"").Append(topic).Append("\"}\n\n");
+        }
+
+        return sb.ToString();
+    }
 
     private static async Task WaitAsync(Func<bool> condition, CancellationToken ct)
     {
@@ -223,6 +290,20 @@ public sealed class ApiChangeWatermarkTests
                 _responses.Enqueue(_ =>
                 {
                     var content = new SseContent(body);
+                    content.Headers.ContentType =
+                        new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+                });
+            }
+        }
+
+        public void EnqueueHangingSse()
+        {
+            lock (_gate)
+            {
+                _responses.Enqueue(_ =>
+                {
+                    var content = new HangingSseContent();
                     content.Headers.ContentType =
                         new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
                     return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
@@ -292,6 +373,24 @@ public sealed class ApiChangeWatermarkTests
         {
             length = _bytes.Length;
             return true;
+        }
+    }
+
+    private sealed class HangingSseContent : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context)
+            => Task.Delay(Timeout.InfiniteTimeSpan);
+
+        protected override Task SerializeToStreamAsync(
+            Stream stream,
+            System.Net.TransportContext? context,
+            CancellationToken cancellationToken)
+            => Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
         }
     }
 
