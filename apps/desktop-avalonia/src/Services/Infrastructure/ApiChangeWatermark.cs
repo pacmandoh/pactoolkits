@@ -117,7 +117,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
         {
             try
             {
-                using var response = await _api.SendAsync(
+                using var response = await _api.SendSseAsync(
                     () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/changes/stream")),
                     ct).ConfigureAwait(false);
 
