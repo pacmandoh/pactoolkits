@@ -114,4 +114,18 @@ if command -v dotnet >/dev/null 2>&1 && [[ -f "$ROOT_DIR/tests/PacToolkits.Deskt
   pass "xUnit PostgreSQL integration tests"
 fi
 
+if command -v dotnet >/dev/null 2>&1 && [[ -f "$ROOT_DIR/tests/PacToolkits.Api.Tests/PacToolkits.Api.Tests.csproj" ]]; then
+  log "running API PostgreSQL LISTEN integration tests"
+  (
+    cd "$ROOT_DIR"
+    if ! dotnet build tests/PacToolkits.Api.Tests/PacToolkits.Api.Tests.csproj -c Release --no-restore -v minimal >/tmp/pactoolkits-api-itest-build.log 2>&1; then
+      dotnet build tests/PacToolkits.Api.Tests/PacToolkits.Api.Tests.csproj -c Release -v minimal >/tmp/pactoolkits-api-itest-build.log 2>&1
+    fi
+    # PG_ITEST 已 export；未设置时用例 Skip
+    dotnet test tests/PacToolkits.Api.Tests/PacToolkits.Api.Tests.csproj -c Release --no-restore --no-build -v minimal \
+      --filter "FullyQualifiedName~PostgresListenIntegrationTests"
+  )
+  pass "API PostgreSQL LISTEN integration tests"
+fi
+
 log "all PostgreSQL integration checks passed"

@@ -62,7 +62,9 @@ try
 
     var service = CreateService(options, guard);
     var compatibleContext = new DbSchemaVersionContext(
-        "1.2.20", "1.2.25", "1.2.20", "1.2.25", "1.2.25");
+        DesktopMinDbSchema: "1.2.20",
+        DesktopMaxDbSchema: "1.2.25",
+        TargetDbSchemaVersion: "1.2.25");
     var snapshot = await service.GetSchemaStatusAsync(compatibleContext, options, CancellationToken.None);
     if (!snapshot.SchemaOk || snapshot.Compatibility != DbSchemaCompatibility.Compatible)
         Fail("schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
@@ -70,7 +72,9 @@ try
         Pass("schema_status=compatible");
 
     var belowMinContext = new DbSchemaVersionContext(
-        "1.2.26", "1.2.27", "1.2.26", "1.2.27", "1.2.27");
+        DesktopMinDbSchema: "1.2.26",
+        DesktopMaxDbSchema: "1.2.27",
+        TargetDbSchemaVersion: "1.2.27");
     var belowSnapshot = await service.GetSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
     if (belowSnapshot.Compatibility != DbSchemaCompatibility.BelowMinimum || belowSnapshot.Satisfied)
         Fail("below_minimum_block", belowSnapshot.IncompatibleMessage ?? belowSnapshot.Compatibility.ToString());
