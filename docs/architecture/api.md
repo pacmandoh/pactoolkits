@@ -56,7 +56,8 @@ Pg NOTIFY
   GET  /v1/changes/watermarks
 ```
 
-- SSE：`ready` / `change` / `heartbeat`；单 `client_id` 最多 2 条并发流；订阅通道有界，落后时丢旧 topic；**version 以 GET watermarks 为准**（勿只信 SSE 推送）
+- SSE：`ready` / `change` / `heartbeat`；单 `client_id` 最多 2 条并发流；订阅通道有界，落后时丢旧 topic
+- SSE 在 JWT `exp` 时由服务端关闭；客户端换票后重连，并 GET watermarks 补偿（**version 以 watermark 为准**，勿只信 SSE 推送）
 - `Changes:ListenEnabled`：是否启 LISTEN（测试可关）
 
 Desktop 将来改走 API 时：页面仍须保留突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新。

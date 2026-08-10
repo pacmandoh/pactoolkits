@@ -81,4 +81,53 @@ public sealed class ChangeEndpointsTests
         Assert.Contains("event: change", buffer.ToString(), StringComparison.Ordinal);
         Assert.Contains("inventory", buffer.ToString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task Stream_ends_when_jwt_expires()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        // 短寿命 JWT：过 exp 后服务端应关掉 SSE
+        var token = ApiFactory.ForgeAccessToken(expires: DateTime.UtcNow.AddSeconds(2));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var outer = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        outer.CancelAfter(TimeSpan.FromSeconds(15));
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/v1/changes/stream");
+        using var response = await client.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            outer.Token);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var stream = await response.Content.ReadAsStreamAsync(outer.Token);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+
+        var buffer = new StringBuilder();
+        while (buffer.ToString().IndexOf("event: ready", StringComparison.Ordinal) < 0)
+        {
+            var line = await reader.ReadLineAsync(outer.Token);
+            Assert.NotNull(line);
+            buffer.AppendLine(line);
+        }
+
+        var started = Environment.TickCount64;
+        while (!outer.Token.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync(outer.Token);
+            if (line is null)
+            {
+                break;
+            }
+
+            buffer.AppendLine(line);
+        }
+
+        var elapsedMs = Environment.TickCount64 - started;
+        Assert.True(
+            elapsedMs < 10_000,
+            $"SSE should end near JWT exp, elapsed={elapsedMs}ms");
+        Assert.Contains("event: ready", buffer.ToString(), StringComparison.Ordinal);
+    }
 }
