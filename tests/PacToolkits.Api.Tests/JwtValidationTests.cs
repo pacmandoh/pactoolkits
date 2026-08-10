@@ -1,9 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using PacToolkits.Api.Auth;
 
 namespace PacToolkits.Api.Tests;
@@ -15,7 +11,7 @@ public sealed class JwtValidationTests
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
-        var token = ForgeToken(expires: DateTime.UtcNow.AddMinutes(-10));
+        var token = ApiFactory.ForgeAccessToken(expires: DateTime.UtcNow.AddMinutes(-10));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/ping", TestContext.Current.CancellationToken);
@@ -28,7 +24,7 @@ public sealed class JwtValidationTests
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
-        var token = ForgeToken(issuer: "wrong-issuer");
+        var token = ApiFactory.ForgeAccessToken(issuer: "wrong-issuer");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/ping", TestContext.Current.CancellationToken);
@@ -41,7 +37,7 @@ public sealed class JwtValidationTests
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
-        var token = ForgeToken(audience: "wrong-audience");
+        var token = ApiFactory.ForgeAccessToken(audience: "wrong-audience");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/ping", TestContext.Current.CancellationToken);
@@ -54,7 +50,7 @@ public sealed class JwtValidationTests
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
-        var token = ForgeToken(signingKey: "other-jwt-signing-key-32chars-min!!");
+        var token = ApiFactory.ForgeAccessToken(signingKey: "other-jwt-signing-key-32chars-min!!");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/ping", TestContext.Current.CancellationToken);
@@ -67,7 +63,7 @@ public sealed class JwtValidationTests
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
-        var token = ForgeToken(includeClientId: false);
+        var token = ApiFactory.ForgeAccessToken(includeClientId: false);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/ping", TestContext.Current.CancellationToken);
@@ -80,7 +76,7 @@ public sealed class JwtValidationTests
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
-        var token = ForgeToken(scopes: [AuthPolicies.Write]);
+        var token = ApiFactory.ForgeAccessToken(scopes: [AuthPolicies.Write]);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/ping", TestContext.Current.CancellationToken);
@@ -93,7 +89,7 @@ public sealed class JwtValidationTests
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
-        var token = ForgeToken(scopes: [AuthPolicies.Read]);
+        var token = ApiFactory.ForgeAccessToken(scopes: [AuthPolicies.Read]);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.GetAsync("/v1/system/info", TestContext.Current.CancellationToken);
@@ -112,43 +108,5 @@ public sealed class JwtValidationTests
         using var response = await client.GetAsync("/v1/system/info", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-
-    private static string ForgeToken(
-        DateTime? expires = null,
-        string issuer = "pactoolkits-api-test",
-        string audience = "pactoolkits-clients-test",
-        string signingKey = ApiFactory.TestJwtSigningKey,
-        bool includeClientId = true,
-        IReadOnlyList<string>? scopes = null)
-    {
-        var now = DateTime.UtcNow;
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, ApiFactory.TestClientId),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-        };
-
-        if (includeClientId)
-        {
-            claims.Add(new Claim(JwtTokenIssuer.ClientIdClaim, ApiFactory.TestClientId));
-        }
-
-        foreach (var scope in scopes ?? [AuthPolicies.Read, AuthPolicies.Write, AuthPolicies.SystemStatus])
-        {
-            claims.Add(new Claim(AuthPolicies.ScopeClaim, scope));
-        }
-
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            notBefore: (expires ?? now.AddMinutes(30)).AddMinutes(-60),
-            expires: expires ?? now.AddMinutes(30),
-            signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

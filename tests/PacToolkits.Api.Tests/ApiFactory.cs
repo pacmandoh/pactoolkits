@@ -1,8 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using PacToolkits.Api.Auth;
 using PacToolkits.Api.Hosting;
 using PacToolkits.Application.Abstractions;
@@ -74,6 +78,45 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         using var doc = await System.Text.Json.JsonDocument.ParseAsync(stream, cancellationToken: ct);
         return doc.RootElement.GetProperty("accessToken").GetString()
                ?? throw new InvalidOperationException("token response missing accessToken");
+    }
+
+    public static string ForgeAccessToken(
+        DateTime? expires = null,
+        string issuer = "pactoolkits-api-test",
+        string audience = "pactoolkits-clients-test",
+        string signingKey = TestJwtSigningKey,
+        bool includeClientId = true,
+        IReadOnlyList<string>? scopes = null)
+    {
+        var now = DateTime.UtcNow;
+        var expiresAt = expires ?? now.AddMinutes(30);
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, TestClientId),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+        };
+
+        if (includeClientId)
+        {
+            claims.Add(new Claim(JwtTokenIssuer.ClientIdClaim, TestClientId));
+        }
+
+        foreach (var scope in scopes ?? [AuthPolicies.Read, AuthPolicies.Write, AuthPolicies.SystemStatus])
+        {
+            claims.Add(new Claim(AuthPolicies.ScopeClaim, scope));
+        }
+
+        var jwt = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            notBefore: expiresAt.AddMinutes(-60),
+            expires: expiresAt,
+            signingCredentials: creds);
+
+        return new JwtSecurityTokenHandler().WriteToken(jwt);
     }
 
     private sealed class AlwaysOkApiHealth : IApiHealth

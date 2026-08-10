@@ -87,7 +87,7 @@ Postgres__Password=<secret>
 | GET | `/v1/ping` | JWT `read` | 校验 JWT 与 read scope |
 | GET | `/v1/system/info` | JWT `system.status` | 非敏感系统信息 |
 | GET | `/v1/changes/watermarks` | JWT `read` | 变更水位快照 |
-| GET | `/v1/changes/stream` | JWT `read` | SSE 变更流 |
+| GET | `/v1/changes/stream` | JWT `read` | SSE 变更流；JWT `exp` 时服务端关闭 |
 
 DI 组装入口：`AddPacToolkitsApi`。注册全量 Application 与 Infrastructure；Desktop 专属 Store 与 MSFX 外呼由宿主适配（无本地配置文件；MSFX HTTP 未接）。
 
