@@ -18,6 +18,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 /// 经 API 的变更水位：SSE 只作唤醒；version 以 GET watermarks 为准
 ///
 /// 不直连 Pg NOTIFY；SSE 断了只重连流，不把整站判为断开
+/// `ready`/`change` 均补查 watermark；首见 topic 仅 `change` 可刷页
 /// 与 Infrastructure 的 ChangeWatermarkService 互斥，二选一注册为 IChangeWatermarkService
 /// </summary>
 public sealed class ApiChangeWatermark : IChangeWatermarkService
@@ -37,7 +38,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
     private readonly TimeSpan _reconnectDelay = TimeSpan.FromSeconds(2);
     private readonly TimeSpan _notifyCoalesceWindow = TimeSpan.FromMilliseconds(120);
 
-    // SSE 只唤醒；topic/version 以 watermark GET 为准
+    // 脉冲载荷：emitOnBootstrap（change=true，ready=false）
     private readonly Channel<bool> _pulses = Channel.CreateUnbounded<bool>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
@@ -164,6 +165,11 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
                     {
                         _pulses.Writer.TryWrite(true);
                     }
+                    else if (string.Equals(eventName, "ready", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // ready：立刻 GET watermark；首见 topic 不刷页（与冷启动 poll 一致）
+                        _pulses.Writer.TryWrite(false);
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -189,11 +195,15 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
     {
         while (!ct.IsCancellationRequested)
         {
+            bool emitOnBootstrap;
             try
             {
-                _ = await _pulses.Reader.ReadAsync(ct).ConfigureAwait(false);
+                emitOnBootstrap = await _pulses.Reader.ReadAsync(ct).ConfigureAwait(false);
                 await Task.Delay(_notifyCoalesceWindow, ct).ConfigureAwait(false);
-                while (_pulses.Reader.TryRead(out _)) { }
+                while (_pulses.Reader.TryRead(out var flag))
+                {
+                    emitOnBootstrap |= flag;
+                }
             }
             catch (OperationCanceledException)
             {
@@ -202,7 +212,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
             try
             {
-                await RefreshFromWatermarkAsync(emitOnBootstrap: true, ct).ConfigureAwait(false);
+                await RefreshFromWatermarkAsync(emitOnBootstrap, ct).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
