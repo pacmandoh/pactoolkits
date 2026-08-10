@@ -45,7 +45,7 @@ GET  /health          匿名；反映进程、PostgreSQL 与 schema 门禁
 
 **当前 Desktop（过渡）**：业务页与变更流仍走本机 Infrastructure：`ChangeWatermarkService` 做 LISTEN，并用 watermark 轮询，**不经过** API。Desktop 与 API 可同时 LISTEN 同一 channel（Pg 允许多会话）。
 
-预留实现（`#if false`，不编译、无 DI）：`ApiChangeWatermark` / `PacApiClient`，供日后 Desktop 改走 API SSE；配置形态届时另定，不绑现网 Desktop.config。
+预留实现（`#if false`，不编译、无 DI）：`ApiChangeWatermark` / `PacApiClient`，供日后 Desktop 改走 API SSE。配置另行约定，不沿用现 Desktop.config。SSE `ready`（含重连）与 `change` 均 GET watermarks 补 version；`ready` 不对首见 topic 刷页，避免冷启动连环刷新。
 
 **API 侧（已实现，可单独在本机验证）**：
 
