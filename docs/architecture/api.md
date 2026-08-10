@@ -24,11 +24,13 @@ GET  /v1/system/info  Bearer system.status；product、apiVersion、contractVers
 GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 ```
 
-- **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）
-- **API Key**：服务端只存 `ApiKeyHash`（SHA-256 hex）；明文仅创建时交给客户端
+- **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）。ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白
+- **API Key**：服务端只存 `ApiKeyHash`（SHA-256 hex）；明文仅创建时交给客户端；同一散列不得分给多个 ClientId
 - **JWT**：HMAC-SHA256；`Auth:Jwt:SigningKey` 变更后须**重启**进程（不支持运行中轮换密钥）
-- **Scope / Policy**：`read` / `write` / `system.status`；端点 `.RequireAuthorization(...)`
-- **换票**：按来源限流；失败统一 401；不区分 Key 不存在 / 错误 / 已禁用；日志不记明文 Key
+- **Scope / Policy**：`read` / `write` / `system.status`；端点 `.RequireAuthorization(...)`；配置出现未知 scope 则启动失败
+- **Clients 启动校验**：Production 至少要有一个 Enabled client（合法 hash + 至少一个已知 scope）；`dev` 等非 Production 允许空 `Clients`
+- **换票**：失败统一 401；不区分 Key 不存在 / 错误 / 已禁用；日志不记明文 Key
+- **换票限流**：按 `RemoteIpAddress` 固定窗 30 次/分钟。多终端经同一机器转发或 NAT 出口时共用额度；上线前用真实中转拓扑验证（约 10 台同时启动换票，观察是否 429）
 - **协议版本**：`GET /v1/system/info` 返回 `contractVersion`（协议 SemVer，来自清单 `components.api.contractVersion`，export 为 `ApiContract.Version`）。客户端用该字段判断协议是否兼容；`apiVersion` 只标识进程构建（清单 `components.api.version`），不参与协议判断
 
 ## 健康与错误
@@ -61,7 +63,8 @@ Pg NOTIFY
 ```
 
 - SSE：`ready` / `change` / `heartbeat`；单 `client_id` 最多 2 条并发流；订阅通道有界，落后时丢旧 topic
-- SSE 在 JWT `exp` 时由服务端关闭；客户端换票后重连，并 GET watermarks 补偿（**version 以 watermark 为准**，勿只信 SSE 推送）
+- LISTEN 侧按 topic 记 pending + 短合并窗再 `Publish`（NOTIFY 可合并或丢弃；**version 以 watermark 为准**）
+- SSE 在 JWT `exp` 时由服务端关闭；客户端换票后重连，并 GET watermarks 补偿（勿只信 SSE 推送）
 - `Changes:ListenEnabled`：是否启 LISTEN（测试可关）
 
 Desktop 将来改走 API 时：页面仍须保留突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新。
@@ -73,10 +76,11 @@ Desktop 将来改走 API 时：页面仍须保留突发合并、编辑中暂缓�
 ## 部署边界
 
 - Kestrel 默认只听本机或受控内网（如 `127.0.0.1:5080`）
-- 公网只经 **HTTPS** 反向代理；配置可信 Forwarded Headers
+- 公网只经 **HTTPS** 反向代理；Forwarded Headers 仅信任环回（或部署时显式写入的 `KnownProxies` / `KnownIPNetworks`）
+- Nginx 必须用 `$remote_addr` **覆盖** `X-Forwarded-For`，禁止 `$proxy_add_x_forwarded_for`（否则客户端可伪造来源 IP，绕过按来源聚合的限流）
 - 代理与应用日志均不记录认证头
 
-本地密钥与脚本见 [API README](../../apps/api-asp/README.md)。
+本地密钥、Nginx 片段与换票限流手工验证见 [API README](../../apps/api-asp/README.md)。
 
 ## 迁移原则（其余域）
 
