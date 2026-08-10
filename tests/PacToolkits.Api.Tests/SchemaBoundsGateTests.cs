@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using PacToolkits.Api.Hosting;
 using PacToolkits.Application.Abstractions;
 
@@ -12,6 +13,23 @@ namespace PacToolkits.Api.Tests;
 
 public sealed class SchemaBoundsGateTests
 {
+    [Fact]
+    public async Task Data_plane_returns_503_when_gate_not_ready()
+    {
+        await using var factory = new NotReadyGateFactory();
+        using var client = factory.CreateClient();
+        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await client.GetAsync(
+            "/v1/changes/watermarks",
+            TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains(SchemaBoundsAccessHost.NotReadyReason, body, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Data_plane_returns_503_when_schema_incompatible()
     {
@@ -106,6 +124,30 @@ public sealed class SchemaBoundsGateTests
         }
 
         return string.Join(" | ", parts);
+    }
+
+    /// <summary>去掉 SchemaBoundsAccessHost，保留启动时的 not_ready 阻断</summary>
+    private sealed class NotReadyGateFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("dev");
+            builder.ConfigureAppConfiguration((_, config) =>
+            {
+                config.AddInMemoryCollection(ApiFactory.BuildAuthConfig());
+            });
+            builder.ConfigureTestServices(services =>
+            {
+                foreach (var d in services
+                             .Where(static x =>
+                                 x.ServiceType == typeof(IHostedService)
+                                 && x.ImplementationType == typeof(SchemaBoundsAccessHost))
+                             .ToList())
+                {
+                    services.Remove(d);
+                }
+            });
+        }
     }
 
     private sealed class GatedApiFactory(ApiHealthSnapshot snapshot) : WebApplicationFactory<Program>
