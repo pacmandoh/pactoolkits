@@ -1,8 +1,8 @@
 # 数据库兼容与回退规则
 
-PacToolkits 使用 `release-manifest.json` 中 Desktop 的 `minDbSchema` 和 `maxDbSchema` 定义 **Desktop 业务访问** 的数据库闭区间。Agents 包通过安装树旁 `ReleaseManifest.json`（`components.agents.minDesktop` / `maxDesktop`）声明可配套的 Desktop 版本区间；运行时读 Agents 树，以便 Agents 与 Desktop 分开发版 / 自更新。
+PacToolkits 用 `release-manifest.json` 里 Desktop 的 `minDbSchema` 与 `maxDbSchema` 定义 **Desktop 业务访问** 的库 schema 闭区间。Agents 包在安装树旁 `ReleaseManifest.json` 声明可配套的 Desktop 版本（`components.agents.minDesktop`、`maxDesktop`）；运行时读 Agents 树，方便 Agents 与 Desktop 分开发版或自更新。
 
-依赖库的模块在 `module.json` 顶层声明 **自己的** `minDbSchema` / `maxDbSchema`（完整成对；皆缺=不依赖库；半套非法）。Desktop 在写入 desired 前用当前库版本与该区间做 `SemVerRange.Classify`（纯 X.Y.Z）判定；Host 不连库、不判 schema。
+依赖库的模块：schema 闭区间写在清单 `components.agents.modules.<Id>` 的 minDbSchema 与 maxDbSchema（须成对齐全，或两项皆缺表示不依赖库；只写一半非法），由 `export-version.sh` 写入对应 `module.json`。Desktop 在写入 desired 前读安装树 `module.json`，用当前库版本与该区间做 `SemVerRange.Classify`（纯 X.Y.Z）；Host 不连库、不判 schema。
 
 ## 兼容性决策
 
@@ -39,6 +39,6 @@ Desktop 不包含数据库迁移执行器，安装包也不分发 migration SQL�
 2. 确认 Stable 与 Beta Feed 相互隔离，且目标 manifest 来自正确通道
 3. 确认没有修改或删除已执行 migration
 4. 验证当前 Schema 位于 Desktop 声明的 schema 闭区间内
-5. 验证 Agents 安装树 `ReleaseManifest` 可解析，且 min/maxDesktop 与当前 Desktop 版本配套（清单缺失、区间不完整或 Desktop 版本未知则失败）；校验库依赖模块对当前 Schema 是否可 mount；失败时阻止或不挂载对应模块
+5. 验证 Agents 安装树 `ReleaseManifest` 可解析，且 minDesktop、maxDesktop 与当前 Desktop 版本配套（清单缺失、区间不全或 Desktop 版本未知则失败）；校验依赖库的模块在当前 Schema 下是否可 mount（区间来自 `module.json`，须与清单模块条目经 export 后一致）；失败时阻止或不挂载对应模块
 
 Beta 的具体发布要求见 [Beta 发布规则](beta-release-policy.md)。

@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <Import Project="Version.g.props" Condition="Exists('Version.g.props')" />
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -7,6 +9,11 @@
     <RootNamespace>PacToolkits.Api</RootNamespace>
     <AssemblyName>PacToolkits.Api</AssemblyName>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
+    <Version Condition="'$(Version)' == ''">$(AppVersion)</Version>
+    <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">0.0.0.0</AssemblyVersion>
+    <FileVersion Condition="'$(FileVersion)' == ''">0.0.0.0</FileVersion>
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AppVersion)+local</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -5,6 +5,12 @@
     "version": "1.0.2-beta.8"
   },
   "components": {
+    "api": {
+      "version": "0.1.0",
+      "contractVersion": "1.0.0",
+      "minDbSchema": "1.2.25",
+      "maxDbSchema": "1.2.25"
+    },
     "desktop": {
       "avalonia": {
         "version": "1.0.2-beta.8",
@@ -23,10 +29,14 @@
       },
       "modules": {
         "Injector": {
-          "version": "0.7.0"
+          "version": "0.7.0",
+          "minDbSchema": "1.2.25",
+          "maxDbSchema": "1.2.25"
         },
         "Scanner": {
-          "version": "0.1.0"
+          "version": "0.1.0",
+          "minDbSchema": "1.2.25",
+          "maxDbSchema": "1.2.25"
         }
       }
     },

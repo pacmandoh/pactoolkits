@@ -1,10 +1,6 @@
 {
   "components": {
     "agents": {
-      "artifact": {
-        "installDir": ".",
-        "windows-x64": "Agents.exe"
-      },
       "maxDesktop": "1.0.2-beta.8",
       "minDesktop": "1.0.2-beta.8",
       "modules": {
@@ -16,28 +12,7 @@
         }
       },
       "version": "0.1.2"
-    },
-    "database": {
-      "postgres": {
-        "version": "1.2.25"
-      }
-    },
-    "desktop": {
-      "avalonia": {
-        "maxDbSchema": "1.2.25",
-        "minDbSchema": "1.2.25",
-        "packageId": "PacToolkits",
-        "version": "1.0.2-beta.8"
-      }
     }
-  },
-  "product": {
-    "id": "pactoolkits",
-    "version": "1.0.2-beta.8"
-  },
-  "release": {
-    "channel": "beta",
-    "date": "2026-07-27"
   },
   "schemaVersion": 2
 }

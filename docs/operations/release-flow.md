@@ -1,6 +1,6 @@
 # 发布流程
 
-`release-manifest.json`（Manifest V2）是 Desktop、Agents 和数据库 schema 的统一版本来源。
+`release-manifest.json`（Manifest V2）是 Desktop、Agents、API 与数据库 schema 的统一版本清单。
 
 ## 版本清单
 
@@ -12,18 +12,47 @@
 | `components.desktop.avalonia.version`    | Avalonia Desktop 组件版本           |
 | `components.agents.version`              | Agents 容器版本                     |
 | `components.agents.modules.<Id>.version` | 各 Agents 模块版本（如 `Injector`） |
+| `components.agents.modules.<Id>.minDbSchema` / `maxDbSchema` | 可选；依赖库模块的 schema 闭区间；export 写入对应 `module.json` |
+| `components.api.version` | API 制品版本；export 写入 `apps/api-asp/src/Version.g.props` |
+| `components.api.contractVersion` | HTTP 协议 SemVer；export 写入 `ApiContract.g.cs`（协议字段；与制品版本解耦） |
+| `components.api.minDbSchema` / `maxDbSchema` | API 宿主 SchemaBounds；export 写入 `SchemaBounds.g.cs` 与 `appsettings.json` |
 | `components.database.postgres.version`   | PostgreSQL migration 目标版本       |
 | `release.channel`                        | 发布通道：`stable` 或 `beta`        |
 
 使用下列脚本维护和验证派生文件：
 
 ```bash
-./scripts/export-version.sh   # 生成各组件版本文件并同步模块版本
-./scripts/check-version.sh    # 校验清单与派生文件一致性
-./scripts/bump-version.sh     # 更新清单中的组件版本
+./scripts/export-version.sh   # 按清单生成各产物版本文件与 module/API 字段
+./scripts/check-version.sh    # 校验清单与派生文件一致
+./scripts/bump-version.sh     # 按参数改清单字段
 ```
 
-`export-version.sh` 不生成 Agents `ReleaseVersion.json`。Desktop 运行时版本服务读取安装目录中的 `ReleaseManifest.json`；`runtime/agents/host/ReleaseManifest.json` 仅用于源码树同步和版本校验，Host 不读取该文件。
+`bump-version.sh` 常用参数（可单条或多条组合；细则见 `--help`）：
+
+| 改什么 | 参数 |
+|--------|------|
+| 组件制品版本 | `--component api=…` / `agents=…` 等 |
+| Desktop / DB | `--desktop` / `--db` |
+| API 协议 | `--api-contract X.Y.Z` |
+| Desktop 与 API 的 schema 闭区间 | `--component-min-db` / `--component-max-db desktop\|api=…`（Desktop 亦可用 `--desktop-min-db` / `--desktop-max-db`） |
+| 单模块 version | `--module Injector=…` |
+| 单模块 schema 区间 | `--module-min-db` / `--module-max-db MODULE=…`（成对有效；皆缺=不依赖库） |
+| Agents 与 Desktop 区间 | `--agents-min-desktop` / `--agents-max-desktop`（同通道显式 `--desktop` 不改区间；stable 切 beta 且未写区间时跟 Desktop；beta 上 product 代填 Desktop 且原为单点钉住时整段平移；宽区间则只补越界侧） |
+
+`export-version.sh` 按产物写只读字段：
+
+| 生成文件 | 内容 |
+|----------|------|
+| Desktop `ReleaseManifest.json` | product、desktop、agents.version、database、release |
+| Agents Host `ReleaseManifest.json` | agents.version、minDesktop、maxDesktop、modules 各版本 |
+| 各模块 `module.json` | version，以及可选的 minDbSchema、maxDbSchema |
+| API | Version.g.props、ApiContract.g.cs、SchemaBounds.g.cs、appsettings 的 SchemaBounds |
+
+Feed 发布全量 `release-manifest.json`（更新探测）。`check-version` 按各产物文件字段与清单逐项核对。源码树 `runtime/agents/host/ReleaseManifest.json` 供校验与打包；Host 进程不读该文件。
+
+模块库区间在清单 `components.agents.modules.<Id>` 维护（与 version 同条；皆缺=不依赖库；成对则 X.Y.Z 且 min≤max），export 写入 `module.json`；运行时读安装树该文件。
+
+API：`components.api` 的 `version`、`contractVersion`、min/maxDbSchema；协议与制品版本解耦。
 
 ## CI 工作流（GitHub Actions）
 

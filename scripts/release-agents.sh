@@ -214,7 +214,11 @@ if [[ -n "$BUMP_AGENTS$BUMP_COMPONENT$BUMP_PRODUCT$BUMP_DESKTOP$BUMP_DB$BUMP_CHA
   [[ -n "$BUMP_AGENTS" ]] && bump_args+=(--component "agents=$BUMP_AGENTS")
   [[ -n "$BUMP_COMPONENT" ]] && bump_args+=(--component "$BUMP_COMPONENT")
   [[ -n "$BUMP_PRODUCT" ]] && bump_args+=(--product "$BUMP_PRODUCT")
-  [[ -n "$BUMP_DESKTOP" ]] && bump_args+=(--desktop "$BUMP_DESKTOP")
+  if [[ -n "$BUMP_DESKTOP" ]]; then
+    bump_args+=(--desktop "$BUMP_DESKTOP")
+    # 同仓发版：agents 配套区间与本次 Desktop 对齐；单独改区间用 bump-version
+    bump_args+=(--agents-min-desktop "$BUMP_DESKTOP" --agents-max-desktop "$BUMP_DESKTOP")
+  fi
   [[ -n "$BUMP_DB" ]] && bump_args+=(--db "$BUMP_DB")
   [[ -n "$BUMP_CHANNEL" ]] && bump_args+=(--channel "$BUMP_CHANNEL")
   if [[ "$DRY_RUN" == "true" ]]; then
