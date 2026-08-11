@@ -75,7 +75,8 @@ pactoolkits/
 ## 相关文档
 
 - [分层与依赖规则](./layering.md)
-- [API 宿主与迁移](./api.md)
+- [Desktop 目录与 namespace](./desktop-layout.md)
+- [API 宿主与架构红线](./api.md)
 - [Agents 运行时架构](./agents.md)
 - [Desktop 状态模型](./desktop-state.md)
 - [发布流程](../operations/release-flow.md)

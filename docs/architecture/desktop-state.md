@@ -2,7 +2,7 @@
 
 Avalonia Desktop（`apps/desktop-avalonia`）把全局数据库连接、页面数据可用性、区块空态分三层管。各层职责与展示范围不同，不要收成一个 `IsBusy`，也不要同一故障提示两遍。
 
-相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Presentation/ConnectivityBanner.cs`、`Services/Presentation/PageReconnectPolicy.cs`。
+相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/Feedback/PageDataShell.axaml`、`Services/Presentation/Connectivity/ConnectivityBanner.cs`、`Services/Presentation/Connectivity/PageReconnectPolicy.cs`。
 
 ## 三层职责
 
@@ -52,7 +52,7 @@ flowchart TB
 | -------------------------------- | --------------------- | ----------------- | --------------------------------- |
 | `NotLoaded` / `AwaitingDatabase` | 是                    | 否                | 等待本机数据库或首次加载许可      |
 | `AwaitingService`                | 仅首次加载            | 否                | 等待 API 等远端服务；定时静默重试 |
-| `AccessBlocked`                  | 是                    | 否                | 版本或迁移状态阻止访问            |
+| `AccessBlocked`                  | 是                    | 否                | schema 或访问门禁阻止访问         |
 | `LoadFailed`                     | 是                    | 否                | 非传输类加载失败                  |
 | `Loading`                        | 否                    | 是（延迟 300 ms） | 正在读取数据                      |
 | `Stale`                          | 否                    | 否（静默刷新）    | 断连或服务不可用后保留最近内容    |

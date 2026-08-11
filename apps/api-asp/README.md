@@ -2,7 +2,7 @@
 
 `apps/api-asp` 的 HTTP 宿主（`PacToolkits.Api`）：具名客户端用 API Key 散列换 JWT；授权、健康检查（PostgreSQL 与 schema）、LISTEN 写入 SSE 变更流；域路由挂到 Application 与 Infrastructure。
 
-架构与迁移原则见 [docs/architecture/api.md](../../docs/architecture/api.md)。
+架构与接入约定见 [docs/architecture/api.md](../../docs/architecture/api.md)。
 
 ## 布局
 
@@ -24,14 +24,14 @@ GET  /v1/changes/*    Bearer（需 scope read）
 GET  /health          匿名探活；仅 status；200=可用、503=不可用
 ```
 
-| 项 | 说明 |
-| ---- | ------ |
-| Clients | `Auth:Clients:<id>`：`ApiKeyHash`（SHA-256 hex）、`Enabled`、`Scopes`；ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白 |
-| Key | 明文只在客户端；服务端只比散列；同一散列不得分给多个 ClientId |
-| JWT | HMAC-SHA256；`Auth:Jwt:SigningKey` ≥32；**改密钥须重启** |
-| Policy | `read` / `write` / `system.status`（配置未知 scope 则启动失败） |
-| Header | `Auth:HeaderName`（默认 `X-Api-Key`） |
-| 启动校验 | Production 至少要有一个 Enabled client（合法 hash，且至少一个已知 scope）；`dev` 等非 Production 允许空 `Clients` |
+| 项       | 说明                                                                                                                                         |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clients  | `Auth:Clients:<id>`：`ApiKeyHash`（SHA-256 hex）、`Enabled`、`Scopes`；ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白 |
+| Key      | 明文只在客户端；服务端只比散列；同一散列不得分给多个 ClientId                                                                                |
+| JWT      | HMAC-SHA256；`Auth:Jwt:SigningKey` ≥32；**改密钥须重启**                                                                                     |
+| Policy   | `read` / `write` / `system.status`（配置未知 scope 则启动失败）                                                                              |
+| Header   | `Auth:HeaderName`（默认 `X-Api-Key`）                                                                                                        |
+| 启动校验 | Production 至少要有一个 Enabled client（合法 hash，且至少一个已知 scope）；`dev` 等非 Production 允许空 `Clients`                            |
 
 ## 本地开发
 
@@ -45,11 +45,11 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 
 `.env.asp` 含：
 
-| 键 | 用途 |
-| ---- | ------ |
-| `PAC_API_KEY` | 本地 curl 换票明文 Key（API 进程不读明文，只读散列） |
-| `Auth__Clients__dev__ApiKeyHash` | 服务端比对的 Key 散列 |
-| `Auth__Jwt__SigningKey` | JWT HMAC |
+| 键                                                               | 用途                                                     |
+| ---------------------------------------------------------------- | -------------------------------------------------------- |
+| `PAC_API_KEY`                                                    | 本地 curl 换票明文 Key（API 进程不读明文，只读散列）     |
+| `Auth__Clients__dev__ApiKeyHash`                                 | 服务端比对的 Key 散列                                    |
+| `Auth__Jwt__SigningKey`                                          | JWT HMAC                                                 |
 | `Postgres__Host` / `Port` / `Database` / `Username` / `Password` | 覆盖 `appsettings` 的 Postgres 节；`Password` 须本机手填 |
 
 `gen-dev-secrets.sh` 与 `wire-local.sh` 会复用已有 Auth，并补齐缺省 Postgres（与 `appsettings.json` 对齐）；`--force` 只换 Auth，Postgres 手改仍保留。
@@ -101,15 +101,15 @@ location / {
 
 ## 路由
 
-| 方法 | 路径 | 鉴权 | 说明 |
-| ------ | ------ | ------ | ------ |
-| GET | `/health` | 否 | 匿名探活，仅 `status`；SchemaBounds 同时拦业务 IDb |
-| POST | `/v1/auth/token` | API Key（限流） | 换 JWT |
-| GET | `/v1/ping` | JWT `read` | 校验 JWT 与 read scope |
-| GET | `/v1/system/info` | JWT `system.status` | 静态：product、构建用 apiVersion、协议 SemVer contractVersion |
-| GET | `/v1/system/status` | JWT `system.status` | 连库与 schema 诊断 |
-| GET | `/v1/changes/watermarks` | JWT `read` | 变更水位快照 |
-| GET | `/v1/changes/stream` | JWT `read` | SSE 变更流；JWT `exp` 时服务端关闭 |
+| 方法 | 路径                     | 鉴权                | 说明                                                          |
+| ---- | ------------------------ | ------------------- | ------------------------------------------------------------- |
+| GET  | `/health`                | 否                  | 匿名探活，仅 `status`；SchemaBounds 同时拦业务 IDb            |
+| POST | `/v1/auth/token`         | API Key（限流）     | 换 JWT                                                        |
+| GET  | `/v1/ping`               | JWT `read`          | 校验 JWT 与 read scope                                        |
+| GET  | `/v1/system/info`        | JWT `system.status` | 静态：product、构建用 apiVersion、协议 SemVer contractVersion |
+| GET  | `/v1/system/status`      | JWT `system.status` | 连库与 schema 诊断                                            |
+| GET  | `/v1/changes/watermarks` | JWT `read`          | 变更水位快照                                                  |
+| GET  | `/v1/changes/stream`     | JWT `read`          | SSE 变更流；JWT `exp` 时服务端关闭                            |
 
 DI 组装入口：`AddPacToolkitsApi`。注册全量 Application 与 Infrastructure；Desktop 专属 Store 与 MSFX 外呼由宿主适配（无本地配置文件；MSFX HTTP 未接）。
 
