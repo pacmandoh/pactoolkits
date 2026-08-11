@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using global::Avalonia.Data.Converters;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Ui.Formatting;
 
 namespace PacToolkits.Desktop.Avalonia.Converters;
 

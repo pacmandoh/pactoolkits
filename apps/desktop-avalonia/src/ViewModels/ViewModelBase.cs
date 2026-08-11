@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
-using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Ui.State;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 

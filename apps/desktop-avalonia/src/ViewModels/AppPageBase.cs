@@ -10,10 +10,13 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Diagnostics;
 using PacToolkits.Desktop.Avalonia.Behaviors;
-using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.Services.Presentation;
+using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
+using PacToolkits.Desktop.Avalonia.Diagnostics;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Connectivity;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Runtime;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.EmptyState;
+using PacToolkits.Desktop.Avalonia.Ui.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
@@ -1020,7 +1023,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     /// <summary>
-    /// 本机 Pg 故障交给 Shell banner；远端页还没有 API banner，瞬时错误才由页面 toast
+    /// 本机 Pg 故障交给 Shell banner；远端页无独立 API banner，瞬时错误才由页面 toast
     /// </summary>
     protected bool CanToastError(Exception ex)
     {

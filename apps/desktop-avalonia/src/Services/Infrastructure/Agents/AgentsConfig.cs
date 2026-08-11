@@ -6,6 +6,7 @@ using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 

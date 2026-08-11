@@ -11,7 +11,7 @@ using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Agents.Contracts.Validation;
 using PacToolkits.Application.Diagnostics;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Ui.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
