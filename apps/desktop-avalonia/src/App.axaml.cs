@@ -10,9 +10,13 @@ using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Diagnostics;
-using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.Services.Presentation;
+using PacToolkits.Desktop.Avalonia.Composition;
+using PacToolkits.Desktop.Avalonia.Navigation;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Platform;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Unlock;
+using PacToolkits.Desktop.Avalonia.Ui.Threading;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Desktop.Avalonia.Views;
 
