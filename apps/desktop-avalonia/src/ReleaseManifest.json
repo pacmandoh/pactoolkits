@@ -5,15 +5,15 @@
     },
     "database": {
       "postgres": {
-        "version": "1.2.25"
+        "version": "1.2.26"
       }
     },
     "desktop": {
       "avalonia": {
-        "maxApiContract": "1.0.0",
-        "maxDbSchema": "1.2.25",
-        "minApiContract": "1.0.0",
-        "minDbSchema": "1.2.25",
+        "maxApiContract": "1.2.0",
+        "maxDbSchema": "1.2.26",
+        "minApiContract": "1.2.0",
+        "minDbSchema": "1.2.26",
         "packageId": "PacToolkits",
         "version": "1.0.2-beta.8"
       }
