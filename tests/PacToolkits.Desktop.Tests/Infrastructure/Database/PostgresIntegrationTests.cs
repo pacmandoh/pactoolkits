@@ -1,8 +1,8 @@
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Core;
 using PacToolkits.Infrastructure.Database;
+using PacToolkits.Tests.Shared;
 
 namespace PacToolkits.Desktop.Tests;
 
@@ -47,10 +47,7 @@ public sealed class PostgresIntegrationTests
         var options = LoadPgOptions();
         var service = CreateLiveSettingsService(options);
         var snapshot = await service.GetSchemaStatusAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.25",
-                TargetDbSchemaVersion: "1.2.25"),
+            ManifestDbSchema.CompatibleContext(),
             options,
             CancellationToken.None);
 

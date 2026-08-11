@@ -9,8 +9,9 @@ public sealed class DashboardFilterInitTests
     [Fact]
     public async Task Initialize_loads_filter_catalog_when_local_db_access_blocked()
     {
-        var dashboard = new FakeDashboardService(["drug-a", "drug-b"]);
-        var page = new Dashboard(dashboard);
+        var dashboard = new FakeDashboardService();
+        var lookup = new FakeLookup(["drug-a", "drug-b"]);
+        var page = new Dashboard(dashboard, lookup);
         var guard = new FakeAccessGuard();
         guard.Block("schema incompatible");
         page.TestInjectDbServices(accessGuard: guard);
@@ -20,7 +21,7 @@ public sealed class DashboardFilterInitTests
 
         await page.TestInitializeAsync();
 
-        Assert.Equal(1, dashboard.DrugIdsCalls);
+        Assert.Equal(1, lookup.DrugIdsCalls);
         Assert.Contains(page.DrugOptions, x => x.Raw == "drug-a");
         Assert.Contains(page.DrugOptions, x => x.Raw == "drug-b");
         Assert.Equal(1, dashboard.SnapshotCalls);
@@ -53,10 +54,48 @@ public sealed class DashboardFilterInitTests
         }
     }
 
-    private sealed class FakeDashboardService(IReadOnlyList<string> drugIds) : IDashboardService
+    private sealed class FakeLookup(IReadOnlyList<string> drugIds) : ILookupCatalogService
     {
         public int DrugIdsCalls { get; private set; }
 
+        public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)
+        {
+            DrugIdsCalls++;
+            return Task.FromResult(drugIds);
+        }
+
+        public Task<IReadOnlyList<string>> GetSpecsByDrugAsync(
+            string drugId,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<string?> ResolveCanonicalDrugIdAsync(
+            string? input,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult<string?>(null);
+
+        public Task<int?> GetQtyAsync(
+            string? drugId,
+            string? spec,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult<int?>(null);
+
+        public Task<bool> IsDeprecatedDrugIdAsync(
+            string? drugId,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult(false);
+
+        public void InvalidateDrugCatalog()
+        {
+        }
+    }
+
+    private sealed class FakeDashboardService : IDashboardService
+    {
         public int SnapshotCalls { get; private set; }
 
         public Task<DashboardSnapshot> GetSnapshotAsync(DashboardRequest request, CancellationToken ct)
@@ -112,14 +151,5 @@ public sealed class DashboardFilterInitTests
             int pageSize,
             CancellationToken ct)
             => Task.FromResult(new PagedResult<AbnormalRowDto>([], 0));
-
-        public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct)
-        {
-            DrugIdsCalls++;
-            return Task.FromResult(drugIds);
-        }
-
-        public Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<string>>([]);
     }
 }

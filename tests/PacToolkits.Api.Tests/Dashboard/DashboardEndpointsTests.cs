@@ -15,8 +15,6 @@ public sealed class DashboardEndpointsTests
         "/v1/dashboard/trends?from=2024-01-01&to=2024-01-07&page=1&pageSize=20",
         "/v1/dashboard/entries?from=2024-01-01&to=2024-01-07&page=1&pageSize=20",
         "/v1/dashboard/abnormal?from=2024-01-01&to=2024-01-07&page=1&pageSize=20",
-        "/v1/dashboard/drug-ids",
-        "/v1/dashboard/drugs/d1/specs",
     ];
 
     [Theory]
@@ -128,36 +126,6 @@ public sealed class DashboardEndpointsTests
         Assert.Equal(1, doc.RootElement.GetProperty("totalCount").GetInt32());
         Assert.Equal(2, dashboard.LastPage);
         Assert.Equal(20, dashboard.LastPageSize);
-    }
-
-    [Fact]
-    public async Task Drug_ids_and_specs_return_items()
-    {
-        var dashboard = new FakeDashboardService();
-        await using var factory = new ApiFactory { Dashboard = dashboard };
-        using var client = factory.CreateClient();
-        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        using var drugsResponse = await client.GetAsync(
-            "/v1/dashboard/drug-ids",
-            TestContext.Current.CancellationToken);
-        var drugsBody = await drugsResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, drugsResponse.StatusCode);
-        using (var doc = JsonDocument.Parse(drugsBody))
-        {
-            Assert.Equal("d1", doc.RootElement.GetProperty("items")[0].GetString());
-        }
-
-        using var specsResponse = await client.GetAsync(
-            "/v1/dashboard/drugs/d1/specs",
-            TestContext.Current.CancellationToken);
-        var specsBody = await specsResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, specsResponse.StatusCode);
-        using (var doc = JsonDocument.Parse(specsBody))
-        {
-            Assert.Equal("s1", doc.RootElement.GetProperty("items")[0].GetString());
-        }
     }
 
     private sealed class FakeDashboardService : IDashboardService
@@ -273,12 +241,6 @@ public sealed class DashboardEndpointsTests
                     [new AbnormalRowDto("t", "d", "c", TxnBadge.Warning, 1)],
                     1));
         }
-
-        public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<string>>(["d1"]);
-
-        public Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<string>>(["s1"]);
 
         private void TrackPage(DashboardFilter filter, int page, int pageSize)
         {

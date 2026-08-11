@@ -266,6 +266,18 @@ public sealed class AppPageBaseReloadPipelineTests
     }
 
     [Fact]
+    public void Remote_page_lookup_catalog_not_suspended_when_local_db_blocked()
+    {
+        var guard = new FakeAccessGuard();
+        guard.Block("schema_bounds:blocked");
+        var page = CreateRemotePage(
+            dbMonitor: new FakeDbMonitor { IsConnected = false },
+            accessGuard: guard);
+
+        Assert.False(page.TestIsLookupCatalogSuspended());
+    }
+
+    [Fact]
     public async Task Remote_page_ignores_db_disconnect_auto_refresh()
     {
         var monitor = new FakeDbMonitor { IsConnected = true };
@@ -977,6 +989,7 @@ public sealed class AppPageBaseReloadPipelineTests
     private static RemoteReloadPage CreateRemotePage(
         Func<CancellationToken, Task>? reload = null,
         FakeDbMonitor? dbMonitor = null,
+        FakeAccessGuard? accessGuard = null,
         TimeProvider? timeProvider = null)
     {
         var page = new RemoteReloadPage
@@ -985,7 +998,7 @@ public sealed class AppPageBaseReloadPipelineTests
         };
         page.TestInjectDbServices(
             dbMonitor ?? new FakeDbMonitor { IsConnected = false },
-            new FakeAccessGuard(),
+            accessGuard ?? new FakeAccessGuard(),
             new FakeStartupState { IsDbInitCompleted = false },
             timeProvider: timeProvider);
         return page;

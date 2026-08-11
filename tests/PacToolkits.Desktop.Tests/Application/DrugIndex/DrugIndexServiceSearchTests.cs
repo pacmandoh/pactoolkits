@@ -87,7 +87,7 @@ public sealed class DrugIndexServiceSearchTests
         public Task<DrugIndexDto> UpsertAsync(DrugIndexDto dto, long? expectedVersion, CancellationToken ct)
             => throw new NotSupportedException();
 
-        public Task DeleteAsync(string drugId, string spec, CancellationToken ct)
+        public Task DeleteAsync(string drugId, string spec, long expectedVersion, CancellationToken ct)
             => throw new NotSupportedException();
 
         public Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(
