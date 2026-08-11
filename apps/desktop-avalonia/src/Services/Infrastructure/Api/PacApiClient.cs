@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -29,6 +30,9 @@ public sealed class PacApiClient : IDisposable
 
     // 含多次 GET 重试；单次约 10s，外层总超时须大于重试合计
     public static readonly TimeSpan ApiTimeout = TimeSpan.FromSeconds(45);
+
+    /// <summary>单次响应正文上限；超出抛 PacApiException（code=response_too_large）</summary>
+    public const long MaxResponseBytes = 4L * 1024 * 1024;
 
     internal static readonly HttpRequestOptionsKey<bool> ForceTokenRefreshKey = new("pac.forceTokenRefresh");
     internal static readonly HttpRequestOptionsKey<string> StaleAccessTokenKey = new("pac.staleAccessToken");
@@ -148,35 +152,68 @@ public sealed class PacApiClient : IDisposable
     public Uri Resolve(string relativePath)
         => new($"{_baseUrl}/{relativePath.TrimStart('/')}");
 
-    /// <summary>
-    /// 发送并反序列化 JSON；建连、响应头与读正文异常都包成 <see cref="PacApiException"/>
-    /// </summary>
-    public async Task<T?> GetJsonAsync<T>(
+    /// <summary>发送并反序列化 JSON；出站失败包成 <see cref="PacApiException"/></summary>
+    public Task<T?> GetJsonAsync<T>(
         Func<HttpRequestMessage> createRequest,
         JsonTypeInfo<T> typeInfo,
         CancellationToken ct)
-    {
-        ArgumentNullException.ThrowIfNull(createRequest);
-        ArgumentNullException.ThrowIfNull(typeInfo);
+        => SendJsonAsync(HttpMethod.Get, createRequest, typeInfo, ct, commandId: null);
 
-        try
+    /// <summary>POST JSON；附带 <see cref="PacApiHeaders.CommandId"/></summary>
+    public Task<T?> PostJsonAsync<T>(
+        Func<HttpRequestMessage> createRequest,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken ct,
+        Guid? commandId = null)
+        => SendJsonAsync(HttpMethod.Post, createRequest, typeInfo, ct, commandId ?? Guid.NewGuid());
+
+    /// <summary>PUT JSON；附带 CommandId</summary>
+    public Task<T?> PutJsonAsync<T>(
+        Func<HttpRequestMessage> createRequest,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken ct,
+        Guid? commandId = null)
+        => SendJsonAsync(HttpMethod.Put, createRequest, typeInfo, ct, commandId ?? Guid.NewGuid());
+
+    /// <summary>DELETE；附带 CommandId</summary>
+    public Task DeleteAsync(
+        Func<HttpRequestMessage> createRequest,
+        CancellationToken ct,
+        Guid? commandId = null)
+        => SendWriteNoContentAsync(HttpMethod.Delete, createRequest, ct, commandId ?? Guid.NewGuid());
+
+    /// <summary>
+    /// 设置 <see cref="PacApiHeaders.CommandId"/>
+    ///
+    /// 显式 commandId 覆盖已有头，发送前幂等键固定；Guid.Empty 拒绝
+    /// </summary>
+    public static Guid ApplyCommandId(HttpRequestMessage request, Guid? commandId = null)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (commandId == Guid.Empty)
         {
-            using var response = await SendAsync(createRequest, ct).ConfigureAwait(false);
-            await EnsureSuccessAsync(response, ct).ConfigureAwait(false);
-            await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            return await JsonSerializer.DeserializeAsync(stream, typeInfo, ct).ConfigureAwait(false);
+            throw new ArgumentException("CommandId must be non-empty", nameof(commandId));
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+
+        if (commandId is null
+            && request.Headers.TryGetValues(PacApiHeaders.CommandId, out var values))
         {
-            throw;
+            foreach (var value in values)
+            {
+                if (Guid.TryParse(value, out var existing) && existing != Guid.Empty)
+                {
+                    return existing;
+                }
+            }
         }
-        catch (Exception ex) when (ShouldWrapOutbound(ex))
-        {
-            throw WrapOutbound(ex);
-        }
+
+        var id = commandId ?? Guid.NewGuid();
+        request.Headers.Remove(PacApiHeaders.CommandId);
+        request.Headers.TryAddWithoutValidation(PacApiHeaders.CommandId, id.ToString("D"));
+        return id;
     }
 
-    /// <summary>非 2xx 抛 <see cref="PacApiException"/>，带上 ProblemDetails 的 code、traceId</summary>
+    /// <summary>非 2xx 抛 <see cref="PacApiException"/>（含 code、traceId、可选 currentVersion）</summary>
     public Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct = default)
         => EnsureSuccessAsync(response, _time, _logger, ct);
 
@@ -222,6 +259,7 @@ public sealed class PacApiClient : IDisposable
         string? detail = null;
         string? code = null;
         string? traceId = null;
+        long? currentVersion = null;
         TimeSpan? retryAfter = null;
 
         if (response.Headers.RetryAfter?.Delta is { } delta)
@@ -239,7 +277,7 @@ public sealed class PacApiClient : IDisposable
 
         try
         {
-            var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var text = await ReadResponseTextLimitedAsync(response, ct).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(text))
             {
                 using var doc = JsonDocument.Parse(text);
@@ -250,6 +288,8 @@ public sealed class PacApiClient : IDisposable
                     detail = ReadString(root, "detail");
                     code = ReadString(root, "code");
                     traceId = ReadString(root, "traceId");
+                    currentVersion = ReadInt64(root, "currentVersion");
+
                     if (root.TryGetProperty("status", out var statusEl)
                         && statusEl.TryGetInt32(out var bodyStatus)
                         && bodyStatus > 0
@@ -271,17 +311,31 @@ public sealed class PacApiClient : IDisposable
         {
             throw;
         }
+        catch (PacApiException)
+        {
+            throw;
+        }
         catch (Exception)
         {
-            // 仅容忍响应正文解析失败；调用方取消已在上方重抛
+            // 仅容忍响应正文解析失败；调用方取消与体积超限已在上方重抛
         }
 
-        return new PacApiException(new PacApiProblem(status, code, title, detail, traceId, retryAfter));
+        var problem = new PacApiProblem(status, code, title, detail, traceId, retryAfter, currentVersion);
+        return status == 409
+            ? new PacApiConflictException(problem)
+            : new PacApiException(problem);
     }
 
     private static string? ReadString(JsonElement root, string name)
         => root.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
             ? el.GetString()
+            : null;
+
+    private static long? ReadInt64(JsonElement root, string name)
+        => root.TryGetProperty(name, out var el)
+           && el.ValueKind == JsonValueKind.Number
+           && el.TryGetInt64(out var n)
+            ? n
             : null;
 
     public void Dispose()
@@ -296,6 +350,128 @@ public sealed class PacApiClient : IDisposable
         _tokenGate.Dispose();
     }
 
+    private async Task<T?> SendJsonAsync<T>(
+        HttpMethod method,
+        Func<HttpRequestMessage> createRequest,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken ct,
+        Guid? commandId)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+        ArgumentNullException.ThrowIfNull(createRequest);
+        ArgumentNullException.ThrowIfNull(typeInfo);
+
+        try
+        {
+            using var response = await SendAsync(
+                    () => BuildRequest(method, createRequest, commandId),
+                    ct)
+                .ConfigureAwait(false);
+            await EnsureSuccessAsync(response, ct).ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.NoContent
+                || response.Content.Headers.ContentLength == 0)
+            {
+                return default;
+            }
+
+            return await ReadJsonLimitedAsync(response, typeInfo, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ShouldWrapOutbound(ex, ct))
+        {
+            throw WrapOutbound(ex, ct);
+        }
+    }
+
+    private async Task SendWriteNoContentAsync(
+        HttpMethod method,
+        Func<HttpRequestMessage> createRequest,
+        CancellationToken ct,
+        Guid commandId)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+        ArgumentNullException.ThrowIfNull(createRequest);
+
+        try
+        {
+            using var response = await SendAsync(
+                    () => BuildRequest(method, createRequest, commandId),
+                    ct)
+                .ConfigureAwait(false);
+            await EnsureSuccessAsync(response, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ShouldWrapOutbound(ex, ct))
+        {
+            throw WrapOutbound(ex, ct);
+        }
+    }
+
+    private static HttpRequestMessage BuildRequest(
+        HttpMethod method,
+        Func<HttpRequestMessage> createRequest,
+        Guid? commandId)
+    {
+        var request = createRequest();
+        request.Method = method;
+        if (commandId is { } id)
+        {
+            ApplyCommandId(request, id);
+        }
+
+        return request;
+    }
+
+    private static async Task<T?> ReadJsonLimitedAsync<T>(
+        HttpResponseMessage response,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken ct)
+    {
+        await using var stream = await OpenLimitedContentStreamAsync(response, ct).ConfigureAwait(false);
+        return await JsonSerializer.DeserializeAsync(stream, typeInfo, ct).ConfigureAwait(false);
+    }
+
+    private static async Task<string> ReadResponseTextLimitedAsync(
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        await using var stream = await OpenLimitedContentStreamAsync(response, ct).ConfigureAwait(false);
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync(ct).ConfigureAwait(false);
+    }
+
+    private static async Task<Stream> OpenLimitedContentStreamAsync(
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        if (response.Content.Headers.ContentLength is { } length && length > MaxResponseBytes)
+        {
+            throw CreateResponseTooLargeException(length);
+        }
+
+        var source = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        return new LimitedReadStream(source, MaxResponseBytes);
+    }
+
+    private static PacApiException CreateResponseTooLargeException(long? observedLength)
+        => new(
+            new PacApiProblem(
+                Status: 502,
+                Code: "response_too_large",
+                Title: observedLength is { } n
+                    ? $"API response exceeds {MaxResponseBytes} bytes (Content-Length {n})"
+                    : $"API response exceeds {MaxResponseBytes} bytes",
+                Detail: null,
+                TraceId: PacTrace.CurrentTraceId,
+                RetryAfter: null));
+
     private async Task<HttpResponseMessage> SendOnAsync(
         HttpClient http,
         Func<HttpRequestMessage> createRequest,
@@ -304,6 +480,7 @@ public sealed class PacApiClient : IDisposable
         try
         {
             using var request = createRequest();
+            var method = request.Method;
             var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
                 .ConfigureAwait(false);
 
@@ -312,8 +489,15 @@ public sealed class PacApiClient : IDisposable
                 return response;
             }
 
-            // 记下触发 401 的 Bearer；并发重试进锁后若已换新票则复用
+            // 401 且 Bearer 对应当前缓存票时清票；写命令不重放，GET/HEAD 换票后重放
             var staleAccessToken = request.Headers.Authorization?.Parameter;
+            InvalidateAccessTokenIfCurrent(staleAccessToken);
+
+            if (!AllowsUnauthorizedRetry(method))
+            {
+                return response;
+            }
+
             response.Dispose();
             using var retry = createRequest();
             retry.Options.Set(ForceTokenRefreshKey, true);
@@ -329,26 +513,39 @@ public sealed class PacApiClient : IDisposable
         {
             throw;
         }
-        catch (Exception ex) when (ShouldWrapOutbound(ex))
+        catch (Exception ex) when (ShouldWrapOutbound(ex, ct))
         {
             // 断网等不要以裸 HttpRequestException 离开 PacApiClient
-            throw WrapOutbound(ex);
+            throw WrapOutbound(ex, ct);
         }
     }
 
-    internal static bool ShouldWrapOutbound(Exception ex)
+    /// <summary>GET/HEAD 在 401 后换票重放；写命令不重放</summary>
+    internal static bool AllowsUnauthorizedRetry(HttpMethod method)
+        => HttpMethod.Get.Equals(method) || HttpMethod.Head.Equals(method);
+
+    internal static bool ShouldWrapOutbound(Exception ex, CancellationToken ct)
+        => ShouldWrapOutbound(ex, ct.IsCancellationRequested);
+
+    private static bool ShouldWrapOutbound(Exception ex, bool cancellationRequested)
     {
         if (ex is PacApiException)
         {
             return false;
         }
 
-        if (ex is HttpRequestException or System.IO.IOException or System.Net.Sockets.SocketException)
+        // 调用方取消原样抛出；超时（含无 TimeoutException 内层的 TaskCanceled）要包装
+        if (ex is OperationCanceledException)
+        {
+            return !cancellationRequested;
+        }
+
+        if (ex is HttpRequestException or IOException or System.Net.Sockets.SocketException)
         {
             return true;
         }
 
-        if (ex is TaskCanceledException { InnerException: TimeoutException } or TimeoutException)
+        if (ex is TimeoutException)
         {
             return true;
         }
@@ -359,8 +556,29 @@ public sealed class PacApiClient : IDisposable
                    || fullName.Contains("BrokenCircuitException", StringComparison.Ordinal));
     }
 
-    internal static PacApiException WrapOutbound(Exception ex)
-        => new(
+    internal static PacApiException WrapOutbound(Exception ex, CancellationToken ct)
+        => WrapOutbound(ex, ct.IsCancellationRequested);
+
+    private static PacApiException WrapOutbound(Exception ex, bool cancellationRequested)
+    {
+        var isTimeout = !cancellationRequested
+                        && (ex is TimeoutException
+                            || ex is OperationCanceledException
+                            || LooksLikeTimeout(ex));
+        if (isTimeout)
+        {
+            return new PacApiException(
+                new PacApiProblem(
+                    Status: 504,
+                    Code: "timeout",
+                    Title: string.IsNullOrWhiteSpace(ex.Message) ? "API request timed out" : ex.Message,
+                    Detail: null,
+                    TraceId: PacTrace.CurrentTraceId,
+                    RetryAfter: null),
+                ex);
+        }
+
+        return new PacApiException(
             new PacApiProblem(
                 Status: 503,
                 Code: "transport",
@@ -369,6 +587,14 @@ public sealed class PacApiClient : IDisposable
                 TraceId: PacTrace.CurrentTraceId,
                 RetryAfter: null),
             ex);
+    }
+
+    private static bool LooksLikeTimeout(Exception ex)
+    {
+        var fullName = ex.GetType().FullName;
+        return fullName is not null
+               && fullName.Contains("TimeoutRejectedException", StringComparison.Ordinal);
+    }
 
     internal async Task EnsureTokenAsync(
         CancellationToken ct,
@@ -417,9 +643,8 @@ public sealed class PacApiClient : IDisposable
                     await EnsureSuccessAsync(response, _time, _logger, ct).ConfigureAwait(false);
                 }
 
-                await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-                var body = await JsonSerializer.DeserializeAsync(
-                        stream,
+                var body = await ReadJsonLimitedAsync(
+                        response,
                         PacJsonContext.Default.PacApiTokenResponse,
                         ct)
                     .ConfigureAwait(false)
@@ -454,9 +679,9 @@ public sealed class PacApiClient : IDisposable
             {
                 throw;
             }
-            catch (Exception ex) when (ShouldWrapOutbound(ex))
+            catch (Exception ex) when (ShouldWrapOutbound(ex, ct))
             {
-                throw WrapOutbound(ex);
+                throw WrapOutbound(ex, ct);
             }
         }
         finally
@@ -477,6 +702,24 @@ public sealed class PacApiClient : IDisposable
         }
 
         return token.RefreshAt > _time.GetUtcNow() ? token : null;
+    }
+
+    /// <summary>Bearer 对应当前缓存票时清掉；换票失败后缓存为空</summary>
+    private void InvalidateAccessTokenIfCurrent(string? accessToken)
+    {
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            return;
+        }
+
+        var current = Volatile.Read(ref _token);
+        if (current is null
+            || !string.Equals(current.AccessToken, accessToken, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _ = Interlocked.CompareExchange(ref _token, null, current);
     }
 
     /// <summary>按 expiresIn 算下次换票点；短票按比例，长票提前量封顶 1 分钟</summary>
@@ -511,6 +754,91 @@ public sealed class PacApiClient : IDisposable
             using var activity = PacActivities.Desktop.StartActivity("pacapi.http", ActivityKind.Client);
             PacTrace.Inject(request, activity);
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>读正文时截断超限，避免无 Content-Length 时吃满内存</summary>
+    private sealed class LimitedReadStream : Stream
+    {
+        private readonly Stream _inner;
+        private readonly long _maxBytes;
+        private long _read;
+
+        public LimitedReadStream(Stream inner, long maxBytes)
+        {
+            _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            _maxBytes = maxBytes;
+        }
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => _inner.Flush();
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var n = _inner.Read(buffer, offset, count);
+            Track(n);
+            return n;
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            var n = await _inner.ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
+            Track(n);
+            return n;
+        }
+
+        public override async ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            var n = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            Track(n);
+            return n;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        public override async ValueTask DisposeAsync()
+        {
+            await _inner.DisposeAsync().ConfigureAwait(false);
+            await base.DisposeAsync().ConfigureAwait(false);
+        }
+
+        private void Track(int n)
+        {
+            if (n <= 0)
+            {
+                return;
+            }
+
+            _read += n;
+            if (_read > _maxBytes)
+            {
+                throw CreateResponseTooLargeException(observedLength: null);
+            }
         }
     }
 }

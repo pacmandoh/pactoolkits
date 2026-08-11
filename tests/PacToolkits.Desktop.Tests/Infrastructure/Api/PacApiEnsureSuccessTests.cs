@@ -115,6 +115,27 @@ public sealed class PacApiEnsureSuccessTests
         Assert.False(ex.IsTransient);
     }
 
+    [Fact]
+    public async Task EnsureSuccessAsync_conflict_parses_current_version()
+    {
+        using var response = new HttpResponseMessage(HttpStatusCode.Conflict)
+        {
+            Content = new StringContent(
+                """{"title":"stale","status":409,"code":"conflict","detail":"row changed","traceId":"abc","currentVersion":7}""",
+                Encoding.UTF8,
+                "application/problem+json"),
+        };
+
+        var ex = await Assert.ThrowsAsync<PacApiConflictException>(
+            () => PacApiClient.EnsureSuccessAsync(response, TimeProvider.System, TestContext.Current.CancellationToken));
+
+        Assert.Equal(409, ex.Status);
+        Assert.Equal("conflict", ex.Code);
+        Assert.Equal("row changed", ex.Problem.Detail);
+        Assert.Equal(7, ex.CurrentVersion);
+        Assert.True(ex.IsConflict);
+    }
+
     private sealed class CaptureLogger : IAppLogger
     {
         public List<string> Events { get; } = [];

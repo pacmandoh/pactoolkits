@@ -3,8 +3,8 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>Desktop 调 Pac API 失败；带 status、code、traceId 给页面和日志用</summary>
-public sealed class PacApiException : Exception
+/// <summary>Desktop 调 Pac API 失败（status、code、traceId、可选 currentVersion）</summary>
+public class PacApiException : Exception
 {
     public PacApiException(PacApiProblem problem, Exception? inner = null)
         : base(FormatMessage(problem), inner)
@@ -22,10 +22,15 @@ public sealed class PacApiException : Exception
 
     public TimeSpan? RetryAfter => Problem.RetryAfter;
 
+    public long? CurrentVersion => Problem.CurrentVersion;
+
+    public bool IsConflict => Status == 409;
+
     /// <summary>瞬时失败：页面 Stale 重试；不要当成业务 LoadFailed</summary>
     public bool IsTransient
         => Status is 408 or 429 or 502 or 503 or 504
-           || string.Equals(Code, "transport", StringComparison.Ordinal);
+           || string.Equals(Code, "transport", StringComparison.Ordinal)
+           || string.Equals(Code, "timeout", StringComparison.Ordinal);
 
     private static string FormatMessage(PacApiProblem problem)
     {
