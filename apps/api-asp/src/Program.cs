@@ -39,6 +39,7 @@ app.MapAuth();
 app.MapPing();
 app.MapSystemInfo();
 app.MapChanges();
+app.MapDashboard();
 
 app.Run();
 
