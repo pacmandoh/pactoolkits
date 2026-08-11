@@ -234,19 +234,35 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", latest);
         }, ct);
 
-    public Task DeleteAsync(string drugId, string spec, CancellationToken ct)
+    public Task DeleteAsync(string drugId, string spec, long expectedVersion, CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
             const string sql = """
                 delete from drug_index
-                where drug_id = @drug_id and spec = @spec
+                where drug_id = @drug_id
+                  and spec = @spec
+                  and version = @expected_version
             """;
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("drug_id", drugId);
             cmd.AddParam("spec", spec);
+            cmd.AddParam("expected_version", expectedVersion);
 
-            await cmd.ExecuteNonQueryAsync(token);
+            var rows = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            if (rows > 0)
+            {
+                return;
+            }
+
+            var latest = await GetByKeyAsync(conn, drugId, spec, token).ConfigureAwait(false);
+            if (latest is null)
+            {
+                // 行已不存在：删除按幂等成功
+                return;
+            }
+
+            throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", latest);
         }, ct);
 
     public Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(

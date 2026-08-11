@@ -101,6 +101,11 @@ public sealed class PgDb : IDb
         CancellationToken ct)
     {
         _accessGuard.ThrowIfBlocked();
+        if (AmbientDbScope.Connection is { } ambient)
+        {
+            return await work(ambient, ct).ConfigureAwait(false);
+        }
+
         await using var conn = await OpenConnectionWithRetryAsync(ct).ConfigureAwait(false);
         return await work(conn, ct).ConfigureAwait(false);
     }
@@ -111,14 +116,25 @@ public sealed class PgDb : IDb
         CancellationToken ct)
     {
         _accessGuard.ThrowIfBlocked();
+
+        // 已有外层事务时直接加入，避免嵌套 Begin、Commit 拆开用例边界
+        if (AmbientDbScope.Connection is { } ambientConn
+            && AmbientDbScope.Transaction is { } ambientTx)
+        {
+            return await work(ambientConn, ambientTx, ct).ConfigureAwait(false);
+        }
+
         await using var conn = await OpenConnectionWithRetryAsync(ct).ConfigureAwait(false);
         await using var tx = await conn.BeginTransactionAsync(isolation, ct).ConfigureAwait(false);
 
         try
         {
-            var result = await work(conn, tx, ct).ConfigureAwait(false);
-            await tx.CommitAsync(ct).ConfigureAwait(false);
-            return result;
+            using (AmbientDbScope.Push(conn, tx))
+            {
+                var result = await work(conn, tx, ct).ConfigureAwait(false);
+                await tx.CommitAsync(ct).ConfigureAwait(false);
+                return result;
+            }
         }
         catch
         {

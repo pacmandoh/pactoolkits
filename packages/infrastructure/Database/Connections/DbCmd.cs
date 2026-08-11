@@ -17,7 +17,8 @@ public static class DbCmd
         IDbTransaction? tx = null)
     {
         var npgConn = (NpgsqlConnection)conn;
-        var cmd = new NpgsqlCommand(sql, npgConn, tx as NpgsqlTransaction)
+        var enlisted = tx ?? AmbientDbScope.Transaction;
+        var cmd = new NpgsqlCommand(sql, npgConn, enlisted as NpgsqlTransaction)
         {
             CommandTimeout = timeoutSeconds
         };
