@@ -18,10 +18,17 @@ public sealed record TraceCodeAnalysisResult(
 
 public sealed record ScanCodeInsertResult(int RequestedCount, int InsertedCount, int SkippedCount);
 
+/// <summary>
+/// 扫码提交分析计数
+///
+/// Duplicate = 本次输入内重复；PoolDuplicate = 已在追溯池中；
+/// Total = Invalid + Duplicate + PoolDuplicate + ValidUniqueCodes.Count
+/// </summary>
 public sealed record CodeAnalysis(
     int Total,
     int Invalid,
     int Duplicate,
+    int PoolDuplicate,
     IReadOnlyList<string> ValidUniqueCodes);
 
 public sealed record TraceCodeValidationRule(int RequiredLength, string Pattern);

@@ -17,3 +17,15 @@ public sealed record PacApiSystemInfo(
     string ApiVersion,
     string ContractVersion,
     DateTimeOffset Utc);
+
+public sealed record StringListResponse(IReadOnlyList<string> Items);
+
+/// <summary>写命令可缓存的 ProblemDetails 正文</summary>
+public sealed record WriteProblemBody(
+    int Status,
+    string Code,
+    string Title,
+    string? Detail,
+    string TraceId,
+    long? CurrentVersion = null,
+    IReadOnlyList<StockRowEditConflict>? Conflicts = null);

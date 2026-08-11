@@ -131,9 +131,9 @@ public sealed class DrugIndexService : IDrugIndexService
         }
     }
 
-    public async Task DeleteAsync(string drugId, string spec, CancellationToken ct)
+    public async Task DeleteAsync(string drugId, string spec, long expectedVersion, CancellationToken ct)
     {
-        await _repo.DeleteAsync(drugId, spec, ct).ConfigureAwait(false);
+        await _repo.DeleteAsync(drugId, spec, expectedVersion, ct).ConfigureAwait(false);
         _catalogCache.Invalidate();
     }
 

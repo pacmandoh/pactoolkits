@@ -88,68 +88,30 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
                 0, 0, null, Array.Empty<StockRowEditSaved>(), Array.Empty<StockRowEditConflict>());
         }
 
-        var savedCount = 0;
-        var failedCount = 0;
-        string? lastError = null;
-        List<StockRowEditConflict>? conflicts = null;
-        List<StockRowEditSaved>? saved = null;
-
+        var executable = new List<StockRowEditRequest>(edits.Count);
         foreach (var edit in edits)
         {
-            try
+            if (edit.NewTraceCode is null && edit.NewRemain is null)
             {
-                if (edit.NewTraceCode is null && edit.NewRemain is null)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                if (edit.NewTraceCode is not null
-                    && !TraceCodeAnalyzer.TryValidateFormat(edit.NewTraceCode, traceCodeRule, out var formatError))
-                {
-                    failedCount++;
-                    lastError = $"{edit.MatchTraceCode}: {formatError}";
-                    continue;
-                }
+            if (edit.NewTraceCode is not null
+                && !TraceCodeAnalyzer.TryValidateFormat(edit.NewTraceCode, traceCodeRule, out var formatError))
+            {
+                throw new ArgumentException($"{edit.MatchTraceCode}: {formatError}");
+            }
 
-                var newVersion = await _repo.UpdateStockRowAsync(
-                    edit.MatchTraceCode,
-                    edit.ExpectedVersion,
-                    edit.NewTraceCode,
-                    edit.NewRemain,
-                    ct).ConfigureAwait(false);
-                savedCount++;
-                saved ??= new List<StockRowEditSaved>();
-                saved.Add(new StockRowEditSaved(
-                    edit.MatchTraceCode,
-                    newVersion,
-                    edit.NewTraceCode,
-                    edit.NewRemain));
-            }
-            catch (TracePoolConcurrencyException ex)
-            {
-                lastError = $"{edit.MatchTraceCode}: {ex.Message}";
-                conflicts ??= new List<StockRowEditConflict>();
-                conflicts.Add(new StockRowEditConflict(
-                    edit.MatchTraceCode,
-                    edit.NewTraceCode,
-                    edit.NewRemain,
-                    ex.Current));
-            }
-            catch (Exception ex)
-            {
-                failedCount++;
-                lastError = $"{edit.MatchTraceCode}: {ex.Message}";
-            }
+            executable.Add(edit);
         }
 
-        return new StockRowEditBatchResult(
-            savedCount,
-            failedCount,
-            lastError,
-            saved is { Count: > 0 } ? saved : Array.Empty<StockRowEditSaved>(),
-            conflicts is { Count: > 0 }
-                ? conflicts
-                : Array.Empty<StockRowEditConflict>());
+        if (executable.Count == 0)
+        {
+            return new StockRowEditBatchResult(
+                0, 0, null, Array.Empty<StockRowEditSaved>(), Array.Empty<StockRowEditConflict>());
+        }
+
+        return await _repo.ApplyStockRowEditsAsync(executable, ct).ConfigureAwait(false);
     }
 
     public Task<int> DeleteStockByTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct)
@@ -170,40 +132,19 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
             sampleLimit,
             ct).ConfigureAwait(false);
 
-    public async Task<StockReassignApplyResultDto> ReassignByTraceCodesAsync(
+    public Task<StockReassignApplyResultDto> ReassignByTraceCodesAsync(
         IReadOnlyList<string> traceCodes,
         StockReassignContext context,
         CancellationToken ct)
-    {
-        var affected = 0;
-        long auditId = 0;
-
-        foreach (var traceCode in traceCodes)
-        {
-            if (string.IsNullOrWhiteSpace(traceCode))
-            {
-                continue;
-            }
-
-            var one = await _repo.ReassignStockByTraceCodeAsync(
-                traceCode,
-                context.TargetDrugId,
-                context.TargetSpec,
-                context.TargetQty,
-                context.Reason,
-                context.OperatorName,
-                context.Source,
-                ct).ConfigureAwait(false);
-
-            affected += one.AffectedRows;
-            if (auditId == 0)
-            {
-                auditId = one.AuditId;
-            }
-        }
-
-        return new StockReassignApplyResultDto(affected, auditId);
-    }
+        => _repo.ReassignStockByTraceCodesAsync(
+            traceCodes,
+            context.TargetDrugId,
+            context.TargetSpec,
+            context.TargetQty,
+            context.Reason,
+            context.OperatorName,
+            context.Source,
+            ct);
 
     public async Task<StockReassignApplyResultDto> ReassignByKeywordAsync(
         string keyword,

@@ -8,4 +8,5 @@ public sealed record PacApiProblem(
     string? Detail,
     string? TraceId,
     TimeSpan? RetryAfter,
-    long? CurrentVersion = null);
+    long? CurrentVersion = null,
+    IReadOnlyList<StockRowEditConflict>? Conflicts = null);

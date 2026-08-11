@@ -21,7 +21,7 @@ public interface IDrugIndexRepo
 
     Task<DrugIndexDto> UpsertAsync(DrugIndexDto dto, long? expectedVersion, CancellationToken ct);
 
-    Task DeleteAsync(string drugId, string spec, CancellationToken ct);
+    Task DeleteAsync(string drugId, string spec, long expectedVersion, CancellationToken ct);
 
     Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(
         string sourceDrugId,
