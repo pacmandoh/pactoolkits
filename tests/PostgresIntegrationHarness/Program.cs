@@ -1,10 +1,10 @@
 using System.Data;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Core;
 using PacToolkits.Infrastructure.Database;
+using PacToolkits.Tests.Shared;
 
 static PgOptions LoadOptions(string? database = null)
     => new()
@@ -50,10 +50,16 @@ try
     var logger = new NullLogger();
     var schema = new DbSchemaVersionService(new FixedDbConfig(options), logger);
     var read = await schema.TryReadSchemaVersionAsync(options, CancellationToken.None);
+    string? liveSchema = null;
     if (!read.Ok || string.IsNullOrWhiteSpace(read.Value))
+    {
         Fail("schema_version_read", read.Reason ?? "empty");
+    }
     else
-        Pass($"schema_version_read={read.Value}");
+    {
+        liveSchema = read.Value;
+        Pass($"schema_version_read={liveSchema}");
+    }
 
     var guard = new DbAccessGuard();
     var clients = new ClientIdReadRepo(logger, guard);
@@ -61,25 +67,31 @@ try
     Pass($"client_alias_read count={machines.Count}");
 
     var service = CreateService(options, guard);
-    var compatibleContext = new DbSchemaVersionContext(
-        DesktopMinDbSchema: "1.2.20",
-        DesktopMaxDbSchema: "1.2.25",
-        TargetDbSchemaVersion: "1.2.25");
+    var compatibleContext = ManifestDbSchema.CompatibleContext();
     var snapshot = await service.GetSchemaStatusAsync(compatibleContext, options, CancellationToken.None);
     if (!snapshot.SchemaOk || snapshot.Compatibility != DbSchemaCompatibility.Compatible)
+    {
         Fail("schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
+    }
     else
+    {
         Pass("schema_status=compatible");
+    }
 
-    var belowMinContext = new DbSchemaVersionContext(
-        DesktopMinDbSchema: "1.2.26",
-        DesktopMaxDbSchema: "1.2.27",
-        TargetDbSchemaVersion: "1.2.27");
-    var belowSnapshot = await service.GetSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
-    if (belowSnapshot.Compatibility != DbSchemaCompatibility.BelowMinimum || belowSnapshot.Satisfied)
-        Fail("below_minimum_block", belowSnapshot.IncompatibleMessage ?? belowSnapshot.Compatibility.ToString());
-    else
-        Pass("below_minimum_block");
+    // BelowMinimum：相对现场库推算，避免手写下一版号
+    if (liveSchema is not null)
+    {
+        var belowMinContext = ManifestDbSchema.BelowMinimumContext(liveSchema);
+        var belowSnapshot = await service.GetSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
+        if (belowSnapshot.Compatibility != DbSchemaCompatibility.BelowMinimum || belowSnapshot.Satisfied)
+        {
+            Fail("below_minimum_block", belowSnapshot.IncompatibleMessage ?? belowSnapshot.Compatibility.ToString());
+        }
+        else
+        {
+            Pass("below_minimum_block");
+        }
+    }
 
     var pgDb = CreatePgDb(options, guard, logger);
     guard.Block("integration-test block");
@@ -101,7 +113,10 @@ try
         await pgDb.WithTransaction(async (conn, tx, ct) =>
         {
             if (conn is not NpgsqlConnection npgsqlConn)
+            {
                 throw new InvalidOperationException("expected NpgsqlConnection");
+            }
+
             await using var cmd = new NpgsqlCommand(
                 """
                 insert into public.app_change_watermark(topic, version)
@@ -122,11 +137,14 @@ try
     {
         var probeCountAfter = await CountWatermarkAsync(options, probeKey);
         if (probeCountAfter != probeCountBefore)
+        {
             Fail("guard_rollback_write", $"probe persisted: before={probeCountBefore}, after={probeCountAfter}");
+        }
         else
+        {
             Pass("guard_rollback_write");
+        }
     }
-
 }
 catch (Exception ex)
 {
@@ -166,7 +184,7 @@ static async Task<NpgsqlConnection> OpenConnectionAsync(PgOptions options)
     return conn;
 }
 
-sealed class FixedDbConfig(PgOptions current) : IDbConfigService
+file sealed class FixedDbConfig(PgOptions current) : IDbConfigService
 {
     public PgOptions Current { get; } = current;
     public string ConfigPath => "/tmp/pactoolkits-itest.config.json";
@@ -177,7 +195,7 @@ sealed class FixedDbConfig(PgOptions current) : IDbConfigService
     public Task ApplyAsync(PgOptions opt, CancellationToken ct = default) => Task.CompletedTask;
 }
 
-sealed class NullLogger : IAppLogger
+file sealed class NullLogger : IAppLogger
 {
     public string LogDirectory => "/tmp";
     public string CurrentLogPath => "/tmp/pactoolkits-itest.log";

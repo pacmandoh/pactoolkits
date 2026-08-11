@@ -27,4 +27,8 @@
     <Compile Remove="**/PostgresIntegrationTests.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\shared\ManifestDbSchema.cs" Link="Shared\ManifestDbSchema.cs" />
+  </ItemGroup>
+
 </Project>

@@ -54,16 +54,14 @@ public sealed class InventoryStockRowEditOccTests
         var repo = new FakeInventoryRepo();
         var service = CreateService(repo);
 
-        var result = await service.ApplyStockRowEditsAsync(
-            [
-                new StockRowEditRequest("T1", ExpectedVersion: 0, NewTraceCode: "bad", NewRemain: null),
-            ],
-            new TraceCodeValidationRule(RequiredLength: 20, Pattern: string.Empty),
-            CancellationToken.None);
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.ApplyStockRowEditsAsync(
+                [
+                    new StockRowEditRequest("T1", ExpectedVersion: 0, NewTraceCode: "bad", NewRemain: null),
+                ],
+                new TraceCodeValidationRule(RequiredLength: 20, Pattern: string.Empty),
+                CancellationToken.None));
 
-        Assert.Equal(0, result.SavedCount);
-        Assert.Equal(1, result.FailedCount);
-        Assert.Empty(result.Conflicts);
         Assert.Null(repo.LastUpdate);
     }
 
@@ -78,22 +76,51 @@ public sealed class InventoryStockRowEditOccTests
 
         public (string Match, long Version, string? Trace, int? Remain)? LastUpdate { get; private set; }
 
-        public Task<long> UpdateStockRowAsync(
-            string matchTraceCode,
-            long expectedVersion,
-            string? newTraceCode,
-            int? newRemain,
+        public Task<StockRowEditBatchResult> ApplyStockRowEditsAsync(
+            IReadOnlyList<StockRowEditRequest> edits,
             CancellationToken ct)
         {
-            if (ThrowConcurrency)
+            // OCC 冲突：SavedCount=0 且带 Conflicts
+            var saved = new List<StockRowEditSaved>();
+            var conflicts = new List<StockRowEditConflict>();
+            string? lastError = null;
+            foreach (var edit in edits)
             {
-                throw new TracePoolConcurrencyException(
-                    "该记录已被其他终端修改，请刷新后重试",
-                    current: null);
+                if (ThrowConcurrency)
+                {
+                    lastError = $"{edit.MatchTraceCode}: 该记录已被其他终端修改，请刷新后重试";
+                    conflicts.Add(new StockRowEditConflict(
+                        edit.MatchTraceCode,
+                        edit.NewTraceCode,
+                        edit.NewRemain,
+                        null));
+                    continue;
+                }
+
+                LastUpdate = (edit.MatchTraceCode, edit.ExpectedVersion, edit.NewTraceCode, edit.NewRemain);
+                saved.Add(new StockRowEditSaved(
+                    edit.MatchTraceCode,
+                    NextVersion,
+                    edit.NewTraceCode,
+                    edit.NewRemain));
             }
 
-            LastUpdate = (matchTraceCode, expectedVersion, newTraceCode, newRemain);
-            return Task.FromResult(NextVersion);
+            if (conflicts.Count > 0)
+            {
+                return Task.FromResult(new StockRowEditBatchResult(
+                    0,
+                    0,
+                    lastError,
+                    Array.Empty<StockRowEditSaved>(),
+                    conflicts));
+            }
+
+            return Task.FromResult(new StockRowEditBatchResult(
+                saved.Count,
+                0,
+                null,
+                saved,
+                Array.Empty<StockRowEditConflict>()));
         }
 
         public Task<PagedResult<TracePoolStockRowDto>> GetStockPageAsync(
@@ -115,9 +142,15 @@ public sealed class InventoryStockRowEditOccTests
         public Task<int> DeleteStockByTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct)
             => throw new NotSupportedException();
 
-        public Task<StockReassignApplyResultDto> ReassignStockByTraceCodeAsync(
-            string traceCode, string targetDrugId, string targetSpec, int targetQty,
-            string reason, string operatorName, string source, CancellationToken ct)
+        public Task<StockReassignApplyResultDto> ReassignStockByTraceCodesAsync(
+            IReadOnlyList<string> traceCodes,
+            string targetDrugId,
+            string targetSpec,
+            int targetQty,
+            string reason,
+            string operatorName,
+            string source,
+            CancellationToken ct)
             => throw new NotSupportedException();
 
         public Task<StockReassignPreviewDto> PreviewStockReassignByKeywordAsync(
@@ -154,7 +187,7 @@ public sealed class InventoryStockRowEditOccTests
         public Task<DrugIndexDto> UpsertAsync(DrugIndexDto dto, long? expectedVersion, CancellationToken ct)
             => throw new NotSupportedException();
 
-        public Task DeleteAsync(string drugId, string spec, CancellationToken ct)
+        public Task DeleteAsync(string drugId, string spec, long expectedVersion, CancellationToken ct)
             => throw new NotSupportedException();
 
         public Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(

@@ -1,3 +1,5 @@
+using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -34,6 +36,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     /// <summary>非空时替换 <see cref="IDashboardService"/></summary>
     public IDashboardService? Dashboard { get; init; }
 
+    /// <summary>非空时替换 <see cref="ILookupCatalogService"/></summary>
+    public ILookupCatalogService? Lookup { get; init; }
+
+    /// <summary>非空时替换 <see cref="IDrugIndexService"/></summary>
+    public IDrugIndexService? Drugs { get; init; }
+
+    /// <summary>非空时替换 <see cref="IScanCodeService"/></summary>
+    public IScanCodeService? ScanCode { get; init; }
+
+    /// <summary>非空时替换 <see cref="IInventoryOverviewService"/></summary>
+    public IInventoryOverviewService? Inventory { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("dev");
@@ -46,6 +60,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         {
             services.AddSingleton<IApiHealth, AlwaysOkApiHealth>();
             services.AddSingleton<IChangeWatermarkRepo>(Watermarks);
+            // 写命令测试：内存 dedup，回调 IDb（不连 PostgreSQL）
+            services.Replace(ServiceDescriptor.Singleton<ICommandDedup, MemoryCommandDedup>());
+            services.Replace(ServiceDescriptor.Singleton<IDb, CallbackDb>());
             if (Time is not null)
             {
                 services.AddSingleton(Time);
@@ -54,6 +71,26 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             if (Dashboard is not null)
             {
                 services.Replace(ServiceDescriptor.Singleton<IDashboardService>(Dashboard));
+            }
+
+            if (Lookup is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<ILookupCatalogService>(Lookup));
+            }
+
+            if (Drugs is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<IDrugIndexService>(Drugs));
+            }
+
+            if (ScanCode is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<IScanCodeService>(ScanCode));
+            }
+
+            if (Inventory is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<IInventoryOverviewService>(Inventory));
             }
         });
     }
@@ -71,8 +108,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             ["Auth:Jwt:Audience"] = "pactoolkits-clients-test",
             ["Auth:Jwt:SigningKey"] = TestJwtSigningKey,
             ["Auth:Jwt:ExpiresMinutes"] = "30",
-            ["SchemaBounds:MinDbSchema"] = "1.2.25",
-            ["SchemaBounds:MaxDbSchema"] = "1.2.25",
+            ["SchemaBounds:MinDbSchema"] = "1.2.26",
+            ["SchemaBounds:MaxDbSchema"] = "1.2.26",
             ["Changes:ListenEnabled"] = "false",
             ["Postgres:Host"] = "127.0.0.1",
             ["Postgres:Port"] = "1",
@@ -138,7 +175,90 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     private sealed class AlwaysOkApiHealth : IApiHealth
     {
         public Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default)
-            => Task.FromResult(new ApiHealthSnapshot(Ok: true, Database: "ok", Schema: "ok", SchemaVersion: "1.2.25"));
+            => Task.FromResult(new ApiHealthSnapshot(Ok: true, Database: "ok", Schema: "ok", SchemaVersion: "1.2.26"));
+    }
+
+    /// <summary>只跑回调，给 MemoryCommandDedup 写路径用；不连 PostgreSQL</summary>
+    private sealed class CallbackDb : IDb
+    {
+        public Task<IAsyncDisposable?> TryAcquireSessionLockAsync(string key, CancellationToken ct = default)
+            => Task.FromResult<IAsyncDisposable?>(null);
+
+        public Task<T> WithConnection<T>(
+            Func<IDbConnection, CancellationToken, Task<T>> work,
+            CancellationToken ct = default)
+            => work(StubConnection.Instance, ct);
+
+        public Task WithConnection(
+            Func<IDbConnection, CancellationToken, Task> work,
+            CancellationToken ct = default)
+            => work(StubConnection.Instance, ct);
+
+        public Task<T> WithTransaction<T>(
+            Func<IDbConnection, IDbTransaction, CancellationToken, Task<T>> work,
+            IsolationLevel isolation = IsolationLevel.ReadCommitted,
+            CancellationToken ct = default)
+            => work(StubConnection.Instance, StubTransaction.Instance, ct);
+
+        public Task WithTransaction(
+            Func<IDbConnection, IDbTransaction, CancellationToken, Task> work,
+            IsolationLevel isolation = IsolationLevel.ReadCommitted,
+            CancellationToken ct = default)
+            => work(StubConnection.Instance, StubTransaction.Instance, ct);
+    }
+
+    private sealed class StubConnection : IDbConnection
+    {
+        public static readonly StubConnection Instance = new();
+
+        [AllowNull]
+        public string ConnectionString { get; set; } = string.Empty;
+        public int ConnectionTimeout => 0;
+        public string Database => "stub";
+        public ConnectionState State => ConnectionState.Open;
+
+        public IDbTransaction BeginTransaction() => StubTransaction.Instance;
+
+        public IDbTransaction BeginTransaction(IsolationLevel il) => StubTransaction.Instance;
+
+        public void ChangeDatabase(string databaseName)
+        {
+        }
+
+        public void Close()
+        {
+        }
+
+        public IDbCommand CreateCommand()
+            => throw new NotSupportedException("CallbackDb does not execute SQL");
+
+        public void Open()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class StubTransaction : IDbTransaction
+    {
+        public static readonly StubTransaction Instance = new();
+
+        public IDbConnection? Connection => StubConnection.Instance;
+        public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
+
+        public void Commit()
+        {
+        }
+
+        public void Rollback()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }
 

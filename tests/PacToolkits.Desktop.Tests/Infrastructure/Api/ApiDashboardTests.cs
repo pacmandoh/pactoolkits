@@ -117,28 +117,6 @@ public sealed class ApiDashboardTests
         Assert.Contains("pageSize=50", call.Uri.Query, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Catalog_methods_hit_drug_routes()
-    {
-        var token = new ScriptedHandler();
-        var api = new ScriptedHandler();
-        token.EnqueueToken("tok-1");
-        api.EnqueueJson(HttpStatusCode.OK, """{"items":["d1","d2"]}""");
-        api.EnqueueJson(HttpStatusCode.OK, """{"items":["s1"]}""");
-
-        using var client = CreateClient(token, api);
-        var service = new ApiDashboard(client);
-
-        var drugs = await service.GetDrugIdsAsync(TestContext.Current.CancellationToken);
-        var specs = await service.GetSpecsByDrugAsync("d1", TestContext.Current.CancellationToken);
-
-        Assert.Equal(["d1", "d2"], drugs);
-        Assert.Equal(["s1"], specs);
-        Assert.Equal(2, api.Calls.Count);
-        Assert.EndsWith("/v1/dashboard/drug-ids", api.Calls[0].Uri.AbsolutePath, StringComparison.Ordinal);
-        Assert.EndsWith("/v1/dashboard/drugs/d1/specs", api.Calls[1].Uri.AbsolutePath, StringComparison.Ordinal);
-    }
-
     private static string PageJson(string segment)
         => segment switch
         {

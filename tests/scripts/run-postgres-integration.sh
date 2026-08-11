@@ -50,6 +50,7 @@ export PGDATABASE="${PGDATABASE:-postgres}"
 
 require_cmd() { command -v "$1" >/dev/null 2>&1 || die "command not found: $1"; }
 require_cmd psql
+require_cmd jq
 
 log "target database: ${PGUSER}@${PGHOST}:${PGPORT}/${PGDATABASE}"
 
@@ -60,6 +61,18 @@ schema_version="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
   -c "select schema_version from public.schema_version where singleton = true")"
 [[ -n "$schema_version" ]] || die "schema_version missing"
 pass "schema_version=$schema_version"
+
+expected_schema="$(jq -r '.components.database.postgres.version // empty' "$ROOT_DIR/release-manifest.json")"
+[[ -n "$expected_schema" && "$expected_schema" != "null" ]] \
+  || die "release-manifest database.postgres.version missing"
+[[ "$schema_version" == "$expected_schema" ]] \
+  || die "schema_version=$schema_version; expected $expected_schema (run database/postgres/scripts/deploy.sh upgrade)"
+pass "schema_version matches manifest ($expected_schema)"
+
+dedup_table="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
+  -c "select to_regclass('public.api_command_dedup')")"
+[[ -n "$dedup_table" ]] || die "missing table: api_command_dedup (apply V1_2_26)"
+pass "api_command_dedup present"
 
 obsolete_env_table="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
   -c "select to_regclass('public.app_environment_settings')")"
@@ -115,7 +128,7 @@ if command -v dotnet >/dev/null 2>&1 && [[ -f "$ROOT_DIR/tests/PacToolkits.Deskt
 fi
 
 if command -v dotnet >/dev/null 2>&1 && [[ -f "$ROOT_DIR/tests/PacToolkits.Api.Tests/PacToolkits.Api.Tests.csproj" ]]; then
-  log "running API PostgreSQL LISTEN integration tests"
+  log "running API PostgreSQL LISTEN and command-dedup integration tests"
   (
     cd "$ROOT_DIR"
     if ! dotnet build tests/PacToolkits.Api.Tests/PacToolkits.Api.Tests.csproj -c Release --no-restore -v minimal >/tmp/pactoolkits-api-itest-build.log 2>&1; then
@@ -123,9 +136,9 @@ if command -v dotnet >/dev/null 2>&1 && [[ -f "$ROOT_DIR/tests/PacToolkits.Api.T
     fi
     # PG_ITEST 已 export；未设置时用例 Skip
     dotnet test tests/PacToolkits.Api.Tests/PacToolkits.Api.Tests.csproj -c Release --no-restore --no-build -v minimal \
-      --filter "FullyQualifiedName~PostgresListenIntegrationTests"
+      --filter "FullyQualifiedName~PostgresListenIntegrationTests|FullyQualifiedName~PgCommandDedupIntegrationTests"
   )
-  pass "API PostgreSQL LISTEN integration tests"
+  pass "API PostgreSQL LISTEN and command-dedup integration tests"
 fi
 
 log "all PostgreSQL integration checks passed"
