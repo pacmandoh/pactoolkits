@@ -7,7 +7,7 @@ namespace PacToolkits.Api.Hosting;
 /// <summary>
 /// 写命令幂等领取参数
 ///
-/// 身份：ClientId、Operation、CommandId；RequestDigest 只校验请求体是否被改
+/// ClientId、Operation、CommandId 定身份；RequestDigest 只用来发现请求体被改
 /// </summary>
 public sealed record CommandDedupKey(
     string ClientId,
@@ -35,15 +35,45 @@ public sealed record CommandDedupClaimResult(
     CommandDedupClaim Outcome,
     CommandDedupEntry? Cached);
 
-/// <summary>写命令幂等：Claim、Complete、Release</summary>
+/// <summary>写命令幂等存储</summary>
 public interface ICommandDedup
 {
+    /// <summary>失败时是否要调 Release；false 表示外层事务回滚即释放 claim</summary>
+    bool ReleaseOnFailure { get; }
+
     Task<CommandDedupClaimResult> ClaimAsync(CommandDedupKey key, CancellationToken ct);
 
     Task CompleteAsync(CommandDedupKey key, CommandDedupEntry entry, CancellationToken ct);
 
-    /// <summary>未完成时释放，允许同身份再次 Claim</summary>
+    /// <summary>未完成时清掉 claim，便于同身份再 Claim</summary>
     Task ReleaseAsync(CommandDedupKey key, CancellationToken ct);
+}
+
+internal static class CommandDedupKeys
+{
+    public static void Validate(CommandDedupKey key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        if (string.IsNullOrWhiteSpace(key.ClientId))
+        {
+            throw new ArgumentException("ClientId is required", nameof(key));
+        }
+
+        if (string.IsNullOrWhiteSpace(key.Operation))
+        {
+            throw new ArgumentException("Operation is required", nameof(key));
+        }
+
+        if (key.CommandId == Guid.Empty)
+        {
+            throw new ArgumentException("CommandId must be non-empty", nameof(key));
+        }
+
+        if (string.IsNullOrWhiteSpace(key.RequestDigest))
+        {
+            throw new ArgumentException("RequestDigest is required", nameof(key));
+        }
+    }
 }
 
 /// <summary>请求体 SHA-256 hex，用作 <see cref="CommandDedupKey.RequestDigest"/></summary>
@@ -68,9 +98,11 @@ public sealed class MemoryCommandDedup : ICommandDedup
 {
     private readonly ConcurrentDictionary<Id, Slot> _slots = new();
 
+    public bool ReleaseOnFailure => true;
+
     public Task<CommandDedupClaimResult> ClaimAsync(CommandDedupKey key, CancellationToken ct)
     {
-        ValidateKey(key);
+        CommandDedupKeys.Validate(key);
         ct.ThrowIfCancellationRequested();
 
         var id = ToId(key);
@@ -111,9 +143,9 @@ public sealed class MemoryCommandDedup : ICommandDedup
 
     public Task CompleteAsync(CommandDedupKey key, CommandDedupEntry entry, CancellationToken ct)
     {
-        ValidateKey(key);
+        _ = ct;
+        CommandDedupKeys.Validate(key);
         ArgumentNullException.ThrowIfNull(entry);
-        ct.ThrowIfCancellationRequested();
 
         var id = ToId(key);
         if (!_slots.TryGetValue(id, out var slot))
@@ -133,8 +165,8 @@ public sealed class MemoryCommandDedup : ICommandDedup
 
     public Task ReleaseAsync(CommandDedupKey key, CancellationToken ct)
     {
-        ValidateKey(key);
-        ct.ThrowIfCancellationRequested();
+        _ = ct;
+        CommandDedupKeys.Validate(key);
 
         var id = ToId(key);
         if (!_slots.TryGetValue(id, out var slot))
@@ -167,30 +199,6 @@ public sealed class MemoryCommandDedup : ICommandDedup
 
     private static bool DigestEquals(string left, string right)
         => string.Equals(left, right, StringComparison.Ordinal);
-
-    private static void ValidateKey(CommandDedupKey key)
-    {
-        ArgumentNullException.ThrowIfNull(key);
-        if (string.IsNullOrWhiteSpace(key.ClientId))
-        {
-            throw new ArgumentException("ClientId is required", nameof(key));
-        }
-
-        if (string.IsNullOrWhiteSpace(key.Operation))
-        {
-            throw new ArgumentException("Operation is required", nameof(key));
-        }
-
-        if (key.CommandId == Guid.Empty)
-        {
-            throw new ArgumentException("CommandId must be non-empty", nameof(key));
-        }
-
-        if (string.IsNullOrWhiteSpace(key.RequestDigest))
-        {
-            throw new ArgumentException("RequestDigest is required", nameof(key));
-        }
-    }
 
     private sealed record Id(string ClientId, string Operation, Guid CommandId);
 

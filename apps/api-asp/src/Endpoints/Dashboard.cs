@@ -24,10 +24,6 @@ public static class DashboardEndpoints
             .RequireAuthorization(AuthPolicies.Read);
         routes.MapGet("/v1/dashboard/abnormal", GetAbnormal)
             .RequireAuthorization(AuthPolicies.Read);
-        routes.MapGet("/v1/dashboard/drug-ids", GetDrugIds)
-            .RequireAuthorization(AuthPolicies.Read);
-        routes.MapGet("/v1/dashboard/drugs/{drugId}/specs", GetSpecs)
-            .RequireAuthorization(AuthPolicies.Read);
         return routes;
     }
 
@@ -73,37 +69,6 @@ public static class DashboardEndpoints
         IDashboardService dashboard,
         CancellationToken ct)
         => await GetPageAsync(http, dashboard.GetAbnormalPageAsync, ct).ConfigureAwait(false);
-
-    private static async Task<IResult> GetDrugIds(IDashboardService dashboard, CancellationToken ct)
-    {
-        var items = await dashboard.GetDrugIdsAsync(ct).ConfigureAwait(false);
-        return Results.Ok(new DashboardStringListResponse(items));
-    }
-
-    private static async Task<IResult> GetSpecs(
-        HttpContext http,
-        string drugId,
-        IDashboardService dashboard,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(drugId))
-        {
-            return ApiProblems.BadRequest(
-                http,
-                title: "Missing drugId",
-                detail: "Path drugId is required");
-        }
-
-        try
-        {
-            var items = await dashboard.GetSpecsByDrugAsync(drugId, ct).ConfigureAwait(false);
-            return Results.Ok(new DashboardStringListResponse(items));
-        }
-        catch (ArgumentException ex)
-        {
-            return ApiProblems.BadRequest(http, title: "Invalid drugId", detail: ex.Message);
-        }
-    }
 
     private static async Task<IResult> GetPageAsync<T>(
         HttpContext http,
