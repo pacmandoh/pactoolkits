@@ -9,6 +9,7 @@ public sealed class SectionEmptyPendingTests
     [InlineData(PageDataAvailability.Loading)]
     [InlineData(PageDataAvailability.NotLoaded)]
     [InlineData(PageDataAvailability.AwaitingDatabase)]
+    [InlineData(PageDataAvailability.AwaitingService)]
     public void Show_returns_true_during_first_fetch(PageDataAvailability availability)
     {
         Assert.True(SectionEmptyPolicy.IsPending(availability, hasLoadedOnce: false));

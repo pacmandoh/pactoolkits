@@ -5,7 +5,14 @@ namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 /// <summary>Section 空态门控文案</summary>
 public static class SectionEmptyCopy
 {
-    public const string StaleHint = "数据库已断开，连接恢复后将自动刷新";
+    public const string DbStaleHint = "数据库已断开，连接恢复后将自动刷新";
+
+    public const string ServiceStaleHint = "服务暂不可用，恢复后将自动刷新";
+
+    public const string StaleHint = DbStaleHint;
+
+    public static string GetStaleHint(bool useServiceStale)
+        => useServiceStale ? ServiceStaleHint : DbStaleHint;
 
     public static string GetTitle(string? readyTitle)
         => readyTitle ?? "暂无数据";
@@ -14,7 +21,8 @@ public static class SectionEmptyCopy
         PageDataAvailability availability,
         string? readyHint,
         string? blockReason = null,
-        string? loadFailedMessage = null)
+        string? loadFailedMessage = null,
+        bool useServiceStale = false)
     {
         return availability switch
         {
@@ -24,17 +32,17 @@ public static class SectionEmptyCopy
             PageDataAvailability.LoadFailed => string.IsNullOrWhiteSpace(loadFailedMessage)
                 ? "加载失败，请使用顶部菜单刷新"
                 : $"{loadFailedMessage}，请使用顶部菜单刷新",
-            PageDataAvailability.Stale => StaleHint,
+            PageDataAvailability.Stale => GetStaleHint(useServiceStale),
             _ => readyHint ?? "暂无数据",
         };
     }
 
-    public static string GetIcon(PageDataAvailability availability)
+    public static string GetIcon(PageDataAvailability availability, bool useServiceStale = false)
         => availability switch
         {
             PageDataAvailability.AccessBlocked => "ShieldAlert",
             PageDataAvailability.LoadFailed => "CircleAlert",
-            PageDataAvailability.Stale => "Database",
+            PageDataAvailability.Stale => useServiceStale ? "Server" : "Database",
             _ => "Inbox",
         };
 }

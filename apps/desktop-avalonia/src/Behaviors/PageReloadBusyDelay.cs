@@ -16,10 +16,12 @@ internal static class PageReloadBusyDelay
     public static async Task RunAsync(
         CancellationToken ct,
         Action<bool> setBusy,
-        Func<Task> body)
+        Func<Task> body,
+        TimeProvider time)
     {
+        ArgumentNullException.ThrowIfNull(time);
         using var busyDelayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var busyDelayTask = Task.Delay(BusyDelay, busyDelayCts.Token);
+        var busyDelayTask = Task.Delay(BusyDelay, time, busyDelayCts.Token);
         var bodyTask = body();
 
         var first = await Task.WhenAny(bodyTask, busyDelayTask).ConfigureAwait(false);
