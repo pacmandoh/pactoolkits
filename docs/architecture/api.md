@@ -20,7 +20,11 @@ POST /v1/auth/token   Header X-Api-Key，换短期 Bearer JWT
 GET  /health          匿名探活；仅 status ok/unavailable
 GET  /v1/system/info  Bearer system.status；product、apiVersion、contractVersion
 GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
-GET  /v1/dashboard/*  Bearer read；snapshot / transactions / trends / entries / abnormal / drug-ids / drugs/{drugId}/specs
+GET  /v1/dashboard/*  Bearer read；snapshot / transactions / trends / entries / abnormal
+GET  /v1/catalog/*    Bearer read；drug-ids / drugs/{drugId}/specs|quantity|deprecated
+GET/PUT/DELETE /v1/drugs*  Bearer read|write；检索、保存、删除、主键修复
+POST /v1/trace-codes/*  Bearer write；check-existing / submit
+GET/POST /v1/inventory/*  Bearer read|write；库存分页，以及批量编辑与改派
 ```
 
 - **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）。ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白
@@ -42,31 +46,37 @@ GET  /v1/dashboard/*  Bearer read；snapshot / transactions / trends / entries /
   - schema 兼容才放行业务库访问；schema 不合或库不可达均为 **503**
   - 中间件拦默认 `/v1` 业务路由（含 `changes/*`）；不拦 `/health`、换票、`/v1/ping`、`/v1/system/*`
 - 错误体：业务路径 ProblemDetails 含 `status` / `code` / `title` / `detail` / `traceId`；OCC 另带 `currentVersion`；限流或短暂不可用可带 `Retry-After`
-- 状态码：参数 400、未认证/无权限 401/403、不存在 404、OCC/状态冲突 409、限流 429、库或 schema 不可用 503
+- 状态码：参数 400、未认证/无权限 401/403、不存在 404、状态冲突 409、限流 429、库或 schema 不可用 503
+- 药品保存业务成功或 Blocked\* 返回 200，body 带 `outcome`
+- OCC（保存、删除、主键修复）统一 409，并带 `currentVersion`；删除须带 query `expectedVersion`
+- 库存批量编辑若有冲突：HTTP 409 ProblemDetails（`code=conflict`），扩展字段 `conflicts` 为冲突行；Desktop 捕获 `PacApiConflictException` 转成批结果
 - 写命令（POST/PUT/DELETE）要求头 `X-Command-Id`（非空 UUID）
-- 幂等：可靠业务键，或持久化 `ICommandDedup`（Claim、Complete、Release）。命令身份为 `clientId`、`operation`、`commandId`；`requestDigest` 不一致为 `PayloadMismatch`。宿主默认不注册 `ICommandDedup`；`MemoryCommandDedup` 仅测试或显式注入，不满足业务写幂等
+- 会改库的写走持久化 `ICommandDedup`（`PgCommandDedup`，表 `api_command_dedup`）。Claim、业务写与 Complete 同一库事务；失败回滚后可同 CommandId 重试
+- 身份是 clientId、operation、commandId；digest 对不上为 PayloadMismatch
+- 查重、预览类 POST 需要 CommandId，但不 Complete。`MemoryCommandDedup` 只给测试用，不算业务写幂等
+- 扫码 `submit` 与库存批量编辑、按码改派为用例级事务：插入与流水同提交；批量冲突时本批不落库
 - Desktop `PacApiClient`：Resilience 与 401 换票重放仅用于 GET/HEAD；写命令不重试、不因 401 重放。401 且 Bearer 对应当前缓存票时清票；换票失败后缓存为空；显式 `CommandId` 不得为 `Guid.Empty`
 - `ApiProblems` 构造业务 ProblemDetails（含 `TryGetCommandId`）；换票失败多为框架最小 401；换票限流 429 带统一 `ApiProblem` 与 `Retry-After`
 - 生产不返回内部路径与敏感配置
 
 ## 变更流
 
-数据变更经 `pg_notify('pactoolkits_change', topic)`。
+数据变更经 `pg_notify('pactoolkits_change', topic)`
 
-Desktop：变更水位统一经 `ApiChangeWatermark`（SSE + watermarks）；Dashboard 查询与筛选目录经 `ApiDashboard`；其它业务页的查询/写仍经本机 Infrastructure。
+Desktop：变更水位用 `ApiChangeWatermark`（SSE 与 watermarks）。Dashboard、药品目录、药品索引、扫码、库存分别走 `ApiDashboard`、`ApiLookupCatalog`、`ApiDrugIndex`、`ApiScanCode`、`ApiInventory`。MSFX、Shell、Settings 走本机 Infrastructure
 
-Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。401 且 Bearer 对应当前缓存票时清票；GET/HEAD 换票后重放（并发换票进锁复用，不连打 `/token`）；写命令不重放。共享 HTTP DTO 在 `packages/application/DTOs/Api/`。
+Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。401 且 Bearer 对应当前缓存票时清票；GET/HEAD 换票后重放（并发换票进锁复用，不连打 `/token`）；写命令不重放。共享 HTTP DTO 在 `packages/application/DTOs/Api/`
 
 异常约定：
 
 - `GetJsonAsync` / `PostJsonAsync` / `PutJsonAsync` / `DeleteAsync`、`EnsureSuccessAsync`、换票：非 2xx 或不可达时抛 `PacApiException`（`code`、`traceId`、可选 `currentVersion`；不可达 `transport`；超时 `timeout`）
-- HTTP 409 为 `PacApiConflictException`（含 `currentVersion`）
+- HTTP 409 为 `PacApiConflictException`（含 `currentVersion`；库存批量 OCC 另含 `conflicts`）
 - 写方法带非空 `X-Command-Id`；业务 JSON、错误正文与换票响应受正文大小上限（超出 `response_too_large`）
 - 调用方取消原样抛出；超时与断网为 `PacApiException`
 - 裸 `SendAsync`、`SendSseAsync` 返回 `HttpResponseMessage`，由调用方 `EnsureSuccessAsync` 或自读状态（如 `ApiChangeWatermark`）
 - 不向外抛裸 `HttpRequestException`
 
-`ApiChangeWatermark` 为 Desktop 唯一 `IChangeWatermarkService`（SSE + watermarks）。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。消费变更的页面须具备突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）。
+`ApiChangeWatermark` 为 Desktop 唯一 `IChangeWatermarkService`（SSE 与 watermarks）。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。消费变更的页面需要突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）
 
 **API 侧**：
 
@@ -106,7 +116,7 @@ Pg NOTIFY
 
 ### Desktop 业务数据
 
-- 变更水位与 Dashboard 查询走 PacApi；其它业务页的查询/写仍经本机 Infrastructure
+- 变更水位、Dashboard、药品目录、药品索引、扫码入库、库存走 PacApi。MSFX、Shell、Settings 走本机 Infrastructure
 - 页面可用性三层见 [desktop-state.md](./desktop-state.md)
 
 ### 配置入口
@@ -119,7 +129,7 @@ Pg NOTIFY
 | `SchemaBounds` | schema 闭区间；同时约束 `/health` 与经 `IDb` 的业务读写 |
 | `Changes`      | `ListenEnabled` 等变更流宿主开关                        |
 
-DI 组装入口：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）。注册全量 Application 与 Infrastructure；Desktop 专属 Store 与 MSFX 客户端由 API 宿主适配（无 Desktop 配置文件；MSFX 外呼未接）。域用例 HTTP 按域挂到已注册服务。
+DI 组装入口：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）。注册全量 Application 与 Infrastructure。Desktop 专属 Store 与 MSFX 客户端在 API 宿主里另注册（无 Desktop 配置文件；MSFX 外呼未接）。域用例 HTTP 按域挂到已注册服务
 
 ### Desktop 侧 PacApi（部署注入）
 
@@ -133,7 +143,7 @@ Desktop 访问 API 的密钥与地址由环境变量或受保护配置提供，*
 
 Options 规则：
 
-- `BaseUrl` 与 `ApiKey` 都空：校验通过；此时变更流不启动，Dashboard 经 PacApi 的查询也不可用
+- `BaseUrl` 与 `ApiKey` 都空：校验通过；此时变更流不启动，经 PacApi 的业务页也不可用
 - 只配一侧：失败
 - 两侧都有：须为绝对 URI；非 loopback 须 HTTPS；`HeaderName` 须是合法 HTTP field-name；`BaseUrl` 不得带 query、fragment、userinfo
 
