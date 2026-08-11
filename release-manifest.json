@@ -7,18 +7,18 @@
   "components": {
     "api": {
       "version": "0.1.0",
-      "contractVersion": "1.0.0",
-      "minDbSchema": "1.2.25",
-      "maxDbSchema": "1.2.25"
+      "contractVersion": "1.2.0",
+      "minDbSchema": "1.2.26",
+      "maxDbSchema": "1.2.26"
     },
     "desktop": {
       "avalonia": {
         "version": "1.0.2-beta.8",
         "packageId": "PacToolkits",
-        "minDbSchema": "1.2.25",
-        "maxDbSchema": "1.2.25",
-        "minApiContract": "1.0.0",
-        "maxApiContract": "1.0.0"
+        "minDbSchema": "1.2.26",
+        "maxDbSchema": "1.2.26",
+        "minApiContract": "1.2.0",
+        "maxApiContract": "1.2.0"
       }
     },
     "agents": {
@@ -32,19 +32,19 @@
       "modules": {
         "Injector": {
           "version": "0.7.0",
-          "minDbSchema": "1.2.25",
-          "maxDbSchema": "1.2.25"
+          "minDbSchema": "1.2.26",
+          "maxDbSchema": "1.2.26"
         },
         "Scanner": {
           "version": "0.1.0",
-          "minDbSchema": "1.2.25",
-          "maxDbSchema": "1.2.25"
+          "minDbSchema": "1.2.26",
+          "maxDbSchema": "1.2.26"
         }
       }
     },
     "database": {
       "postgres": {
-        "version": "1.2.25"
+        "version": "1.2.26"
       }
     }
   },
