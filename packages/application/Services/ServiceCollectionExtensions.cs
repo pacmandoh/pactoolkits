@@ -29,7 +29,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientAliasService, ClientAliasService>();
         services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
         services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
-        services.AddSingleton<IReleaseManifestProbeService, ReleaseManifestProbeService>();
+        services.AddHttpClient(ReleaseManifestProbeService.HttpClientName, static client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+        services.AddSingleton<IReleaseManifestProbeService>(sp =>
+            new ReleaseManifestProbeService(
+                sp.GetRequiredService<IDbSchemaGate>(),
+                sp.GetRequiredService<IAppLogger>(),
+                sp.GetRequiredService<IHttpClientFactory>()
+                    .CreateClient(ReleaseManifestProbeService.HttpClientName)));
         services.AddSingleton<SensitiveUnlockSession>();
         return services;
     }

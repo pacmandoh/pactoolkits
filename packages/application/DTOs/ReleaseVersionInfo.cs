@@ -9,7 +9,9 @@ public sealed record ReleaseVersionInfo(
     string BuildChannel,
     string BuildDate,
     string DesktopMinDbSchema,
-    string DesktopMaxDbSchema)
+    string DesktopMaxDbSchema,
+    string MinApiContract,
+    string MaxApiContract)
 {
     public static ReleaseVersionInfo Unknown { get; } = new(
         ProductVersion: "unknown",
@@ -19,5 +21,7 @@ public sealed record ReleaseVersionInfo(
         BuildChannel: "unknown",
         BuildDate: "unknown",
         DesktopMinDbSchema: "unknown",
-        DesktopMaxDbSchema: "unknown");
+        DesktopMaxDbSchema: "unknown",
+        MinApiContract: "unknown",
+        MaxApiContract: "unknown");
 }

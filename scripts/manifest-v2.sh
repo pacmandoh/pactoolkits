@@ -28,6 +28,14 @@ manifest_desktop_max_db() {
   jq_r '.components.desktop.avalonia.maxDbSchema // empty' "$1"
 }
 
+manifest_desktop_min_api_contract() {
+  jq_r '.components.desktop.avalonia.minApiContract // empty' "$1"
+}
+
+manifest_desktop_max_api_contract() {
+  jq_r '.components.desktop.avalonia.maxApiContract // empty' "$1"
+}
+
 manifest_desktop_package_id() {
   jq_r '.components.desktop.avalonia.packageId // empty' "$1"
 }
@@ -550,6 +558,29 @@ validate_component_db_bounds() {
   }
 }
 
+validate_desktop_api_contract_bounds() {
+  local manifest="$1"
+  local min_c max_c
+  min_c="$(manifest_desktop_min_api_contract "$manifest")"
+  max_c="$(manifest_desktop_max_api_contract "$manifest")"
+  [[ -n "$min_c" && -n "$max_c" ]] || {
+    echo "ERROR: desktop requires minApiContract and maxApiContract" >&2
+    return 1
+  }
+  is_stable_semver "$min_c" || {
+    echo "ERROR: invalid minApiContract for desktop: $min_c" >&2
+    return 1
+  }
+  is_stable_semver "$max_c" || {
+    echo "ERROR: invalid maxApiContract for desktop: $max_c" >&2
+    return 1
+  }
+  semver_lte_stable "$min_c" "$max_c" || {
+    echo "ERROR: desktop minApiContract ($min_c) must be <= maxApiContract ($max_c)" >&2
+    return 1
+  }
+}
+
 # 模块库区间：min/max 皆缺（不依赖库）或完整成对 X.Y.Z 且 min<=max；半套非法
 validate_agents_module_db_bounds() {
   local manifest="$1"
@@ -629,6 +660,8 @@ validate_database_postgres_component_compat() {
     echo "ERROR: invalid database.postgres.version: $db_version" >&2
     return 1
   }
+
+  validate_desktop_api_contract_bounds "$manifest" || return 1
 
   for label in desktop api; do
     validate_component_db_bounds "$manifest" "$label" || return 1
@@ -787,6 +820,8 @@ validate_manifest_v2() {
     $root.components.desktop.avalonia.packageId == "PacToolkits" and
     ($root.components.desktop.avalonia.minDbSchema | semver) and
     ($root.components.desktop.avalonia.maxDbSchema | semver) and
+    ($root.components.desktop.avalonia.minApiContract | semver) and
+    ($root.components.desktop.avalonia.maxApiContract | semver) and
     ($root.components.api.version | semver) and
     ($root.components.api.contractVersion | semver) and
     ($root.components.api.minDbSchema | semver) and

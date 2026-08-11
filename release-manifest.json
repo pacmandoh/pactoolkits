@@ -16,7 +16,9 @@
         "version": "1.0.2-beta.8",
         "packageId": "PacToolkits",
         "minDbSchema": "1.2.25",
-        "maxDbSchema": "1.2.25"
+        "maxDbSchema": "1.2.25",
+        "minApiContract": "1.0.0",
+        "maxApiContract": "1.0.0"
       }
     },
     "agents": {

@@ -77,7 +77,9 @@ public sealed class ReleaseVersionService : IReleaseVersionService
             BuildChannel: ReadString(release, "channel"),
             BuildDate: ReadString(release, "date"),
             DesktopMinDbSchema: ReadString(desktop, "minDbSchema"),
-            DesktopMaxDbSchema: ReadString(desktop, "maxDbSchema"));
+            DesktopMaxDbSchema: ReadString(desktop, "maxDbSchema"),
+            MinApiContract: ReadString(desktop, "minApiContract"),
+            MaxApiContract: ReadString(desktop, "maxApiContract"));
     }
 
     private static string ReadString(JsonElement elem, string name)

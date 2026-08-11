@@ -45,6 +45,7 @@ public sealed class JsonLogWriter
             Event = (record.Event ?? string.Empty).Trim(),
             Message = (record.Message ?? string.Empty).Trim(),
             TraceId = string.IsNullOrWhiteSpace(record.TraceId) ? null : record.TraceId.Trim(),
+            SpanId = string.IsNullOrWhiteSpace(record.SpanId) ? null : record.SpanId.Trim(),
             Version = record.Version ?? string.Empty,
             Context = record.Context,
             Exception = record.Exception,
