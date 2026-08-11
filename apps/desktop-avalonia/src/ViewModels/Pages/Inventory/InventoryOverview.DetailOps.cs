@@ -314,17 +314,11 @@ public sealed partial class InventoryOverview : AppPageBase
 
                         if (choice == false)
                         {
+                            // 冲突批未落库，放弃即整页重载
                             ClearRemoteStockAttention();
                             IsStockEditEnabled = false;
                             _flushRefreshAfterStockEdit = false;
                             await ReloadAsync();
-                            if (savedCount > 0)
-                            {
-                                _toast.Warn(
-                                    "库存明细编辑",
-                                    $"已保存 {savedCount.ToString(CultureInfo.InvariantCulture)} 项；冲突项已加载服务端值");
-                            }
-
                             return;
                         }
 
@@ -343,6 +337,14 @@ public sealed partial class InventoryOverview : AppPageBase
                         await ReloadAsync();
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                CollectStockEdits();
+                LogError("inventory.stock.edit_fail", "Failed to save stock row edits", ex);
+                _toast.Error("库存明细编辑", ex.Message);
+                NotifyEditState();
+                return;
             }
             finally
             {

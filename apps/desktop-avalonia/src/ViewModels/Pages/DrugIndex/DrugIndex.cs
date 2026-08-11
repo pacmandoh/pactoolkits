@@ -40,8 +40,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     public override ICommand RefreshCommand => _localRefreshCommand;
     public override ICommand ImportCommand => _importCommand;
     public override ICommand ExportCommand => _exportCommand;
-    protected override bool AutoRefreshOnDbDisconnected => true;
-    protected override bool AutoRefreshOnDbReconnected => true;
+    protected override bool RequiresLocalDbForReload => false;
 
     private bool CanOperateUi() => !IsBusy;
     private bool CanIo() => CanOperateUi();
@@ -1474,7 +1473,9 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         IsBusy = true;
         try
         {
-            await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, default);
+            var expectedVersion = _loadedSnapshot?.Version
+                                  ?? throw new InvalidOperationException("missing row version for delete");
+            await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, expectedVersion, default);
             Dispatcher.UIThread.Post(() => _toast.Success("已删除", DrugLabel.Format(deleteDrugId, deleteSpec)));
             await ReloadAsync(workingSet: WorkingSetReload.Clear);
             NotifyDrugCatalogChanged();

@@ -38,13 +38,11 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public override ICommand RefreshCommand => _localRefreshCommand;
     public override ICommand ImportCommand => _importCommand;
     public override ICommand ExportCommand => _exportCommand;
-    protected override bool AutoRefreshOnDbDisconnected => true;
-    protected override bool AutoRefreshOnDbReconnected => true;
+    protected override bool RequiresLocalDbForReload => false;
 
     private readonly IInventoryOverviewService _inventory;
     private readonly ILookupCatalogService _lookup;
     private readonly ITraceCodeRuleService _traceCodeRule;
-    private readonly IDbConfigNotifier _dbConfigNotifier;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
@@ -292,7 +290,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         IInventoryOverviewService inventory,
         ILookupCatalogService lookup,
         ITraceCodeRuleService traceCodeRule,
-        IDbConfigNotifier dbConfigNotifier,
         ISensitiveUnlockService unlockService,
         IToastService toast,
         IDialogService dialog,
@@ -302,7 +299,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         _inventory = inventory;
         _lookup = lookup;
         _traceCodeRule = traceCodeRule;
-        _dbConfigNotifier = dbConfigNotifier;
         _unlockService = unlockService;
         _toast = toast;
         _dialog = dialog;
@@ -317,7 +313,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         _traceCodeRule.Changed += OnTraceCodeRuleChanged;
         RefreshOpsUnlock();
 
-        _dbConfigNotifier.Applied += OnDbApplied;
         _lastModeIndex = ModeIndex;
 
         PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
@@ -896,13 +891,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
     internal void MarkMissingGridMounted() => IsMissingGridMounted = true;
 
-    private void OnDbApplied(object? sender, EventArgs e)
-    {
-        PageIndex = 1;
-
-        PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
-    }
-
     private void OnUnlockChanged(string scopeKey)
     {
         if (!string.Equals(scopeKey, OpsScope, StringComparison.Ordinal))
@@ -1088,7 +1076,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
     protected override void DisposeCore()
     {
-        _dbConfigNotifier.Applied -= OnDbApplied;
         _unlockService.StateChanged -= OnUnlockChanged;
         _traceCodeRule.Changed -= OnTraceCodeRuleChanged;
         StopUnlockTimer();

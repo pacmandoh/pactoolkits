@@ -35,8 +35,7 @@ public sealed partial class ScanCode : AppPageBase
     public override string DisplayName => "追溯码录入";
     public override string Icon => "ScanBarcode";
     public override int Index => 3;
-    protected override bool AutoRefreshOnDbDisconnected => true;
-    protected override bool AutoRefreshOnDbReconnected => true;
+    protected override bool RequiresLocalDbForReload => false;
 
     private readonly ILookupCatalogService _lookup;
     private readonly IScanCodeService _scanCode;
@@ -491,14 +490,6 @@ public sealed partial class ScanCode : AppPageBase
                         return;
                     }
 
-                    Exception? logWriteError = submit.EntryMessage.StartsWith("insert ok but log failed", StringComparison.Ordinal)
-                        ? new InvalidOperationException(submit.EntryMessage)
-                        : null;
-                    if (logWriteError is not null)
-                    {
-                        LogWarn("scan.entry_log.write_fail", "trace_entry_log write failed after submit", logWriteError);
-                    }
-
                     var result = submit.Insert;
 
                     await RunOnUiAsync(() =>
@@ -513,12 +504,7 @@ public sealed partial class ScanCode : AppPageBase
                             PoolSkipCount,
                             result);
 
-                        if (logWriteError is not null)
-                        {
-                            Status = $"录入成功，但日志写入失败：{logWriteError.Message}";
-                            _toast.Error("录入日志", $"trace_entry_log 写入失败：{logWriteError.Message}");
-                        }
-                        else if (result.InsertedCount > 0)
+                        if (result.InsertedCount > 0)
                         {
                             _toast.Success("追溯码录入", summary);
                         }
@@ -1048,6 +1034,7 @@ public sealed partial class ScanCode : AppPageBase
             detailed.Total,
             detailed.Invalid,
             detailed.ScanDuplicate,
+            detailed.PoolDuplicate,
             detailed.ValidUniqueCodes);
 
     private void ApplyDetailedStats(TraceCodeDetailedAnalysis detailed, TraceCodeLineKind[] lineKinds)
@@ -1194,7 +1181,7 @@ public sealed partial class ScanCode : AppPageBase
         return string.Join(
             '\n',
             DrugLabel.WithQty(drug, spec, qtyPerTrace),
-            $"总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate}",
+            $"总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 扫码重复 {analysis.Duplicate} · 池内重复 {analysis.PoolDuplicate}",
             $"写入 {result.InsertedCount} · 跳过 {skipped} · 无效 {analysis.Invalid}");
     }
 

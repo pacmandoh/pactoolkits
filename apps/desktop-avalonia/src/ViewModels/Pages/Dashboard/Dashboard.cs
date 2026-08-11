@@ -35,6 +35,7 @@ public sealed partial class Dashboard : AppPageBase
     protected override bool RequiresLocalDbForReload => false;
 
     private readonly IDashboardService _dashboard;
+    private readonly ILookupCatalogService _lookup;
     private readonly IToastService _toast;
     private readonly IClientAliasService _clientAlias;
     private readonly PageNavigationService _nav;
@@ -177,7 +178,7 @@ public sealed partial class Dashboard : AppPageBase
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
         linked.CancelAfter(DrugCatalogRefresh.Timeout);
-        var drugs = await _dashboard.GetDrugIdsAsync(linked.Token).ConfigureAwait(false);
+        var drugs = await _lookup.GetDrugIdsAsync(linked.Token).ConfigureAwait(false);
         var list = LookupOptions.ToOptions(drugs);
 
         await RunOnUiAsync(() =>
@@ -235,7 +236,7 @@ public sealed partial class Dashboard : AppPageBase
 
             if (!string.IsNullOrWhiteSpace(drug))
             {
-                specs = await _dashboard.GetSpecsByDrugAsync(drug, ct).ConfigureAwait(false);
+                specs = await _lookup.GetSpecsByDrugAsync(drug, ct).ConfigureAwait(false);
             }
 
             await RunOnUiAsync(() =>
@@ -532,11 +533,12 @@ public sealed partial class Dashboard : AppPageBase
     private bool _firstLoadTriggered;
     private bool _filtersLoaded;
 
-    public Dashboard(IDashboardService dashboard, IToastService toast,
+    public Dashboard(IDashboardService dashboard, ILookupCatalogService lookup, IToastService toast,
         IClientAliasService clientAlias, PageNavigationService nav, InventoryOverview inventoryOverview,
         WorkspaceDirtyRefresh dirtyRefresh)
     {
         _dashboard = dashboard;
+        _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
         _toast = toast;
         _clientAlias = clientAlias;
         _nav = nav;
