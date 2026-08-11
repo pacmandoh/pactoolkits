@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Infrastructure.Repositories;
 
@@ -14,6 +15,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPacToolkitsInfrastructure(this IServiceCollection services, IConfiguration config)
     {
+        services.TryAddSingleton(TimeProvider.System);
         services.Configure<PgOptions>(config.GetSection("Postgres"));
 
         services.AddSingleton<IPgDataSourceFactory, PgDataSourceFactory>();
