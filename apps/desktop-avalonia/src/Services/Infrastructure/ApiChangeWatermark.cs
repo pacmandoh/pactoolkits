@@ -1,43 +1,43 @@
-// 暂缓 DI：未注册
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Diagnostics;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Serialization;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 /// <summary>
-/// 经 API 的变更水位：SSE 只作唤醒；version 以 GET watermarks 为准
+/// 经 API 的变更水位：SSE 只负责唤醒；version 以 GET watermarks 为准
 ///
-/// 不直连 Pg NOTIFY；SSE 断了只重连流，不把整站判为断开
-/// `ready`/`change` 均补查 watermark；首见 topic 仅 `change` 可刷页
-/// 与 Infrastructure 的 ChangeWatermarkService 互斥，二选一注册为 IChangeWatermarkService
+/// 不直连 Pg NOTIFY；SSE 断了只重连流，不要把整站判成断开
+/// ready 与 change 都补查 watermark；第一次见到的 topic 只有 change 才刷页
+/// 代码在，但还没挂进 DI；线上仍用 ChangeWatermarkService
 /// </summary>
 public sealed class ApiChangeWatermark : IChangeWatermarkService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-
     private readonly PacApiClient _api;
     private readonly IAppLogger _logger;
+    private readonly TimeProvider _time;
     private readonly CancellationTokenSource _cts = new();
     private readonly Dictionary<string, long> _versions = new(StringComparer.OrdinalIgnoreCase);
+    // poll 与 ready 静默登记的 topic；随后 change 即使 version 未涨也要补发一次
+    private readonly HashSet<string> _silentBootstrap = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
     private readonly TimeSpan _pollInterval;
     private readonly TimeSpan _reconnectDelay;
     private readonly TimeSpan _notifyCoalesceWindow;
+    private static readonly TimeSpan SseMaxBackoff = TimeSpan.FromSeconds(60);
+    private int _sseFailStreak;
 
-    // 容量 1 唤醒 + 锁内 OR 合并 emitOnBootstrap（对齐 API LISTEN pending）
+    // 容量 1 唤醒；锁内合并 emitOnBootstrap（对齐 API LISTEN 的 pending）
     private readonly object _pulseGate = new();
     private bool _pendingEmitOnBootstrap;
     private readonly Channel<bool> _wake = Channel.CreateBounded<bool>(
@@ -48,32 +48,50 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
             SingleWriter = false,
         });
 
+    private readonly object _startGate = new();
+    private bool _started;
     private Task? _streamLoop;
     private Task? _pollLoop;
     private Task? _dispatchLoop;
+    private int _dispatchLoopStarts;
+    private int _pollLoopStarts;
+    private int _streamLoopStarts;
 
     public event Action<string>? TopicChanged;
 
-    public ApiChangeWatermark(PacApiClient api, IAppLogger logger)
+    public ApiChangeWatermark(PacApiClient api, IAppLogger logger, TimeProvider timeProvider)
         : this(
             api,
             logger,
+            timeProvider,
             pollInterval: TimeSpan.FromSeconds(20),
             reconnectDelay: TimeSpan.FromSeconds(2),
             notifyCoalesceWindow: TimeSpan.FromMilliseconds(120))
     {
     }
 
-    /// <summary>单测缩短重连 / 合并窗 / 轮询间隔</summary>
     internal ApiChangeWatermark(
         PacApiClient api,
         IAppLogger logger,
+        TimeSpan pollInterval,
+        TimeSpan reconnectDelay,
+        TimeSpan notifyCoalesceWindow,
+        TimeProvider? timeProvider = null)
+        : this(api, logger, timeProvider ?? TimeProvider.System, pollInterval, reconnectDelay, notifyCoalesceWindow)
+    {
+    }
+
+    private ApiChangeWatermark(
+        PacApiClient api,
+        IAppLogger logger,
+        TimeProvider timeProvider,
         TimeSpan pollInterval,
         TimeSpan reconnectDelay,
         TimeSpan notifyCoalesceWindow)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _time = timeProvider ?? TimeProvider.System;
         _pollInterval = pollInterval;
         _reconnectDelay = reconnectDelay;
         _notifyCoalesceWindow = notifyCoalesceWindow;
@@ -90,10 +108,25 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
             return;
         }
 
-        _dispatchLoop ??= Task.Run(() => DispatchLoopAsync(_cts.Token));
-        _pollLoop ??= Task.Run(() => PollLoopAsync(_cts.Token));
-        _streamLoop ??= Task.Run(() => StreamLoopAsync(_cts.Token));
+        lock (_startGate)
+        {
+            if (_started)
+            {
+                return;
+            }
+
+            _started = true;
+            _dispatchLoop = Task.Run(() => DispatchLoopAsync(_cts.Token));
+            _pollLoop = Task.Run(() => PollLoopAsync(_cts.Token));
+            _streamLoop = Task.Run(() => StreamLoopAsync(_cts.Token));
+        }
     }
+
+    internal int TestDispatchLoopStarts => Volatile.Read(ref _dispatchLoopStarts);
+
+    internal int TestPollLoopStarts => Volatile.Read(ref _pollLoopStarts);
+
+    internal int TestStreamLoopStarts => Volatile.Read(ref _streamLoopStarts);
 
     public void Dispose()
     {
@@ -114,20 +147,15 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
     private async Task PollLoopAsync(CancellationToken ct)
     {
+        Interlocked.Increment(ref _pollLoopStarts);
         while (!ct.IsCancellationRequested)
         {
-            try
-            {
-                await RefreshFromWatermarkAsync(emitOnBootstrap: false, ct).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.Warn("ChangeStream", "watermark.poll.fail", "Watermark poll failed", ex);
-            }
+            // 与 ready 一样只唤醒；Dispatch 串行刷表，避免与 change 竞态吞通知
+            EnqueuePulse(emitOnBootstrap: false);
 
             try
             {
-                await Task.Delay(_pollInterval, ct).ConfigureAwait(false);
+                await Task.Delay(_pollInterval, _time, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -138,6 +166,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
     private async Task StreamLoopAsync(CancellationToken ct)
     {
+        Interlocked.Increment(ref _streamLoopStarts);
         while (!ct.IsCancellationRequested)
         {
             try
@@ -148,11 +177,17 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    var problem = await PacApiClient.CreateExceptionAsync(
+                            response,
+                            _time,
+                            _logger,
+                            ct)
+                        .ConfigureAwait(false);
                     _logger.Warn(
                         "ChangeStream",
                         "sse.http_fail",
-                        $"SSE HTTP {(int)response.StatusCode}");
-                    await Task.Delay(_reconnectDelay, ct).ConfigureAwait(false);
+                        $"SSE HTTP {problem.Status}");
+                    await DelaySseReconnectAsync(problem.RetryAfter, ct).ConfigureAwait(false);
                     continue;
                 }
 
@@ -192,10 +227,18 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
                     }
                     else if (string.Equals(eventName, "ready", StringComparison.OrdinalIgnoreCase))
                     {
-                        // ready：立刻 GET watermark；首见 topic 不刷页（与冷启动 poll 一致）
+                        // ready 服务端建连即发，不能证明稳定；第一次见到的 topic 不刷页
                         EnqueuePulse(emitOnBootstrap: false);
                     }
+                    else if (string.Equals(eventName, "heartbeat", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // 首个 heartbeat≈流已存活一轮间隔，此时再清零退避
+                        ResetSseBackoff();
+                    }
                 }
+
+                // 流正常结束也算一次失败重连，沿用指数退避
+                await DelaySseReconnectAsync(retryAfter: null, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -206,7 +249,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
                 _logger.Warn("ChangeStream", "sse.retry", "SSE disconnected; reconnecting", ex);
                 try
                 {
-                    await Task.Delay(_reconnectDelay, ct).ConfigureAwait(false);
+                    await DelaySseReconnectAsync(retryAfter: null, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -214,6 +257,60 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
                 }
             }
         }
+    }
+
+    private void ResetSseBackoff()
+        => Interlocked.Exchange(ref _sseFailStreak, 0);
+
+    internal int TestSseFailStreak => Volatile.Read(ref _sseFailStreak);
+
+    private async Task DelaySseReconnectAsync(TimeSpan? retryAfter, CancellationToken ct)
+    {
+        var delay = ResolveSseBackoff(retryAfter);
+        await Task.Delay(delay, _time, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>有 Retry-After 则夹紧使用；否则 base×2^n 加抖动，封顶 60s</summary>
+    internal TimeSpan ResolveSseBackoff(TimeSpan? retryAfter)
+    {
+        if (retryAfter is { } after && after > TimeSpan.Zero)
+        {
+            Interlocked.Increment(ref _sseFailStreak);
+            return ClampSseBackoff(after);
+        }
+
+        var streak = Math.Min(Interlocked.Increment(ref _sseFailStreak) - 1, 5);
+        var exp = _reconnectDelay;
+        for (var i = 0; i < streak; i++)
+        {
+            if (exp >= SseMaxBackoff)
+            {
+                exp = SseMaxBackoff;
+                break;
+            }
+
+            exp = TimeSpan.FromTicks(Math.Min(exp.Ticks * 2, SseMaxBackoff.Ticks));
+        }
+
+        // ±20% 抖动，避免多客户端齐步重连
+        var jitterSpan = TimeSpan.FromTicks((long)(exp.Ticks * 0.2));
+        if (jitterSpan > TimeSpan.Zero)
+        {
+            var offset = Random.Shared.NextInt64(-jitterSpan.Ticks, jitterSpan.Ticks + 1);
+            exp = TimeSpan.FromTicks(Math.Clamp(exp.Ticks + offset, _reconnectDelay.Ticks, SseMaxBackoff.Ticks));
+        }
+
+        return ClampSseBackoff(exp);
+    }
+
+    private TimeSpan ClampSseBackoff(TimeSpan value)
+    {
+        if (value < _reconnectDelay)
+        {
+            return _reconnectDelay;
+        }
+
+        return value > SseMaxBackoff ? SseMaxBackoff : value;
     }
 
     private void EnqueuePulse(bool emitOnBootstrap)
@@ -228,13 +325,14 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
     private async Task DispatchLoopAsync(CancellationToken ct)
     {
+        Interlocked.Increment(ref _dispatchLoopStarts);
         while (!ct.IsCancellationRequested)
         {
             bool emitOnBootstrap;
             try
             {
                 _ = await _wake.Reader.ReadAsync(ct).ConfigureAwait(false);
-                await Task.Delay(_notifyCoalesceWindow, ct).ConfigureAwait(false);
+                await Task.Delay(_notifyCoalesceWindow, _time, ct).ConfigureAwait(false);
                 while (_wake.Reader.TryRead(out _))
                 {
                 }
@@ -256,13 +354,30 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                // 失败时退回强标记并再唤醒，避免 change 语义被一次失败吞掉
+                lock (_pulseGate)
+                {
+                    _pendingEmitOnBootstrap |= emitOnBootstrap;
+                }
+
                 _logger.Warn("ChangeStream", "watermark.dispatch.fail", "Watermark dispatch failed", ex);
+                try
+                {
+                    await Task.Delay(_reconnectDelay, _time, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                EnqueuePulse(emitOnBootstrap: false);
             }
         }
     }
 
     private async Task RefreshFromWatermarkAsync(bool emitOnBootstrap, CancellationToken ct)
     {
+        using var activity = PacActivities.Desktop.StartActivity("pacapi.watermark.refresh");
         var rows = await FetchWatermarksAsync(ct).ConfigureAwait(false);
         foreach (var row in rows)
         {
@@ -274,13 +389,25 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
                     if (row.Version > prev)
                     {
                         _versions[row.Topic] = row.Version;
+                        _silentBootstrap.Remove(row.Topic);
+                        shouldEmit = true;
+                    }
+                    else if (emitOnBootstrap && _silentBootstrap.Remove(row.Topic))
+                    {
                         shouldEmit = true;
                     }
                 }
                 else
                 {
                     _versions[row.Topic] = row.Version;
-                    shouldEmit = emitOnBootstrap;
+                    if (emitOnBootstrap)
+                    {
+                        shouldEmit = true;
+                    }
+                    else
+                    {
+                        _silentBootstrap.Add(row.Topic);
+                    }
                 }
             }
 
@@ -299,7 +426,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
             return;
         }
 
-        // 单页订阅抛错不得挡住其余 topic / 订阅者
+        // 单页订阅抛错不得挡住其余 topic 与订阅者
         foreach (var subscriber in handler.GetInvocationList())
         {
             try
@@ -319,15 +446,11 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
     private async Task<IReadOnlyList<ChangeWatermarkItem>> FetchWatermarksAsync(CancellationToken ct)
     {
-        using var response = await _api.SendAsync(
-            () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/changes/watermarks")),
-            ct).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        var body = await JsonSerializer.DeserializeAsync<WatermarksResponse>(stream, JsonOptions, ct)
+        var body = await _api.GetJsonAsync(
+                () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/changes/watermarks")),
+                PacJsonContext.Default.ChangeWatermarksResponse,
+                ct)
             .ConfigureAwait(false);
         return body?.Items ?? Array.Empty<ChangeWatermarkItem>();
     }
-
-    private sealed record WatermarksResponse(IReadOnlyList<ChangeWatermarkItem> Items);
 }

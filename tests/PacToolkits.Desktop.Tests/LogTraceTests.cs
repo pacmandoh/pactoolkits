@@ -1,9 +1,23 @@
+using PacToolkits.Application.Diagnostics;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Tests;
 
 public sealed class LogTraceTests
 {
+    [Fact]
+    public void Begin_without_id_uses_activity_trace_id()
+    {
+        PacActivities.EnsureListening();
+        using var activity = PacActivities.Desktop.StartActivity("logtrace.activity");
+        Assert.NotNull(activity);
+
+        using (LogTrace.Begin())
+        {
+            Assert.Equal(activity!.TraceId.ToString(), LogTrace.Current);
+        }
+    }
+
     [Fact]
     public void Current_is_null_without_active_scope()
     {

@@ -20,15 +20,53 @@ namespace PacToolkits.Desktop.Avalonia.Services.Integration;
 /// </summary>
 public sealed class MsfxApiClient : IMsfxApiClient
 {
-    private static readonly HttpClient Http = new();
+    public const string HttpClientName = "msfx-api";
+
+    // 含有限重试的总时长
+    public static readonly TimeSpan HttpTimeout = TimeSpan.FromSeconds(45);
+
+    public static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(12);
+
+    public const int MaxRetryAttempts = 2;
+
+    // 查询类 POST 才打这个标记；写接口不要设
+    internal static readonly HttpRequestOptionsKey<bool> IdempotentKey = new("msfx.idempotent");
+
+    private const string ApiYljgListUpout = "alibaba.alihealth.drugtrace.top.yljg.listupout";
+    private const string ApiYljgListUpoutDetail = "alibaba.alihealth.drugtrace.top.yljg.listupout.detail";
+    private const string ApiYljgQueryRelation = "alibaba.alihealth.drugtrace.top.yljg.query.relation";
+
+    private static readonly HashSet<string> IdempotentMethods = new(StringComparer.Ordinal)
+    {
+        ApiYljgListUpout,
+        ApiYljgListUpoutDetail,
+        ApiYljgQueryRelation,
+    };
+
+    private readonly HttpClient _http;
+    private readonly TimeProvider _time;
+
+    public MsfxApiClient(IHttpClientFactory httpClientFactory, TimeProvider timeProvider)
+    {
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
+        _http = httpClientFactory.CreateClient(HttpClientName);
+        _time = timeProvider ?? TimeProvider.System;
+    }
+
+    internal MsfxApiClient(HttpMessageHandler handler, TimeProvider? timeProvider = null)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        _http = new HttpClient(handler) { Timeout = HttpTimeout };
+        _time = timeProvider ?? TimeProvider.System;
+    }
+
     private sealed record RelationBatchResult(
         Dictionary<string, HashSet<string>> ChildrenMap,
         Dictionary<string, int> CodeLevels,
         HashSet<string> LevelOneCodes);
 
-    private const string ApiYljgListUpout = "alibaba.alihealth.drugtrace.top.yljg.listupout";
-    private const string ApiYljgListUpoutDetail = "alibaba.alihealth.drugtrace.top.yljg.listupout.detail";
-    private const string ApiYljgQueryRelation = "alibaba.alihealth.drugtrace.top.yljg.query.relation";
+    internal static bool IsIdempotentMethod(string method)
+        => IdempotentMethods.Contains((method ?? string.Empty).Trim());
 
     public async Task<MsfxApiCallResult> ExecuteRawAsync(
         MsfxApiOptions options,
@@ -73,10 +111,14 @@ public sealed class MsfxApiClient : IMsfxApiClient
         {
             Content = new FormUrlEncodedContent(parameters)
         };
+        if (IsIdempotentMethod(methodName))
+        {
+            req.Options.Set(IdempotentKey, true);
+        }
 
         try
         {
-            using var resp = await Http.SendAsync(req, ct).ConfigureAwait(false);
+            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             var (bizCode, bizMsg, bizOk) = ParseBizStatus(body);
             var summary = resp.IsSuccessStatusCode
@@ -91,6 +133,10 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 RequestId: ParseRequestId(body),
                 ResponseText: body,
                 RequestTrace: BuildRequestTrace(gateway, parameters));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -799,14 +845,15 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
     }
 
-    private static SortedDictionary<string, string> BuildSignedParameters(
+    private SortedDictionary<string, string> BuildSignedParameters(
         string appKey,
         string appSecret,
         string session,
         string methodName,
         IReadOnlyDictionary<string, string?> bizParams)
     {
-        var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        // 网关签名时间戳用本机本地时间，不用 UTC
+        var now = _time.GetLocalNow().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
         var parameters = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
             ["app_key"] = appKey,
