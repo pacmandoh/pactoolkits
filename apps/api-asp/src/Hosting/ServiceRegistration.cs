@@ -38,13 +38,16 @@ public static class ServiceRegistration
         services.AddPacToolkitsInfrastructure(config);
         services.AddPacToolkitsApplication();
 
-        // API：首检前默认 Block；Desktop 仍用 Application 默认的 Clear
+        // API：首检前默认 Block；Desktop 用 Application 默认的 Clear
         services.Replace(ServiceDescriptor.Singleton<IDbAccessGuard>(_ =>
         {
             var guard = new DbAccessGuard();
             guard.Block(SchemaBoundsAccessHost.NotReadyReason);
             return guard;
         }));
+
+        // 业务写幂等落库；MemoryCommandDedup 仅测试用
+        services.AddSingleton<ICommandDedup, PgCommandDedup>();
 
         services.AddSingleton<IApiHealth, ApiHealth>();
         services.AddHostedService<SchemaBoundsAccessHost>();

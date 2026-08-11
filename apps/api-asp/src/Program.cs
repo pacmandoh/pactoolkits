@@ -40,6 +40,10 @@ app.MapPing();
 app.MapSystemInfo();
 app.MapChanges();
 app.MapDashboard();
+app.MapCatalog();
+app.MapDrugs();
+app.MapTraceCodes();
+app.MapInventory();
 
 app.Run();
 
