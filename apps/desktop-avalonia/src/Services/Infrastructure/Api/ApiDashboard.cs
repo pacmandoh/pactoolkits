@@ -7,11 +7,10 @@ using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Serialization;
-using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>经 PacApi 实现 Dashboard 用例；不做业务聚合</summary>
+/// <summary>经 PacApi 的 Dashboard</summary>
 public sealed class ApiDashboard : IDashboardService
 {
     private readonly PacApiClient _api;
@@ -103,32 +102,6 @@ public sealed class ApiDashboard : IDashboardService
             pageSize,
             PacJsonContext.Default.PagedResultAbnormalRowDto,
             ct);
-
-    public async Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct)
-    {
-        var body = await _api.GetJsonAsync(
-                () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/dashboard/drug-ids")),
-                PacJsonContext.Default.DashboardStringListResponse,
-                ct)
-            .ConfigureAwait(false)
-            ?? throw new InvalidOperationException("empty dashboard drug-ids response");
-        return body.Items;
-    }
-
-    public async Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct)
-    {
-        var key = InputNormalizer.Normalize(drugId)
-                  ?? throw new ArgumentException("drugId is required", nameof(drugId));
-
-        var path = "/v1/dashboard/drugs/" + Uri.EscapeDataString(key) + "/specs";
-        var body = await _api.GetJsonAsync(
-                () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve(path)),
-                PacJsonContext.Default.DashboardStringListResponse,
-                ct)
-            .ConfigureAwait(false)
-            ?? throw new InvalidOperationException("empty dashboard specs response");
-        return body.Items;
-    }
 
     private async Task<PagedResult<T>> GetPageAsync<T>(
         string path,

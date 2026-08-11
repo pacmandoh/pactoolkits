@@ -58,4 +58,7 @@ public abstract partial class AppPageBase
 
     internal Task TestOnPageActivatedAsync()
         => OnPageActivatedAsync();
+
+    internal bool TestIsLookupCatalogSuspended()
+        => IsLookupCatalogSuspended();
 }

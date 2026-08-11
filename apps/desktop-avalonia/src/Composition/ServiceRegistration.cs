@@ -39,9 +39,12 @@ public static class ServiceRegistration
         services.AddDesktopInfrastructure(config);
         services.AddPacToolkitsInfrastructure(config);
         services.AddPacToolkitsApplication();
-        // Dashboard 与变更水位使用 PacApi 实现
         services.Replace(ServiceDescriptor.Singleton<IDashboardService, ApiDashboard>());
         services.Replace(ServiceDescriptor.Singleton<IChangeWatermarkService, ApiChangeWatermark>());
+        services.Replace(ServiceDescriptor.Singleton<ILookupCatalogService, ApiLookupCatalog>());
+        services.Replace(ServiceDescriptor.Singleton<IDrugIndexService, ApiDrugIndex>());
+        services.Replace(ServiceDescriptor.Singleton<IScanCodeService, ApiScanCode>());
+        services.Replace(ServiceDescriptor.Singleton<IInventoryOverviewService, ApiInventory>());
         services.AddUiShell();
         services.AddDesktopMsfxUpdate();
         services.AddDesktopWorkspace();

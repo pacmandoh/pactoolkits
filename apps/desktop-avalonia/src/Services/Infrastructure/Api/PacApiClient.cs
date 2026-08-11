@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -260,6 +261,7 @@ public sealed class PacApiClient : IDisposable
         string? code = null;
         string? traceId = null;
         long? currentVersion = null;
+        IReadOnlyList<StockRowEditConflict>? conflicts = null;
         TimeSpan? retryAfter = null;
 
         if (response.Headers.RetryAfter?.Delta is { } delta)
@@ -289,6 +291,7 @@ public sealed class PacApiClient : IDisposable
                     code = ReadString(root, "code");
                     traceId = ReadString(root, "traceId");
                     currentVersion = ReadInt64(root, "currentVersion");
+                    conflicts = ReadConflicts(root);
 
                     if (root.TryGetProperty("status", out var statusEl)
                         && statusEl.TryGetInt32(out var bodyStatus)
@@ -320,10 +323,28 @@ public sealed class PacApiClient : IDisposable
             // 仅容忍响应正文解析失败；调用方取消与体积超限已在上方重抛
         }
 
-        var problem = new PacApiProblem(status, code, title, detail, traceId, retryAfter, currentVersion);
+        var problem = new PacApiProblem(
+            status,
+            code,
+            title,
+            detail,
+            traceId,
+            retryAfter,
+            currentVersion,
+            conflicts);
         return status == 409
             ? new PacApiConflictException(problem)
             : new PacApiException(problem);
+    }
+
+    private static IReadOnlyList<StockRowEditConflict>? ReadConflicts(JsonElement root)
+    {
+        if (!root.TryGetProperty("conflicts", out var el) || el.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        return JsonSerializer.Deserialize(el, PacJsonContext.Default.IReadOnlyListStockRowEditConflict);
     }
 
     private static string? ReadString(JsonElement root, string name)

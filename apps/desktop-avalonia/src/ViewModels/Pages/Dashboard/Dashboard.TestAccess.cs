@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
@@ -14,9 +15,10 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class Dashboard
 {
     // 单测构造：不触发自动 Initialize
-    internal Dashboard(IDashboardService dashboard)
+    internal Dashboard(IDashboardService dashboard, ILookupCatalogService? lookup = null)
     {
         _dashboard = dashboard;
+        _lookup = lookup ?? NoopLookup.Instance;
         _toast = NoopToast.Instance;
         _clientAlias = NoopClientAlias.Instance;
         _nav = new PageNavigationService();
@@ -94,6 +96,43 @@ public sealed partial class Dashboard
         }
 
         public void Reload()
+        {
+        }
+    }
+
+    private sealed class NoopLookup : ILookupCatalogService
+    {
+        public static readonly NoopLookup Instance = new();
+
+        public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)
+            => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+        public Task<IReadOnlyList<string>> GetSpecsByDrugAsync(
+            string drugId,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+        public Task<string?> ResolveCanonicalDrugIdAsync(
+            string? input,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult<string?>(null);
+
+        public Task<int?> GetQtyAsync(
+            string? drugId,
+            string? spec,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult<int?>(null);
+
+        public Task<bool> IsDeprecatedDrugIdAsync(
+            string? drugId,
+            CancellationToken ct,
+            bool forceRefresh = false)
+            => Task.FromResult(false);
+
+        public void InvalidateDrugCatalog()
         {
         }
     }

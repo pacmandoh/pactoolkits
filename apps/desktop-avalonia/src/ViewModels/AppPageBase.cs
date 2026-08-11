@@ -677,7 +677,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     protected bool IsLookupCatalogSuspended()
-        => IsDbAccessBlocked(out _);
+        => RequiresLocalDbForReload && IsDbAccessBlocked(out _);
 
     protected virtual void OnLookupCatalogSuspended()
     {
