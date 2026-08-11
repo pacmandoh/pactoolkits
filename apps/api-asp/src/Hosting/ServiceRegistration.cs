@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using PacToolkits.Api.Auth;
 using PacToolkits.Api.Changes;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Diagnostics;
 using PacToolkits.Application.Services;
-using PacToolkits.Core;
 using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Api.Hosting;
@@ -18,15 +18,10 @@ public static class ServiceRegistration
         services.AddPacToolkitsProblemDetails();
         services.AddPacToolkitsAuth(config);
 
+        services.AddSingleton<IValidateOptions<SchemaBoundsOptions>, SchemaBoundsOptionsValidator>();
         services
             .AddOptions<SchemaBoundsOptions>()
             .Bind(config.GetSection(SchemaBoundsOptions.SectionName))
-            .Validate(
-                o => IsReleaseSemVer(o.MinDbSchema) && IsReleaseSemVer(o.MaxDbSchema),
-                "SchemaBounds:MinDbSchema and MaxDbSchema must be valid release SemVer (X.Y.Z)")
-            .Validate(
-                o => IsOrderedRange(o.MinDbSchema, o.MaxDbSchema),
-                "SchemaBounds:MinDbSchema must be less than or equal to MaxDbSchema")
             .ValidateOnStart();
 
         services
@@ -57,18 +52,5 @@ public static class ServiceRegistration
         services.AddHostedService<PostgresNotifyListener>();
 
         return services;
-    }
-
-    private static bool IsReleaseSemVer(string? text)
-        => SemVer.TryParse(text, out var value) && value.PreRelease is null;
-
-    private static bool IsOrderedRange(string? minText, string? maxText)
-    {
-        if (!SemVer.TryParse(minText, out var min) || !SemVer.TryParse(maxText, out var max))
-        {
-            return false;
-        }
-
-        return SemVer.Compare(min, max) <= 0;
     }
 }
