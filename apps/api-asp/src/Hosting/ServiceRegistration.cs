@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using PacToolkits.Api.Auth;
 using PacToolkits.Api.Changes;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Diagnostics;
 using PacToolkits.Application.Services;
 using PacToolkits.Core;
 using PacToolkits.Infrastructure.Database;
@@ -13,6 +14,7 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddPacToolkitsApi(this IServiceCollection services, IConfiguration config)
     {
+        PacActivities.EnsureListening();
         services.AddPacToolkitsProblemDetails();
         services.AddPacToolkitsAuth(config);
 
@@ -41,7 +43,7 @@ public static class ServiceRegistration
         services.AddPacToolkitsInfrastructure(config);
         services.AddPacToolkitsApplication();
 
-        // API：数据面默认 not_ready，直至 SchemaBoundsAccessHost 首检；Desktop 仍用 Application 默认 Clear
+        // API：首检前默认 Block；Desktop 仍用 Application 默认的 Clear
         services.Replace(ServiceDescriptor.Singleton<IDbAccessGuard>(_ =>
         {
             var guard = new DbAccessGuard();

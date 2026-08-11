@@ -31,7 +31,7 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 | JWT | HMAC-SHA256；`Auth:Jwt:SigningKey` ≥32；**改密钥须重启** |
 | Policy | `read` / `write` / `system.status`（配置未知 scope 则启动失败） |
 | Header | `Auth:HeaderName`（默认 `X-Api-Key`） |
-| 启动校验 | Production 至少要有一个 Enabled client（合法 hash + 至少一个已知 scope）；`dev` 等非 Production 允许空 `Clients` |
+| 启动校验 | Production 至少要有一个 Enabled client（合法 hash，且至少一个已知 scope）；`dev` 等非 Production 允许空 `Clients` |
 
 ## 本地开发
 
@@ -94,7 +94,7 @@ location / {
 
 上线前在真实中转拓扑手工验证：
 
-1. 路径经中转 → Nginx → API（与生产一致）
+1. 路径经中转、再经 Nginx 到 API（与生产一致）
 2. 约 10 台终端同时冷启动，或同分钟内密集换票
 3. 记录 429 次数与成功换票数
 4. 直连 API（绕过 Nginx）并带伪造 `X-Forwarded-For`：限流键仍应为直连 IP，不得因伪造头被当成多个来源

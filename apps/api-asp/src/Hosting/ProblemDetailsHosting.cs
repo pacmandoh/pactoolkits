@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using PacToolkits.Application.Diagnostics;
 
 namespace PacToolkits.Api.Hosting;
 
@@ -19,7 +19,12 @@ public sealed record ApiProblem(
     int Status,
     string Code,
     string Title,
-    string TraceId);
+    string TraceId)
+{
+    /// <summary>有 Activity 用 W3C traceId，否则用 TraceIdentifier</summary>
+    public static string ResolveTraceId(HttpContext context)
+        => PacTrace.CurrentTraceId ?? context.TraceIdentifier;
+}
 
 public static class ProblemDetailsHosting
 {
@@ -30,7 +35,7 @@ public static class ProblemDetailsHosting
             options.CustomizeProblemDetails = ctx =>
             {
                 ctx.ProblemDetails.Extensions["traceId"] =
-                    Activity.Current?.Id ?? ctx.HttpContext.TraceIdentifier;
+                    ApiProblem.ResolveTraceId(ctx.HttpContext);
                 if (!ctx.ProblemDetails.Extensions.ContainsKey("code"))
                 {
                     ctx.ProblemDetails.Extensions["code"] = ctx.ProblemDetails.Status switch

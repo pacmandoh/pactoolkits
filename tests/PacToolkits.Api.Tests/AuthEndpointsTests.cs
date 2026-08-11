@@ -91,20 +91,29 @@ public sealed class AuthEndpointsTests
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
 
-        var saw429 = false;
+        HttpResponseMessage? limited = null;
         for (var i = 0; i < 40; i++)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/auth/token");
             request.Headers.Add(AuthOptions.DefaultHeaderName, "wrong-key");
-            using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+            var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
-                saw429 = true;
+                limited = response;
                 break;
             }
+
+            response.Dispose();
         }
 
-        Assert.True(saw429);
+        Assert.NotNull(limited);
+        using (limited)
+        {
+            Assert.NotNull(limited.Headers.RetryAfter);
+            Assert.True(
+                limited.Headers.RetryAfter.Delta is { } delta && delta > TimeSpan.Zero,
+                "token rate limit 429 should carry Retry-After");
+        }
     }
 
     [Fact]

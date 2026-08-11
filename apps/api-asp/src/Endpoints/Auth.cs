@@ -1,4 +1,5 @@
 using PacToolkits.Api.Auth;
+using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Api.Endpoints;
 
@@ -28,12 +29,6 @@ public static class AuthEndpoints
 
         var (accessToken, expiresIn) = issuer.Issue(clientId, scopes);
         logger.LogInformation("auth.token_issued clientId={ClientId}", clientId);
-        return Results.Ok(new TokenResponse(accessToken, "Bearer", expiresIn, clientId));
+        return Results.Ok(new PacApiTokenResponse(accessToken, "Bearer", expiresIn, clientId));
     }
 }
-
-public sealed record TokenResponse(
-    string AccessToken,
-    string TokenType,
-    int ExpiresIn,
-    string ClientId);

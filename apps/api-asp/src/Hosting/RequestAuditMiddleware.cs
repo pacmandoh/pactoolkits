@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using PacToolkits.Api.Auth;
+using PacToolkits.Application.Diagnostics;
 
 namespace PacToolkits.Api.Hosting;
 
-/// <summary>请求审计字段：traceId、clientId、method/path、status、耗时；禁止写认证头</summary>
+/// <summary>请求审计：traceId、clientId、方法与路径、status、耗时；禁止写认证头</summary>
 public sealed class RequestAuditMiddleware
 {
     private readonly RequestDelegate _next;
@@ -26,15 +27,16 @@ public sealed class RequestAuditMiddleware
         finally
         {
             sw.Stop();
-            var traceId = context.TraceIdentifier;
             var clientId = context.User.FindFirstValue(JwtTokenIssuer.ClientIdClaim) ?? "-";
             _logger.LogInformation(
-                "http request method={Method} path={Path} status={Status} clientId={ClientId} traceId={TraceId} durationMs={DurationMs}",
+                "http request method={Method} path={Path} status={Status} clientId={ClientId} traceId={TraceId} spanId={SpanId} requestId={RequestId} durationMs={DurationMs}",
                 context.Request.Method,
                 context.Request.Path.Value,
                 context.Response.StatusCode,
                 clientId,
-                traceId,
+                PacTrace.CurrentTraceId ?? "-",
+                PacTrace.CurrentSpanId ?? "-",
+                context.TraceIdentifier,
                 sw.ElapsedMilliseconds);
         }
     }
