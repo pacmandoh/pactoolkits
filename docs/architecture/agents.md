@@ -44,7 +44,7 @@ Agents/
 ```
 
 **实时控制走命名管道**（`desired` / `quit` / status 推送 / `moduleFailed`）。  
-`host.desired.json` / `host.status.json` / `module.ready` 是协议文件镜像，不是 Desktop 与 Host 的双写控制协议。无旧 control-file（`host.control` / `module.control`）与 status schema v1。
+`host.desired.json` / `host.status.json` / `module.ready` 是协议文件镜像，不是 Desktop 与 Host 的双写控制协议。协议不含 `host.control` / `module.control`，也不使用 status schema v1。
 
 ## 控制与观测
 

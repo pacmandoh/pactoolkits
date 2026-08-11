@@ -1,8 +1,8 @@
 # PacToolkits API
 
-`apps/api-asp`（`PacToolkits.Api`）是站点业务 HTTP 宿主：鉴权、健康检查、变更流、域用例路由。业务数据经 Application 与 Infrastructure 访问 PostgreSQL。Desktop 与 Agents **最终经本 API 读写业务数据**，不长期直连 Pg。
+`apps/api-asp`（`PacToolkits.Api`）是站点业务 HTTP 宿主：鉴权、健康检查、变更流、域用例路由。业务数据经 Application 与 Infrastructure 访问 PostgreSQL。HTTP 按**用例级命令**暴露，不按 Repository 方法机械映射。
 
-迁移按 **用例级 HTTP 命令** 推进，不是把每个 Repository 方法包成 HTTP。
+**目标**：Desktop 业务数据与变更消费只经本 API，不再依赖 `packages/infrastructure` / 本机 Pg。
 
 ## 职责边界
 
@@ -47,11 +47,13 @@ GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 
 ## 变更流
 
-数据变更仍 `pg_notify('pactoolkits_change', topic)`。
+数据变更经 `pg_notify('pactoolkits_change', topic)`。
 
-**当前 Desktop**：业务页与变更流仍走本机 Infrastructure（`ChangeWatermarkService` 的 LISTEN 与 watermark 轮询），**不经过** API。Desktop 与 API 可同时 LISTEN 同一 channel（PostgreSQL 允许多会话）。不要只把监控或 watermark 改走 API、业务却仍直连库；等各业务域都有完整 HTTP 接入后，再把业务数据改走 API。
+**Desktop 现状**：业务页与变更流经本机 Infrastructure（`ChangeWatermarkService` 的 LISTEN 与 watermark 轮询），不经 API SSE。Desktop 与 API 可同时 LISTEN 同一 channel（PostgreSQL 允许多会话）。
 
-Desktop 侧 `PacApiClient` 经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。并发 401 会记下触发时的 Bearer；进锁后若已换新票则复用，不连打 `/token`。
+**Desktop 目标**：业务查询/写与变更消费只经 API；不再引用 Infrastructure、不再本机 LISTEN。同一域查询/写与变更消费须走同一路径。
+
+Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。并发 401 会记下触发时的 Bearer；进锁后若已换新票则复用，不连打 `/token`。共享 HTTP DTO 在 `packages/application/DTOs/Api/`。
 
 异常约定：
 
@@ -59,9 +61,9 @@ Desktop 侧 `PacApiClient` 经 `IHttpClientFactory` 注册三类命名客户端�
 - 裸 `SendAsync`、`SendSseAsync` 仍返回 `HttpResponseMessage`，由调用方自己 `EnsureSuccessAsync` 或读状态（例如 `ApiChangeWatermark`）
 - 不要让裸 `HttpRequestException` 从 `PacApiClient` 往外冒
 
-`ApiChangeWatermark` 已实现但尚未挂进 DI。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。业务页改走 API 时再一并注册。
+`ApiChangeWatermark` 实现经 SSE + watermarks 的 `IChangeWatermarkService`；Desktop DI 注册的是本机 `ChangeWatermarkService`。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。经 PacApi 消费变更的页面须保留突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）。
 
-**API 侧（已实现，可单独在本机验证）**：
+**API 侧**：
 
 ```text
 Pg NOTIFY
@@ -74,8 +76,6 @@ Pg NOTIFY
 - LISTEN 侧按 topic 记 pending，经短合并窗再 `Publish`（NOTIFY 可合并或丢弃；**version 以 watermark 为准**）
 - SSE 在 JWT `exp` 时由服务端关闭；客户端换票后重连，并 GET watermarks 补偿（勿只信 SSE 推送）
 - `Changes:ListenEnabled`：是否启 LISTEN（测试可关）
-
-Desktop 将来改走 API 时：页面仍须保留突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新。
 
 ## 审计
 
@@ -90,20 +90,19 @@ Desktop 将来改走 API 时：页面仍须保留突发合并、编辑中暂缓�
 
 本地密钥、Nginx 片段与换票限流手工验证见 [API README](../../apps/api-asp/README.md)。
 
-## 迁移原则（其余域）
-
-### 红线
+## 架构红线
 
 1. 不按 Repo / SQL 机械暴露 HTTP
 2. 需要事务的写操作在 API 内完整提交（客户端不跨请求拼事务）
 3. 实时变更走 SSE 与 watermark；不以常规定时轮询作主路径
 4. Agents / AHK 禁止通用 `execute-sql`；只走专用业务 API
 5. 关键写具备幂等（CommandId / 业务键）
-6. 按域单路径切换；禁止双写，也不要一次砍掉全部旧路径
+6. 同一域只保留一条数据路径；禁止双写
 
 ### Desktop 业务数据
 
-页面查询/写库与（当前）变更 LISTEN 均经本机 Infrastructure。变更通知与域数据改走 HTTP 时按域切换；接入时保留页面可用性三层（见 [desktop-state.md](./desktop-state.md)）。
+- **目标**：Desktop 不依赖 Infrastructure；业务数据与变更流只经 API，并保留页面可用性三层（见 [desktop-state.md](./desktop-state.md)）
+- **现状**：页面查询、写库与变更 LISTEN 经本机 Infrastructure；经 PacApi 的域须查询/写与变更消费同侧
 
 ### 配置入口
 
@@ -129,10 +128,10 @@ Desktop 访问 API 的密钥与地址由环境变量或受保护配置提供，*
 
 Options 规则：
 
-- `BaseUrl` 与 `ApiKey` 都空：校验通过，表示尚未启用
+- `BaseUrl` 与 `ApiKey` 都空：校验通过，表示未启用 PacApi
 - 只配一侧：失败
 - 两侧都有：须为绝对 URI；非 loopback 须 HTTPS；`HeaderName` 须是合法 HTTP field-name；`BaseUrl` 不得带 query、fragment、userinfo
 
-`PacApiClient` 与 `PacApiContractGate` 启动时读 `IOptions<PacApiOptions>` 快照；改环境变量或配置文件不会热更新，须重启 Desktop。全面切到 API 后，再改为两侧启动必填并 `ValidateOnStart`。
+`PacApiClient` 与 `PacApiContractGate` 启动时读 `IOptions<PacApiOptions>` 快照；改环境变量或配置文件不会热更新，须重启 Desktop。
 
 App DI 在 `IReleaseVersionService` 之后注册 `IPacApiContractGate`。已配置时，业务请求进 Jwt Handler 前会先 GET `/v1/system/info`，用 Desktop 清单的 `minApiContract`、`maxApiContract` 对照 API 的 `contractVersion`；对不上就拦下业务请求。
