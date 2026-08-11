@@ -2,8 +2,6 @@
 
 `apps/api-asp`（`PacToolkits.Api`）是站点业务 HTTP 宿主：鉴权、健康检查、变更流、域用例路由。业务数据经 Application 与 Infrastructure 访问 PostgreSQL。HTTP 按**用例级命令**暴露，不按 Repository 方法机械映射。
 
-**目标**：Desktop 业务数据与变更消费只经本 API，不再依赖 `packages/infrastructure` / 本机 Pg。
-
 ## 职责边界
 
 | 层                        | 做什么                                                                     | 不做什么                           |
@@ -22,6 +20,7 @@ POST /v1/auth/token   Header X-Api-Key，换短期 Bearer JWT
 GET  /health          匿名探活；仅 status ok/unavailable
 GET  /v1/system/info  Bearer system.status；product、apiVersion、contractVersion
 GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
+GET  /v1/dashboard/*  Bearer read；snapshot / transactions / trends / entries / abnormal / drug-ids / drugs/{drugId}/specs
 ```
 
 - **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）。ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白
@@ -54,9 +53,7 @@ GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 
 数据变更经 `pg_notify('pactoolkits_change', topic)`。
 
-**Desktop 现状**：业务页与变更流经本机 Infrastructure（`ChangeWatermarkService` 的 LISTEN 与 watermark 轮询），不经 API SSE。Desktop 与 API 可同时 LISTEN 同一 channel（PostgreSQL 允许多会话）。
-
-**Desktop 目标**：业务查询/写与变更消费只经 API；不再引用 Infrastructure、不再本机 LISTEN。同一域查询/写与变更消费须走同一路径。
+Desktop：变更水位统一经 `ApiChangeWatermark`（SSE + watermarks）；Dashboard 查询与筛选目录经 `ApiDashboard`；其它业务页的查询/写仍经本机 Infrastructure。
 
 Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。401 且 Bearer 对应当前缓存票时清票；GET/HEAD 换票后重放（并发换票进锁复用，不连打 `/token`）；写命令不重放。共享 HTTP DTO 在 `packages/application/DTOs/Api/`。
 
@@ -69,7 +66,7 @@ Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFa
 - 裸 `SendAsync`、`SendSseAsync` 返回 `HttpResponseMessage`，由调用方 `EnsureSuccessAsync` 或自读状态（如 `ApiChangeWatermark`）
 - 不向外抛裸 `HttpRequestException`
 
-`ApiChangeWatermark` 实现经 SSE + watermarks 的 `IChangeWatermarkService`；Desktop DI 注册的是本机 `ChangeWatermarkService`。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。经 PacApi 消费变更的页面须保留突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）。
+`ApiChangeWatermark` 为 Desktop 唯一 `IChangeWatermarkService`（SSE + watermarks）。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。消费变更的页面须具备突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）。
 
 **API 侧**：
 
@@ -109,8 +106,8 @@ Pg NOTIFY
 
 ### Desktop 业务数据
 
-- **目标**：Desktop 不依赖 Infrastructure；业务数据与变更流只经 API，并保留页面可用性三层（见 [desktop-state.md](./desktop-state.md)）
-- **现状**：页面查询、写库与变更 LISTEN 经本机 Infrastructure；经 PacApi 的域须查询/写与变更消费同侧
+- 变更水位与 Dashboard 查询走 PacApi；其它业务页的查询/写仍经本机 Infrastructure
+- 页面可用性三层见 [desktop-state.md](./desktop-state.md)
 
 ### 配置入口
 
@@ -136,7 +133,7 @@ Desktop 访问 API 的密钥与地址由环境变量或受保护配置提供，*
 
 Options 规则：
 
-- `BaseUrl` 与 `ApiKey` 都空：校验通过，表示未启用 PacApi
+- `BaseUrl` 与 `ApiKey` 都空：校验通过；此时变更流不启动，Dashboard 经 PacApi 的查询也不可用
 - 只配一侧：失败
 - 两侧都有：须为绝对 URI；非 loopback 须 HTTPS；`HeaderName` 须是合法 HTTP field-name；`BaseUrl` 不得带 query、fragment、userinfo
 
