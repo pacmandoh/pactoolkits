@@ -119,20 +119,28 @@ public sealed class AuthEndpointsTests
     [Fact]
     public void Host_startup_rejects_enabled_client_without_hash()
     {
-        using var factory = new EmptyHashClientFactory();
-        var ex = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
-        Assert.Contains("ApiKeyHash", Flatten(ex), StringComparison.Ordinal);
+        var factory = new EmptyHashClientFactory();
+        try
+        {
+            var ex = Assert.ThrowsAny<Exception>(() => _ = factory.Server);
+            Assert.Contains("ApiKeyHash", ExceptionText(ex), StringComparison.Ordinal);
+        }
+        finally
+        {
+            factory.Dispose();
+        }
     }
 
-    private static string Flatten(Exception ex)
+    private static string ExceptionText(Exception ex)
     {
-        var parts = new List<string>();
-        for (var cur = ex; cur is not null; cur = cur.InnerException)
+        if (ex is AggregateException aggregate)
         {
-            parts.Add(cur.Message);
+            return string.Join(
+                " | ",
+                aggregate.Flatten().InnerExceptions.Select(static e => e.ToString()));
         }
 
-        return string.Join(" | ", parts);
+        return ex.ToString();
     }
 
     private sealed class DisabledClientFactory : WebApplicationFactory<Program>

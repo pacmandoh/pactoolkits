@@ -104,26 +104,46 @@ public sealed class SchemaBoundsGateTests
     }
 
     [Theory]
-    [InlineData("not-a-version", "1.2.25")]
-    [InlineData("1.2.25", "01.2.25")]
-    [InlineData("1.2.25-beta", "1.2.25")]
-    [InlineData("1.2.26", "1.2.25")]
-    public void Host_startup_rejects_invalid_schema_bounds(string min, string max)
+    [InlineData("not-a-version", "1.2.25", SchemaBoundsOptionsValidator.InvalidSemVerMessage)]
+    [InlineData("1.2.25", "01.2.25", SchemaBoundsOptionsValidator.InvalidSemVerMessage)]
+    [InlineData("1.2.25-beta", "1.2.25", SchemaBoundsOptionsValidator.InvalidSemVerMessage)]
+    [InlineData("1.2.26", "1.2.25", SchemaBoundsOptionsValidator.OutOfOrderMessage)]
+    public void Schema_bounds_validator_rejects_invalid(string min, string max, string expected)
     {
-        using var factory = new InvalidSchemaBoundsFactory(min, max);
-        var ex = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
-        Assert.Contains("SchemaBounds", Flatten(ex), StringComparison.Ordinal);
+        var result = new SchemaBoundsOptionsValidator().Validate(
+            name: null,
+            new SchemaBoundsOptions { MinDbSchema = min, MaxDbSchema = max });
+
+        Assert.True(result.Failed);
+        Assert.Contains(expected, result.FailureMessage, StringComparison.Ordinal);
     }
 
-    private static string Flatten(Exception ex)
+    [Fact]
+    public void Host_startup_rejects_invalid_schema_bounds()
     {
-        var parts = new List<string>();
-        for (var cur = ex; cur is not null; cur = cur.InnerException)
+        // WebApplicationFactory 启动失败时偶发 ObjectDisposedException 盖住校验异常；规则见上方 validator 用例
+        var factory = new InvalidSchemaBoundsFactory("1.2.25", "01.2.25");
+        try
         {
-            parts.Add(cur.Message);
+            var ex = Assert.ThrowsAny<Exception>(() => _ = factory.Server);
+            Assert.Contains("SchemaBounds", ExceptionText(ex), StringComparison.Ordinal);
+        }
+        finally
+        {
+            factory.Dispose();
+        }
+    }
+
+    private static string ExceptionText(Exception ex)
+    {
+        if (ex is AggregateException aggregate)
+        {
+            return string.Join(
+                " | ",
+                aggregate.Flatten().InnerExceptions.Select(static e => e.ToString()));
         }
 
-        return string.Join(" | ", parts);
+        return ex.ToString();
     }
 
     /// <summary>去掉 SchemaBoundsAccessHost，保留启动时的 not_ready 阻断</summary>
