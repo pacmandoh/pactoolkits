@@ -42,7 +42,12 @@ GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
   - `IDbAccessGuard` 默认 `schema_bounds:not_ready`；`SchemaBoundsAccessHost` 在接受请求前完成首检
   - schema 兼容才放行业务库访问；schema 不合或库不可达均为 **503**
   - 中间件拦默认 `/v1` 业务路由（含 `changes/*`）；不拦 `/health`、换票、`/v1/ping`、`/v1/system/*`
-- 错误体：业务路径经 ProblemDetails 时常含 `status` / `code` / `title` / `traceId`；换票失败多为框架最小 401；换票限流 429 带统一 `ApiProblem` 与 `Retry-After`
+- 错误体：业务路径 ProblemDetails 含 `status` / `code` / `title` / `detail` / `traceId`；OCC 另带 `currentVersion`；限流或短暂不可用可带 `Retry-After`
+- 状态码：参数 400、未认证/无权限 401/403、不存在 404、OCC/状态冲突 409、限流 429、库或 schema 不可用 503
+- 写命令（POST/PUT/DELETE）要求头 `X-Command-Id`（非空 UUID）
+- 幂等：可靠业务键，或持久化 `ICommandDedup`（Claim、Complete、Release）。命令身份为 `clientId`、`operation`、`commandId`；`requestDigest` 不一致为 `PayloadMismatch`。宿主默认不注册 `ICommandDedup`；`MemoryCommandDedup` 仅测试或显式注入，不满足业务写幂等
+- Desktop `PacApiClient`：Resilience 与 401 换票重放仅用于 GET/HEAD；写命令不重试、不因 401 重放。401 且 Bearer 对应当前缓存票时清票；换票失败后缓存为空；显式 `CommandId` 不得为 `Guid.Empty`
+- `ApiProblems` 构造业务 ProblemDetails（含 `TryGetCommandId`）；换票失败多为框架最小 401；换票限流 429 带统一 `ApiProblem` 与 `Retry-After`
 - 生产不返回内部路径与敏感配置
 
 ## 变更流
@@ -53,13 +58,16 @@ GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 
 **Desktop 目标**：业务查询/写与变更消费只经 API；不再引用 Infrastructure、不再本机 LISTEN。同一域查询/写与变更消费须走同一路径。
 
-Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。并发 401 会记下触发时的 Bearer；进锁后若已换新票则复用，不连打 `/token`。共享 HTTP DTO 在 `packages/application/DTOs/Api/`。
+Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。401 且 Bearer 对应当前缓存票时清票；GET/HEAD 换票后重放（并发换票进锁复用，不连打 `/token`）；写命令不重放。共享 HTTP DTO 在 `packages/application/DTOs/Api/`。
 
 异常约定：
 
-- `GetJsonAsync`、`EnsureSuccessAsync`、换票路径：非 2xx 或连不上 API 时抛 `PacApiException`（带 ProblemDetails 的 `code`、`traceId`；连不上时 `code=transport`）
-- 裸 `SendAsync`、`SendSseAsync` 仍返回 `HttpResponseMessage`，由调用方自己 `EnsureSuccessAsync` 或读状态（例如 `ApiChangeWatermark`）
-- 不要让裸 `HttpRequestException` 从 `PacApiClient` 往外冒
+- `GetJsonAsync` / `PostJsonAsync` / `PutJsonAsync` / `DeleteAsync`、`EnsureSuccessAsync`、换票：非 2xx 或不可达时抛 `PacApiException`（`code`、`traceId`、可选 `currentVersion`；不可达 `transport`；超时 `timeout`）
+- HTTP 409 为 `PacApiConflictException`（含 `currentVersion`）
+- 写方法带非空 `X-Command-Id`；业务 JSON、错误正文与换票响应受正文大小上限（超出 `response_too_large`）
+- 调用方取消原样抛出；超时与断网为 `PacApiException`
+- 裸 `SendAsync`、`SendSseAsync` 返回 `HttpResponseMessage`，由调用方 `EnsureSuccessAsync` 或自读状态（如 `ApiChangeWatermark`）
+- 不向外抛裸 `HttpRequestException`
 
 `ApiChangeWatermark` 实现经 SSE + watermarks 的 `IChangeWatermarkService`；Desktop DI 注册的是本机 `ChangeWatermarkService`。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。经 PacApi 消费变更的页面须保留突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）。
 
@@ -96,7 +104,7 @@ Pg NOTIFY
 2. 需要事务的写操作在 API 内完整提交（客户端不跨请求拼事务）
 3. 实时变更走 SSE 与 watermark；不以常规定时轮询作主路径
 4. Agents / AHK 禁止通用 `execute-sql`；只走专用业务 API
-5. 关键写具备幂等（CommandId / 业务键）
+5. 关键写具备幂等（CommandId + 持久化去重，或可靠业务键）；禁止只靠进程内存
 6. 同一域只保留一条数据路径；禁止双写
 
 ### Desktop 业务数据
