@@ -30,11 +30,7 @@ internal static class DbConnectionDiagnostics
             return (reason, null);
         }
 
-        if (root is TimeoutException)
-        {
-            return ("连接超时：网络不通/服务器无响应", null);
-        }
-
+        // 先认 Postgres；探测超时是 TimeoutException(inner: OCE)，勿盖住库侧错误
         var pe = FindInChain<PostgresException>(ex);
         if (pe is not null)
         {
@@ -47,6 +43,11 @@ internal static class DbConnectionDiagnostics
                 _ => $"数据库错误：{pe.SqlState}（详见日志）"
             };
             return (reason, pe.SqlState);
+        }
+
+        if (FindInChain<TimeoutException>(ex) is not null)
+        {
+            return ("连接超时：网络不通/服务器无响应", null);
         }
 
         if (ex is NpgsqlException)
