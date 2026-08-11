@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.TextSearch;
@@ -272,7 +273,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             return new PagedResult<LowStockRowDto>(list, totalCount);
         }, ct);
 
-    public Task<long> UpdateStockRowAsync(
+    private Task<long> UpdateStockRowAsync(
         string matchTraceCode,
         long expectedVersion,
         string? newTraceCode,
@@ -328,12 +329,19 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             cmd.AddParam("has_remain", newRemain.HasValue);
             cmd.AddParam("remain", (object?)newRemain ?? DBNull.Value);
 
-            await using (var reader = await cmd.ExecuteReaderAsync(token))
+            try
             {
-                if (await reader.ReadAsync(token))
+                await using (var reader = await cmd.ExecuteReaderAsync(token))
                 {
-                    return reader.GetInt64(0);
+                    if (await reader.ReadAsync(token))
+                    {
+                        return reader.GetInt64(0);
+                    }
                 }
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+            {
+                throw new ArgumentException("追溯码已存在，无法更新", nameof(newTraceCode), ex);
             }
 
             var current = await TryGetStockRowByTraceCodeAsync(conn, match, token);
@@ -349,6 +357,100 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
 
             throw new TracePoolConcurrencyException("该记录已被其他终端修改，请刷新后重试", current);
         }, ct);
+
+    public Task<StockRowEditBatchResult> ApplyStockRowEditsAsync(
+        IReadOnlyList<StockRowEditRequest> edits,
+        CancellationToken ct)
+        => _db.WithTransaction(async (conn, tx, token) =>
+        {
+            await using (var sp = conn.CreateCommand("savepoint stock_edit_batch", _opt.CommandTimeoutSeconds, tx))
+            {
+                await sp.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            var savedCount = 0;
+            string? lastError = null;
+            List<StockRowEditConflict>? conflicts = null;
+            List<StockRowEditSaved>? saved = null;
+
+            foreach (var edit in edits)
+            {
+                try
+                {
+                    var newVersion = await UpdateStockRowAsync(
+                            edit.MatchTraceCode,
+                            edit.ExpectedVersion,
+                            edit.NewTraceCode,
+                            edit.NewRemain,
+                            token)
+                        .ConfigureAwait(false);
+                    savedCount++;
+                    saved ??= new List<StockRowEditSaved>();
+                    saved.Add(new StockRowEditSaved(
+                        edit.MatchTraceCode,
+                        newVersion,
+                        edit.NewTraceCode,
+                        edit.NewRemain));
+                }
+                catch (TracePoolConcurrencyException ex)
+                {
+                    lastError = $"{edit.MatchTraceCode}: {ex.Message}";
+                    conflicts ??= new List<StockRowEditConflict>();
+                    conflicts.Add(new StockRowEditConflict(
+                        edit.MatchTraceCode,
+                        edit.NewTraceCode,
+                        edit.NewRemain,
+                        ex.Current));
+                }
+                catch
+                {
+                    // 非 OCC 异常不能留下半批写入
+                    await using (var rb = conn.CreateCommand(
+                                       "rollback to savepoint stock_edit_batch",
+                                       _opt.CommandTimeoutSeconds,
+                                       tx))
+                    {
+                        await rb.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+
+                    throw;
+                }
+            }
+
+            if (conflicts is { Count: > 0 })
+            {
+                // OCC 冲突整批作废，端点用 conflicts 回 409
+                await using (var rb = conn.CreateCommand(
+                                   "rollback to savepoint stock_edit_batch",
+                                   _opt.CommandTimeoutSeconds,
+                                   tx))
+                {
+                    await rb.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                }
+
+                return new StockRowEditBatchResult(
+                    0,
+                    0,
+                    lastError,
+                    Array.Empty<StockRowEditSaved>(),
+                    conflicts);
+            }
+
+            await using (var release = conn.CreateCommand(
+                               "release savepoint stock_edit_batch",
+                               _opt.CommandTimeoutSeconds,
+                               tx))
+            {
+                await release.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            return new StockRowEditBatchResult(
+                savedCount,
+                0,
+                null,
+                saved is { Count: > 0 } ? saved : Array.Empty<StockRowEditSaved>(),
+                Array.Empty<StockRowEditConflict>());
+        }, IsolationLevel.ReadCommitted, ct);
 
     private async Task<TracePoolStockRowDto?> TryGetStockRowByTraceCodeAsync(
         IDbConnection conn,
@@ -430,7 +532,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             return scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
         }, ct);
 
-    public Task<StockReassignApplyResultDto> ReassignStockByTraceCodeAsync(
+    private Task<StockReassignApplyResultDto> ReassignStockByTraceCodeAsync(
         string traceCode,
         string targetDrugId,
         string targetSpec,
@@ -587,6 +689,46 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
 
                 var idObj = await auditCmd.ExecuteScalarAsync(token);
                 auditId = idObj is long l ? l : Convert.ToInt64(idObj ?? 0L);
+            }
+
+            return new StockReassignApplyResultDto(affected, auditId);
+        }, IsolationLevel.ReadCommitted, ct);
+
+    public Task<StockReassignApplyResultDto> ReassignStockByTraceCodesAsync(
+        IReadOnlyList<string> traceCodes,
+        string targetDrugId,
+        string targetSpec,
+        int targetQty,
+        string reason,
+        string operatorName,
+        string source,
+        CancellationToken ct)
+        => _db.WithTransaction(async (_, _, token) =>
+        {
+            var affected = 0;
+            long auditId = 0;
+            foreach (var traceCode in traceCodes)
+            {
+                if (string.IsNullOrWhiteSpace(traceCode))
+                {
+                    continue;
+                }
+
+                var one = await ReassignStockByTraceCodeAsync(
+                        traceCode,
+                        targetDrugId,
+                        targetSpec,
+                        targetQty,
+                        reason,
+                        operatorName,
+                        source,
+                        token)
+                    .ConfigureAwait(false);
+                affected += one.AffectedRows;
+                if (auditId == 0)
+                {
+                    auditId = one.AuditId;
+                }
             }
 
             return new StockReassignApplyResultDto(affected, auditId);

@@ -53,27 +53,75 @@ public sealed class ScanCodeRepo : IScanCodeRepo
         return InsertWithRetryAsync(drugId, spec, qty, traceCodes, ct);
     }
 
-    private async Task<ScanCodeInsertResult> InsertWithRetryAsync(
+    private Task<ScanCodeInsertResult> InsertWithRetryAsync(
         string drugId,
         string spec,
         int qty,
         IReadOnlyList<string> traceCodes,
         CancellationToken ct)
-    {
-        try
-        {
-            return await _db.WithConnection(
-                (conn, token) => InsertAsync(conn, drugId, spec, qty, traceCodes, token), ct).ConfigureAwait(false);
-        }
-        // 仅校准 serial 漂移导致的 pkey 冲突；业务码重复走另一条路径
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation &&
-                                           string.Equals(ex.ConstraintName, "trace_pool_pkey", StringComparison.Ordinal))
-        {
-            await _db.WithConnection(SyncTracePoolIdSequenceAsync, ct).ConfigureAwait(false);
-            return await _db.WithConnection(
-                (conn, token) => InsertAsync(conn, drugId, spec, qty, traceCodes, token), ct).ConfigureAwait(false);
-        }
-    }
+        => _db.WithConnection(
+            async (conn, token) =>
+            {
+                var tx = AmbientDbScope.Transaction;
+                // 外层用例事务里语句失败后不可继续；用 savepoint 保住 serial 校准与重试
+                if (tx is not null)
+                {
+                    await using (var sp = conn.CreateCommand(
+                                       "savepoint scan_insert",
+                                       _opt.CommandTimeoutSeconds,
+                                       tx))
+                    {
+                        await sp.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                    }
+                }
+
+                try
+                {
+                    var result = await InsertAsync(conn, drugId, spec, qty, traceCodes, token)
+                        .ConfigureAwait(false);
+                    if (tx is not null)
+                    {
+                        await using var release = conn.CreateCommand(
+                            "release savepoint scan_insert",
+                            _opt.CommandTimeoutSeconds,
+                            tx);
+                        await release.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                    }
+
+                    return result;
+                }
+                // 仅校准 serial 漂移导致的 pkey 冲突；业务码重复走另一条路径
+                catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation &&
+                                                   string.Equals(
+                                                       ex.ConstraintName,
+                                                       "trace_pool_pkey",
+                                                       StringComparison.Ordinal))
+                {
+                    if (tx is not null)
+                    {
+                        await using var rb = conn.CreateCommand(
+                            "rollback to savepoint scan_insert",
+                            _opt.CommandTimeoutSeconds,
+                            tx);
+                        await rb.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                    }
+
+                    await SyncTracePoolIdSequenceAsync(conn, token).ConfigureAwait(false);
+                    var retried = await InsertAsync(conn, drugId, spec, qty, traceCodes, token)
+                        .ConfigureAwait(false);
+                    if (tx is not null)
+                    {
+                        await using var release = conn.CreateCommand(
+                            "release savepoint scan_insert",
+                            _opt.CommandTimeoutSeconds,
+                            tx);
+                        await release.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                    }
+
+                    return retried;
+                }
+            },
+            ct);
 
     private async Task<ScanCodeInsertResult> InsertAsync(
         System.Data.IDbConnection conn,
