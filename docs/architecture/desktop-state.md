@@ -1,6 +1,6 @@
 # 桌面状态模型
 
-Avalonia Desktop（`apps/desktop-avalonia`）分别管理全局数据库连接、页面数据可用性和区块空状态。三层状态具有不同所有者和展示范围，不应合并为单一 `IsBusy`，也不应重复显示相同故障。
+Avalonia Desktop（`apps/desktop-avalonia`）把全局数据库连接、页面数据可用性、区块空态分三层管。各层职责与展示范围不同，不要收成一个 `IsBusy`，也不要同一故障提示两遍。
 
 相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Presentation/ConnectivityBanner.cs`、`Services/Presentation/PageReconnectPolicy.cs`。
 
@@ -32,11 +32,11 @@ flowchart TB
   L2 -.->|ShowPageUnavailable / Stale| L3
 ```
 
-| 层         | 所有者                                                                 | 呈现                                                                   | 典型状态                                                                                    |
-| ---------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Shell 连接 | `MainWindowViewModel`、`IDbConnectionMonitorService`、`IDbAccessGuard` | 顶栏数据库图标、侧栏数据库卡片、`ConnectivityBanner`、`ShellStatusBar` | 探测中、已知断开、访问阻断                                                                  |
-| 页面可用性 | `AppPageBase`、`PageDataAvailability`                                  | `PageDataShell`（不可用状态、陈旧数据提示、加载状态）                  | `NotLoaded`、`AwaitingDatabase`、`AccessBlocked`、`Loading`、`LoadFailed`、`Stale`、`Ready` |
-| 区块空态   | 各页 ViewModel、`SectionEmptyCopy`                                     | `EmptyStatePanel`                                                      | 列表或图表无数据时的标题与说明                                                              |
+| 层         | 所有者                                                                 | 呈现                                                                   | 典型状态                                                                                                       |
+| ---------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Shell 连接 | `MainWindowViewModel`、`IDbConnectionMonitorService`、`IDbAccessGuard` | 顶栏数据库图标、侧栏数据库卡片、`ConnectivityBanner`、`ShellStatusBar` | 探测中、已知断开、访问阻断                                                                                     |
+| 页面可用性 | `AppPageBase`、`PageDataAvailability`                                  | `PageDataShell`（不可用状态、陈旧数据提示、加载状态）                  | `NotLoaded`、`AwaitingDatabase`、`AwaitingService`、`AccessBlocked`、`Loading`、`LoadFailed`、`Stale`、`Ready` |
+| 区块空态   | 各页 ViewModel、`SectionEmptyCopy`                                     | `EmptyStatePanel`                                                      | 列表或图表无数据时的标题与说明                                                                                 |
 
 ## Layer 1 — Shell 连接
 
@@ -48,20 +48,27 @@ flowchart TB
 
 ### `PageDataAvailability`
 
-| 值                               | `ShowPageUnavailable` | `IsBusy`          | 用户可见                   |
-| -------------------------------- | --------------------- | ----------------- | -------------------------- |
-| `NotLoaded` / `AwaitingDatabase` | 是                    | 否                | 等待数据库或首次加载许可   |
-| `AccessBlocked`                  | 是                    | 否                | 版本或迁移状态阻止访问     |
-| `LoadFailed`                     | 是                    | 否                | 非传输类加载失败           |
-| `Loading`                        | 否                    | 是（延迟 300 ms） | 正在读取数据               |
-| `Stale`                          | 否                    | 否（静默刷新）    | 断连后保留最近一次成功内容 |
-| `Ready`                          | 否                    | 否                | 正常展示                   |
+| 值                               | `ShowPageUnavailable` | `IsBusy`          | 用户可见                          |
+| -------------------------------- | --------------------- | ----------------- | --------------------------------- |
+| `NotLoaded` / `AwaitingDatabase` | 是                    | 否                | 等待本机数据库或首次加载许可      |
+| `AwaitingService`                | 仅首次加载            | 否                | 等待 API 等远端服务；定时静默重试 |
+| `AccessBlocked`                  | 是                    | 否                | 版本或迁移状态阻止访问            |
+| `LoadFailed`                     | 是                    | 否                | 非传输类加载失败                  |
+| `Loading`                        | 否                    | 是（延迟 300 ms） | 正在读取数据                      |
+| `Stale`                          | 否                    | 否（静默刷新）    | 断连或服务不可用后保留最近内容    |
+| `Ready`                          | 否                    | 否                | 正常展示                          |
 
 规则摘要：
 
-- `IsBusy` 仅表示正在读取数据；等待数据库连接时不显示加载遮罩
+- `IsBusy` 仅表示正在读取数据；等待数据库或服务时不显示加载遮罩
 - `ShowPageUnavailable` 适用于首次加载、`AccessBlocked` 和 `LoadFailed`，不适用于 `Stale`
-- 已成功加载的页面在断连后进入 `Stale`，数据库恢复时执行无加载遮罩的后台刷新
+- 本机库断开：首次加载进 `AwaitingDatabase`；已有缓存进 `Stale`，库恢复后后台刷新
+- 远端 API 瞬时失败：首次加载进 `AwaitingService`；已有缓存进 `Stale`，定时静默重试；不要 Signal DB monitor
+- 远端只读页覆写 `RequiresLocalDbForReload = false`：跳过本机 Pg 门禁，不订阅 DB monitor；空态与 toast 按服务语义（见 `CanPageFromDb`、`CanToastError`）
+- 服务重试挂在页面生命周期：离开即取消；回到页面时，若仍是 `AwaitingService`，或已挂服务截止的 `Stale`（含本机页 PacApi 失败），再续排。只有库断、没有服务截止的 `Stale` 等 DB reconnect。Dispose 后不再重试
+- `SyncPageAvailability` 与取消重载时，不要因为本机库连断就改掉 `AwaitingService`，也不要清掉已挂服务截止的降级态。非静默重试做到一半被取消、正停在 `Loading` 时，按是否已加载过回到 `AwaitingService` 或 `Stale`。库恢复后若服务截止还在，续排重试
+- 本机 Pg 传输出错按异常类型进库断可用性；不要等 `Signal` 探完才改页面状态
+- 本机页因 PacApi 降级进 `Stale` 时，横幅用服务文案与图标，不要写成「数据库已断开」
 - 用户主动刷新时仍显示常规加载状态
 - 只读页面默认允许重连期间展示陈旧数据；设置等可写页面应将 `SupportsStaleWhileReconnect` 覆写为 `false`
 - 断连与陈旧数据策略集中在 `PageReconnectPolicy`，页面不得复制相同判断
