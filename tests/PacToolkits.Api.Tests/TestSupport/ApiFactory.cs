@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using PacToolkits.Api.Auth;
 using PacToolkits.Api.Hosting;
@@ -30,6 +31,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     /// <summary>非空时替换宿主 TimeProvider（签发与 JWT 寿命校验共用）</summary>
     public TimeProvider? Time { get; init; }
 
+    /// <summary>非空时替换 <see cref="IDashboardService"/></summary>
+    public IDashboardService? Dashboard { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("dev");
@@ -45,6 +49,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             if (Time is not null)
             {
                 services.AddSingleton(Time);
+            }
+
+            if (Dashboard is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<IDashboardService>(Dashboard));
             }
         });
     }
