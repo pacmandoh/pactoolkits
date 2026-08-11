@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -12,23 +13,36 @@ using PacToolkits.Logger;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>桌面侧结构化日志封装；无界 Channel 写盘，不阻塞 UI</summary>
+/// <summary>桌面结构化日志；有界 Channel 写盘，不堵 UI</summary>
 public sealed class AppLogger : IAppLogger, IDisposable
 {
+    private const int QueueCapacity = 8192;
+
     private readonly ILoggingSettingsService _settings;
     private readonly IReleaseVersionService _releaseVersion;
+    private readonly TimeProvider _time;
     private readonly JsonLogWriter _writer = new();
     private readonly SemaphoreSlim _ioGate = new(1, 1);
-    // SingleReader 后台刷盘；写失败只 Debug 不拖垮业务
-    private readonly Channel<PendingLog> _queue = Channel.CreateUnbounded<PendingLog>(
-        new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+    // SingleReader 后台刷盘；满时 TryWrite 返回 false，据此累计 dropped
+    private readonly Channel<PendingLog> _queue = Channel.CreateBounded<PendingLog>(
+        new BoundedChannelOptions(QueueCapacity)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = false,
+        });
     private readonly CancellationTokenSource _workerCts = new();
     private readonly Task _worker;
+    private long _dropped;
 
-    public AppLogger(ILoggingSettingsService settings, IReleaseVersionService releaseVersion)
+    public AppLogger(
+        ILoggingSettingsService settings,
+        IReleaseVersionService releaseVersion,
+        TimeProvider? timeProvider = null)
     {
         _settings = settings;
         _releaseVersion = releaseVersion;
+        _time = timeProvider ?? TimeProvider.System;
         _worker = Task.Run(() => ProcessQueueAsync(_workerCts.Token));
     }
 
@@ -39,7 +53,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
         get
         {
             var dir = LogDirectory;
-            var now = DateTimeOffset.Now;
+            var now = _time.GetLocalNow();
             var suffix = LogFiles.ResolveSuffix(dir, now, _settings.Current.MaxFileSizeMb);
             return LogFiles.BuildDailyPath(dir, now, suffix);
         }
@@ -67,7 +81,8 @@ public sealed class AppLogger : IAppLogger, IDisposable
             window = TimeSpan.FromHours(24);
         }
 
-        var cutoff = DateTimeOffset.Now.Subtract(window);
+        var now = _time.GetLocalNow();
+        var cutoff = now.Subtract(window);
         var sourceFiles = GetCandidateFiles(cutoff).ToList();
 
         if (sourceFiles.Count == 0)
@@ -78,7 +93,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
         var exportDir = Path.Combine(LogDirectory, "exports");
         Directory.CreateDirectory(exportDir);
 
-        var exportPath = Path.Combine(exportDir, $"desktop-recent-{DateTimeOffset.Now:yyyyMMdd-HHmmss}.log");
+        var exportPath = Path.Combine(exportDir, $"desktop-recent-{now:yyyyMMdd-HHmmss}.log");
 
         await _ioGate.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -146,14 +161,25 @@ public sealed class AppLogger : IAppLogger, IDisposable
             return;
         }
 
+        var activity = Activity.Current;
+        var resolvedTrace = string.IsNullOrWhiteSpace(traceId)
+            ? activity?.TraceId.ToString()
+            : traceId.Trim();
+        // 调用方给的 traceId（含 LogTrace）优先；没给再用 Activity.Current
+        if (string.IsNullOrWhiteSpace(resolvedTrace))
+        {
+            resolvedTrace = null;
+        }
+
         var record = new JsonLogRecord
         {
-            Ts = DateTimeOffset.Now,
+            Ts = _time.GetLocalNow(),
             Level = level.ToString(),
             Module = (module ?? string.Empty).Trim(),
             Event = (eventName ?? string.Empty).Trim(),
             Message = (message ?? string.Empty).Trim(),
-            TraceId = string.IsNullOrWhiteSpace(traceId) ? null : traceId.Trim(),
+            TraceId = resolvedTrace,
+            SpanId = activity?.SpanId.ToString(),
             Version = _releaseVersion.Current.DesktopVersion,
             Context = context,
             Exception = ex is null
@@ -181,9 +207,16 @@ public sealed class AppLogger : IAppLogger, IDisposable
             return;
         }
 
-        if (!_queue.Writer.TryWrite(new PendingLog(record, settings)))
+        if (_queue.Writer.TryWrite(new PendingLog(record, settings)))
         {
-            System.Diagnostics.Debug.WriteLine("Log queue write failed: channel is closed");
+            return;
+        }
+
+        var dropped = Interlocked.Increment(ref _dropped);
+        if (dropped == 1 || dropped % 100 == 0)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Log queue full or closed; dropped={dropped} capacity={QueueCapacity}");
         }
     }
 
@@ -214,7 +247,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
     {
         var dir = LogDirectory;
         var start = cutoff.Date;
-        var end = DateTimeOffset.Now.Date;
+        var end = _time.GetLocalNow().Date;
 
         for (var d = start; d <= end; d = d.AddDays(1))
         {
@@ -287,23 +320,40 @@ public sealed class AppLogger : IAppLogger, IDisposable
         {
         }
 
+        // 限时排空；超时则放弃剩余日志，禁止无期限 Wait（慢盘会卡死 Environment.Exit）
+        // worker 未退出时不要 Dispose CTS/ioGate，避免后台仍在写时踩已释放对象
+        var exited = false;
         try
         {
-            _worker.Wait(TimeSpan.FromSeconds(2));
+            exited = _worker.Wait(TimeSpan.FromSeconds(2));
         }
         catch
         {
         }
 
-        try
+        if (!exited)
         {
-            _workerCts.Cancel();
-        }
-        catch
-        {
+            try
+            {
+                _workerCts.Cancel();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                exited = _worker.Wait(TimeSpan.FromSeconds(2));
+            }
+            catch
+            {
+            }
         }
 
-        _workerCts.Dispose();
-        _ioGate.Dispose();
+        if (exited)
+        {
+            _workerCts.Dispose();
+            _ioGate.Dispose();
+        }
     }
 }

@@ -24,9 +24,9 @@ public sealed class ApiChangeWatermarkTests
         watermark.TopicChanged += topics.Add;
         watermark.Start();
 
-        // poll + ready 各一次 GET；不能只靠 poll 带过
+        // SSE ready 已接通，且至少完成一次水位 GET（poll/ready 可合并成一次）
         await WaitAsync(
-            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 2,
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 1,
             TestContext.Current.CancellationToken);
         await Task.Delay(100, TestContext.Current.CancellationToken);
 
@@ -47,10 +47,11 @@ public sealed class ApiChangeWatermarkTests
         using var watermark = CreateWatermark(pac);
         watermark.Start();
 
-        // 先等到首段 ready 补偿完成，再投递下一段，避免与合并窗抢时序
+        // 先等到首段 ready 接通并完成水位刷新，再投递下一段
         await WaitAsync(
-            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 2,
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 1,
             TestContext.Current.CancellationToken);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
         var baselineGets = api.WatermarkGets;
 
         sse.EnqueueSse("event: ready\ndata: {}\n\n");
@@ -83,9 +84,9 @@ public sealed class ApiChangeWatermarkTests
         };
         watermark.Start();
 
-        // 与 Ready 用例相同：须等到 SSE ready 补偿，不能只靠 poll
+        // 与 Ready 用例相同：须等到 SSE ready 接通并完成水位刷新
         await WaitAsync(
-            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 2,
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 1,
             TestContext.Current.CancellationToken);
         await Task.Delay(80, TestContext.Current.CancellationToken);
         lock (topics)
@@ -137,8 +138,9 @@ public sealed class ApiChangeWatermarkTests
         watermark.Start();
 
         await WaitAsync(
-            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 2,
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 1,
             TestContext.Current.CancellationToken);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
 
         version = 2;
         sse.EnqueueSse("event: change\ndata: {\"topic\":\"inventory\"}\n\n");
@@ -152,6 +154,44 @@ public sealed class ApiChangeWatermarkTests
                 }
             },
             TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Failed_watermark_get_keeps_change_emit_for_retry()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        // 第一次水位 GET 失败；若错误地消费了强唤醒，重试会静默登记且不通知
+        api.EnqueueFault(new IOException("watermark cut"));
+        api.FallbackJson = """{"items":[{"topic":"inventory","version":1}]}""";
+        sse.EnqueueSse("event: change\ndata: {\"topic\":\"inventory\"}\n\n");
+        sse.EnqueueHangingSse();
+
+        var topics = new List<string>();
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac);
+        watermark.TopicChanged += t =>
+        {
+            lock (topics)
+            {
+                topics.Add(t);
+            }
+        };
+        watermark.Start();
+
+        await WaitAsync(
+            () =>
+            {
+                lock (topics)
+                {
+                    return topics.Contains("inventory");
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.True(api.WatermarkGets >= 2, $"expected retry after failed GET, got {api.WatermarkGets}");
     }
 
     [Fact]
@@ -180,8 +220,9 @@ public sealed class ApiChangeWatermarkTests
         watermark.Start();
 
         await WaitAsync(
-            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 2,
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 1,
             TestContext.Current.CancellationToken);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
         var baselineGets = api.WatermarkGets;
 
         version = 2;
@@ -208,6 +249,103 @@ public sealed class ApiChangeWatermarkTests
         Assert.True(burstGets < pulseCount / 8, $"watermark GETs {burstGets} not coalesced vs {pulseCount} pulses");
     }
 
+    [Fact]
+    public void ResolveSseBackoff_prefers_RetryAfter()
+    {
+        using var pac = CreatePac(new ScriptedHandler(), new ScriptedHandler(), new ScriptedHandler());
+        using var watermark = CreateWatermark(pac);
+
+        Assert.Equal(TimeSpan.FromSeconds(12), watermark.ResolveSseBackoff(TimeSpan.FromSeconds(12)));
+        Assert.Equal(TimeSpan.FromSeconds(60), watermark.ResolveSseBackoff(TimeSpan.FromSeconds(120)));
+        // 低于 reconnectDelay（测试里 40ms）时抬到 base
+        Assert.Equal(TimeSpan.FromMilliseconds(40), watermark.ResolveSseBackoff(TimeSpan.FromMilliseconds(20)));
+    }
+
+    [Fact]
+    public void ResolveSseBackoff_grows_without_header()
+    {
+        using var pac = CreatePac(new ScriptedHandler(), new ScriptedHandler(), new ScriptedHandler());
+        using var watermark = CreateWatermark(pac);
+
+        var first = watermark.ResolveSseBackoff(retryAfter: null);
+        var second = watermark.ResolveSseBackoff(retryAfter: null);
+
+        Assert.InRange(first.TotalMilliseconds, 32, 48); // base 40ms ±20%
+        Assert.True(second > first);
+    }
+
+    [Fact]
+    public async Task Ready_then_eof_still_grows_sse_backoff()
+    {
+        var time = new ControllableTime();
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        api.FallbackJson = """{"items":[]}""";
+        // 连续 ready 后 EOF；若 ready 误清零，streak 会卡在 1
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+        sse.EnqueueHangingSse();
+
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac, time);
+        watermark.Start();
+
+        await WaitAsync(() => watermark.TestSseFailStreak >= 1, TestContext.Current.CancellationToken);
+        Assert.Equal(1, watermark.TestSseFailStreak);
+
+        time.Advance(TimeSpan.FromMilliseconds(80));
+        await WaitAsync(() => watermark.TestSseFailStreak >= 2, TestContext.Current.CancellationToken);
+        Assert.Equal(2, watermark.TestSseFailStreak);
+
+        time.Advance(TimeSpan.FromMilliseconds(120));
+        await WaitAsync(() => watermark.TestSseFailStreak >= 3, TestContext.Current.CancellationToken);
+        Assert.True(watermark.TestSseFailStreak >= 3);
+    }
+
+    [Fact]
+    public async Task Heartbeat_resets_sse_backoff_after_failures()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        api.FallbackJson = """{"items":[]}""";
+        sse.EnqueuePrefixHangSse("event: ready\ndata: {}\n\nevent: heartbeat\ndata: {\"utc\":\"2026-01-01T00:00:00Z\"}\n\n");
+
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac);
+        _ = watermark.ResolveSseBackoff(null);
+        _ = watermark.ResolveSseBackoff(null);
+        Assert.True(watermark.TestSseFailStreak >= 2);
+
+        watermark.Start();
+        await WaitAsync(() => watermark.TestSseFailStreak == 0, TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Concurrent_Start_starts_each_loop_once()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        api.FallbackJson = """{"items":[]}""";
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac);
+
+        await Task.WhenAll(Enumerable.Range(0, 32).Select(_ => Task.Run(watermark.Start)));
+        await Task.Delay(80, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, watermark.TestDispatchLoopStarts);
+        Assert.Equal(1, watermark.TestPollLoopStarts);
+        Assert.Equal(1, watermark.TestStreamLoopStarts);
+    }
+
     private static PacApiClient CreatePac(ScriptedHandler token, ScriptedHandler api, ScriptedHandler sse)
         => new(
             "http://127.0.0.1:5080",
@@ -218,13 +356,14 @@ public sealed class ApiChangeWatermarkTests
             api,
             sse);
 
-    private static ApiChangeWatermark CreateWatermark(PacApiClient pac)
+    private static ApiChangeWatermark CreateWatermark(PacApiClient pac, TimeProvider? time = null)
         => new(
             pac,
             new NullLogger(),
             pollInterval: TimeSpan.FromHours(1),
             reconnectDelay: TimeSpan.FromMilliseconds(40),
-            notifyCoalesceWindow: TimeSpan.FromMilliseconds(20));
+            notifyCoalesceWindow: TimeSpan.FromMilliseconds(20),
+            timeProvider: time);
 
     private static string TokenJson(string accessToken)
         => $$"""{"accessToken":"{{accessToken}}","tokenType":"Bearer","expiresIn":3600,"clientId":"c1"}""";
@@ -283,6 +422,14 @@ public sealed class ApiChangeWatermarkTests
             }
         }
 
+        public void EnqueueFault(Exception ex)
+        {
+            lock (_gate)
+            {
+                _responses.Enqueue(_ => throw ex);
+            }
+        }
+
         public void EnqueueSse(string body)
         {
             lock (_gate)
@@ -304,6 +451,20 @@ public sealed class ApiChangeWatermarkTests
                 _responses.Enqueue(_ =>
                 {
                     var content = new HangingSseContent();
+                    content.Headers.ContentType =
+                        new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+                });
+            }
+        }
+
+        public void EnqueuePrefixHangSse(string prefix)
+        {
+            lock (_gate)
+            {
+                _responses.Enqueue(_ =>
+                {
+                    var content = new PrefixHangSseContent(prefix);
                     content.Headers.ContentType =
                         new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
                     return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
@@ -392,6 +553,82 @@ public sealed class ApiChangeWatermarkTests
             length = 0;
             return false;
         }
+    }
+
+    private sealed class PrefixHangSseContent(string prefix) : HttpContent
+    {
+        private readonly byte[] _prefix = Encoding.UTF8.GetBytes(prefix);
+
+        protected override Task<Stream> CreateContentReadStreamAsync()
+            => Task.FromResult<Stream>(new PrefixHangStream(_prefix));
+
+        protected override Task<Stream> CreateContentReadStreamAsync(CancellationToken cancellationToken)
+            => CreateContentReadStreamAsync();
+
+        protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context)
+            => SerializeToStreamAsync(stream, context, CancellationToken.None);
+
+        protected override async Task SerializeToStreamAsync(
+            Stream stream,
+            System.Net.TransportContext? context,
+            CancellationToken cancellationToken)
+        {
+            await stream.WriteAsync(_prefix, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+    }
+
+    private sealed class PrefixHangStream(byte[] prefix) : Stream
+    {
+        private int _offset;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override async ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            if (_offset < prefix.Length)
+            {
+                var n = Math.Min(buffer.Length, prefix.Length - _offset);
+                prefix.AsSpan(_offset, n).CopyTo(buffer.Span);
+                _offset += n;
+                return n;
+            }
+
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+            return 0;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+            => throw new NotSupportedException();
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+            => throw new NotSupportedException();
+
+        public override void SetLength(long value)
+            => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count)
+            => throw new NotSupportedException();
     }
 
     private sealed class NullLogger : IAppLogger

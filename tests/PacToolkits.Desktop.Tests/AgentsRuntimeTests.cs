@@ -449,7 +449,9 @@ public sealed class AgentsRuntimeTests
                 BuildChannel: "stable",
                 BuildDate: "2026-06-13",
                 DesktopMinDbSchema: "1.2.22",
-                DesktopMaxDbSchema: "1.2.22");
+                DesktopMaxDbSchema: "1.2.22",
+                MinApiContract: "1.0.0",
+                MaxApiContract: "1.0.0");
         }
 
         public ReleaseVersionInfo Current { get; }

@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>为相关日志事件生成和传播稳定的 Trace 标识</summary>
+/// <summary>日志用的 Trace 栈；没显式传入时用当前 Activity 的 W3C traceId</summary>
 public static class LogTrace
 {
     private static readonly AsyncLocal<Stack<string>?> Traces = new();
@@ -20,7 +21,7 @@ public static class LogTrace
 
     public static IDisposable Begin(string? traceId = null)
     {
-        traceId ??= CreateId();
+        traceId ??= Activity.Current?.TraceId.ToString() ?? CreateId();
         var stack = Traces.Value ?? new Stack<string>();
         Traces.Value = stack;
         stack.Push(traceId);

@@ -88,6 +88,86 @@ public sealed class PacApiClientTests
     }
 
     [Fact]
+    public async Task Invalid_token_response_does_not_publish_partial_state()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(
+            HttpStatusCode.OK,
+            """{"accessToken":"tok-1","tokenType":"Bearer","expiresIn":3600,"clientId":"c1"}""");
+        token.EnqueueJson(
+            HttpStatusCode.OK,
+            """{"accessToken":"bad","tokenType":"Bearer","expiresIn":0,"clientId":"c1"}""");
+        api.EnqueueJson(HttpStatusCode.OK, """{"ok":true}""");
+        api.EnqueueStatus(HttpStatusCode.Unauthorized);
+
+        using var client = CreateClient(token, api, sse);
+        using (var warm = await client.SendAsync(
+                   () => new HttpRequestMessage(HttpMethod.Get, client.Resolve("/v1/ping")),
+                   TestContext.Current.CancellationToken))
+        {
+            Assert.Equal(HttpStatusCode.OK, warm.StatusCode);
+        }
+
+        Assert.Equal("tok-1", client.CurrentAccessToken);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => client.SendAsync(
+                () => new HttpRequestMessage(HttpMethod.Get, client.Resolve("/v1/ping")),
+                TestContext.Current.CancellationToken));
+
+        // 非法 expiresIn 不得污染缓存；仍保留换票前的有效票
+        Assert.Equal("tok-1", client.CurrentAccessToken);
+    }
+
+    [Theory]
+    [InlineData(30)]
+    [InlineData(60)]
+    public async Task Short_expiresIn_reuses_token_across_consecutive_requests(int expiresIn)
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(
+            HttpStatusCode.OK,
+            $$"""{"accessToken":"tok-short","tokenType":"Bearer","expiresIn":{{expiresIn}},"clientId":"c1"}""");
+        api.EnqueueJson(HttpStatusCode.OK, """{"ok":true}""");
+        api.EnqueueJson(HttpStatusCode.OK, """{"ok":true}""");
+        api.EnqueueJson(HttpStatusCode.OK, """{"ok":true}""");
+
+        using var client = CreateClient(token, api, sse);
+        var ct = TestContext.Current.CancellationToken;
+
+        for (var i = 0; i < 3; i++)
+        {
+            using var response = await client.SendAsync(
+                () => new HttpRequestMessage(HttpMethod.Get, client.Resolve("/v1/ping")),
+                ct);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        Assert.Single(token.Calls);
+        Assert.Equal(3, api.Calls.Count);
+        Assert.All(api.Calls, c => Assert.Equal("tok-short", c.Bearer));
+    }
+
+    [Theory]
+    [InlineData(30, 3)]
+    [InlineData(60, 6)]
+    [InlineData(120, 12)]
+    [InlineData(3600, 60)]
+    public void ComputeRefreshAt_uses_ten_percent_early_capped_at_one_minute(
+        int expiresIn,
+        int earlySeconds)
+    {
+        var issued = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var refreshAt = PacApiClient.ComputeRefreshAt(issued, expiresIn);
+
+        Assert.Equal(issued.AddSeconds(expiresIn - earlySeconds), refreshAt);
+    }
+
+    [Fact]
     public async Task Concurrent_401_refreshes_token_once()
     {
         var token = new ScriptedHandler();

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Diagnostics;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Presentation;
@@ -43,6 +44,8 @@ public partial class App : global::Avalonia.Application
             base.OnFrameworkInitializationCompleted();
             return;
         }
+
+        PacActivities.EnsureListening();
 
         var config = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)

@@ -9,6 +9,7 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Agents.Contracts.Validation;
+using PacToolkits.Application.Diagnostics;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
 
@@ -39,6 +40,7 @@ public sealed partial class AgentsRuntime
         CancellationToken ct,
         IReadOnlyCollection<string>? mountOnly = null)
     {
+        using var activity = PacActivities.Agents.StartActivity("agents.start_or_restart");
         CancellationTokenSource? startCts = null;
         try
         {

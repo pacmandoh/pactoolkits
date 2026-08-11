@@ -1,3 +1,4 @@
+using System.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Agents.Contracts.Abstractions;
@@ -50,7 +51,10 @@ public static class ServiceRegistration
         services.AddSingleton<ILoggingSettingsService, LoggingSettingsService>();
         services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<IAppLogger, AppLogger>();
+        services.AddPacApiClient(config);
         services.AddSingleton<IReleaseVersionService, ReleaseVersionService>();
+        // 覆盖 AddPacApiClient 的 AllowAll；要读清单区间，须排在 PacApiClient 与 ReleaseVersion 之后
+        services.AddSingleton<IPacApiContractGate, PacApiContractGate>();
         services.AddSingleton<IAppStartupStateService, AppStartupStateService>();
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IDialogService, DialogService>();
@@ -83,7 +87,12 @@ public static class ServiceRegistration
     private static IServiceCollection AddDesktopMsfxUpdate(this IServiceCollection services)
     {
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
-        services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
+        services.AddMsfxApiClient();
+        // Application 已注册同名 client；此处再挂标准 Resilience（探测用 GET）
+        // Timeout 交给 Resilience 总预算，避免原先 15s 先掐掉重试
+        services.AddHttpClient(ReleaseManifestProbeService.HttpClientName)
+            .ConfigureHttpClient(static client => client.Timeout = Timeout.InfiniteTimeSpan)
+            .AddStandardResilienceHandler();
         return services;
     }
 
