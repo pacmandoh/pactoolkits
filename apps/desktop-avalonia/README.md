@@ -20,6 +20,7 @@ dotnet build PacToolkits.sln -c Release --no-restore
 - [模块概览](./docs/overview.md)
 - [日志事件](./docs/log-events.md)
 - [分层与依赖](../../docs/architecture/layering.md)
+- [Desktop 目录与 namespace](../../docs/architecture/desktop-layout.md)
 - [Desktop 状态模型](../../docs/architecture/desktop-state.md)
 - [Agents 运行时](../../docs/architecture/agents.md)
 - [发布与更新](../../docs/operations/release-flow.md)
