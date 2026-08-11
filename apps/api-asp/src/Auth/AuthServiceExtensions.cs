@@ -1,7 +1,9 @@
+using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using PacToolkits.Api.Hosting;
 
 namespace PacToolkits.Api.Auth;
 
@@ -28,8 +30,9 @@ public static class AuthServiceExtensions
                 o => !string.IsNullOrWhiteSpace(o.Jwt.SigningKey) && o.Jwt.SigningKey.Trim().Length >= 32,
                 "Auth:Jwt:SigningKey is required and must be at least 32 characters")
             .Validate(
-                o => o.Jwt.ExpiresMinutes > 0,
-                "Auth:Jwt:ExpiresMinutes must be greater than 0")
+                o => o.Jwt.ExpiresMinutes is >= JwtOptions.MinExpiresMinutes
+                    and <= JwtOptions.MaxExpiresMinutes,
+                $"Auth:Jwt:ExpiresMinutes must be between {JwtOptions.MinExpiresMinutes} and {JwtOptions.MaxExpiresMinutes}")
             .ValidateOnStart();
 
         services.AddSingleton(sp =>
@@ -63,6 +66,30 @@ public static class AuthServiceExtensions
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = static async (context, token) =>
+            {
+                var http = context.HttpContext;
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter)
+                    && retryAfter > TimeSpan.Zero)
+                {
+                    http.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds))
+                        .ToString(CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    http.Response.Headers.RetryAfter = "60";
+                }
+
+                http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await http.Response.WriteAsJsonAsync(
+                    new ApiProblem(
+                        StatusCodes.Status429TooManyRequests,
+                        ApiErrors.RateLimited,
+                        "Token exchange rate limit exceeded",
+                        ApiProblem.ResolveTraceId(http)),
+                    token).ConfigureAwait(false);
+            };
+
             // 按 RemoteIp：同一机器转发或 NAT 会共用额度；伪造 XFF 依赖代理覆盖与 KnownProxies
             options.AddPolicy(TokenRateLimitPolicy, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
@@ -83,10 +110,12 @@ public static class AuthServiceExtensions
 internal sealed class JwtBearerFromSigningMaterial : IConfigureNamedOptions<JwtBearerOptions>
 {
     private readonly JwtSigningMaterial _signing;
+    private readonly TimeProvider _time;
 
-    public JwtBearerFromSigningMaterial(JwtSigningMaterial signing)
+    public JwtBearerFromSigningMaterial(JwtSigningMaterial signing, TimeProvider timeProvider)
     {
         _signing = signing ?? throw new ArgumentNullException(nameof(signing));
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     public void Configure(JwtBearerOptions options)
@@ -100,6 +129,7 @@ internal sealed class JwtBearerFromSigningMaterial : IConfigureNamedOptions<JwtB
         }
 
         options.MapInboundClaims = false;
+        options.TimeProvider = _time;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -109,9 +139,49 @@ internal sealed class JwtBearerFromSigningMaterial : IConfigureNamedOptions<JwtB
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = _signing.SecurityKey,
             ValidateLifetime = true,
+            RequireExpirationTime = true,
             ClockSkew = TimeSpan.FromMinutes(1),
             RequireSignedTokens = true,
             ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+            // IdentityModel 默认寿命校验读系统时钟；用注入 TimeProvider 覆盖
+            LifetimeValidator = ValidateLifetime,
         };
+    }
+
+    private bool ValidateLifetime(
+        DateTime? notBefore,
+        DateTime? expires,
+        SecurityToken token,
+        TokenValidationParameters parameters)
+    {
+        if (!parameters.ValidateLifetime)
+        {
+            return true;
+        }
+
+        if (!expires.HasValue && parameters.RequireExpirationTime)
+        {
+            return false;
+        }
+
+        if (notBefore.HasValue && expires.HasValue && notBefore.Value > expires.Value)
+        {
+            return false;
+        }
+
+        var utcNow = _time.GetUtcNow().UtcDateTime;
+        var skew = parameters.ClockSkew;
+
+        if (notBefore.HasValue && notBefore.Value > utcNow.Add(skew))
+        {
+            return false;
+        }
+
+        if (expires.HasValue && expires.Value < utcNow.Add(-skew))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

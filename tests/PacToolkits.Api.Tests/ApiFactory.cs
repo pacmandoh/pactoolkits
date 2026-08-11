@@ -27,6 +27,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     public FakeChangeWatermarkRepo Watermarks { get; } = new();
 
+    /// <summary>非空时替换宿主 TimeProvider（签发与 JWT 寿命校验共用）</summary>
+    public TimeProvider? Time { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("dev");
@@ -39,6 +42,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         {
             services.AddSingleton<IApiHealth, AlwaysOkApiHealth>();
             services.AddSingleton<IChangeWatermarkRepo>(Watermarks);
+            if (Time is not null)
+            {
+                services.AddSingleton(Time);
+            }
         });
     }
 

@@ -33,6 +33,10 @@ public sealed class ClientOptions
 /// <summary>HMAC 对称签 JWT 的 Issuer/Audience/SigningKey/TTL</summary>
 public sealed class JwtOptions
 {
+    public const int MinExpiresMinutes = 1;
+
+    public const int MaxExpiresMinutes = 24 * 60;
+
     public string Issuer { get; set; } = "pactoolkits-api";
 
     public string Audience { get; set; } = "pactoolkits-clients";

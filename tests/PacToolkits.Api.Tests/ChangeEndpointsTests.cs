@@ -100,6 +100,22 @@ public sealed class ChangeEndpointsTests
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
+        Assert.NotNull(third.Headers.RetryAfter);
+        Assert.Equal(TimeSpan.FromSeconds(5), third.Headers.RetryAfter.Delta);
+    }
+
+    [Fact]
+    public async Task Stream_rejects_jwt_expired_within_clock_skew()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        // 过期约 30s：仍在 Bearer ClockSkew(1m) 内可通过认证，但 SSE 按绝对 exp 应 401
+        var token = ApiFactory.ForgeAccessToken(expires: DateTime.UtcNow.AddSeconds(-30));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await client.GetAsync("/v1/changes/stream", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

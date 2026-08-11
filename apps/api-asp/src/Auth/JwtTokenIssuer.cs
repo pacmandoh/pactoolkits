@@ -14,11 +14,16 @@ public sealed class JwtTokenIssuer
 
     private readonly IOptionsMonitor<AuthOptions> _options;
     private readonly JwtSigningMaterial _signing;
+    private readonly TimeProvider _time;
 
-    public JwtTokenIssuer(IOptionsMonitor<AuthOptions> options, JwtSigningMaterial signing)
+    public JwtTokenIssuer(
+        IOptionsMonitor<AuthOptions> options,
+        JwtSigningMaterial signing,
+        TimeProvider timeProvider)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _signing = signing ?? throw new ArgumentNullException(nameof(signing));
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     public bool TryMatchApiKey(string? presented, out string clientId, out IReadOnlyList<string> scopes)
@@ -76,7 +81,7 @@ public sealed class JwtTokenIssuer
     public (string AccessToken, int ExpiresInSeconds) Issue(string clientId, IReadOnlyList<string> scopes)
     {
         var expiresMinutes = _signing.ExpiresMinutes;
-        var now = DateTimeOffset.UtcNow;
+        var now = _time.GetUtcNow();
         var expires = now.AddMinutes(expiresMinutes);
         var creds = new SigningCredentials(_signing.SecurityKey, SecurityAlgorithms.HmacSha256);
 

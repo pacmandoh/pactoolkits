@@ -3,9 +3,9 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Api.Hosting;
 
 /// <summary>
-/// 周期对齐 SchemaBounds 与 <see cref="IDbAccessGuard"/>（以 <see cref="IApiHealth"/> 判定为据）
+/// 按周期用 <see cref="IApiHealth"/> 结果同步 SchemaBounds 与 <see cref="IDbAccessGuard"/>
 ///
-/// 默认阻断数据面至首检通过；库不可达或 schema 不合保持 503
+/// 首检通过前默认拦住业务库访问；库不可达或 schema 不合继续 503
 /// </summary>
 public sealed class SchemaBoundsAccessHost : BackgroundService
 {
@@ -15,15 +15,18 @@ public sealed class SchemaBoundsAccessHost : BackgroundService
 
     private readonly IApiHealth _health;
     private readonly IDbAccessGuard _guard;
+    private readonly TimeProvider _time;
     private readonly ILogger<SchemaBoundsAccessHost> _logger;
 
     public SchemaBoundsAccessHost(
         IApiHealth health,
         IDbAccessGuard guard,
+        TimeProvider timeProvider,
         ILogger<SchemaBoundsAccessHost> logger)
     {
         _health = health ?? throw new ArgumentNullException(nameof(health));
         _guard = guard ?? throw new ArgumentNullException(nameof(guard));
+        _time = timeProvider ?? TimeProvider.System;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -40,7 +43,7 @@ public sealed class SchemaBoundsAccessHost : BackgroundService
         {
             try
             {
-                await Task.Delay(Interval, stoppingToken).ConfigureAwait(false);
+                await Task.Delay(Interval, _time, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -90,7 +93,7 @@ public sealed class SchemaBoundsAccessHost : BackgroundService
             return;
         }
 
-        // 库不可达等非 schema 失败：数据面继续 503（与 /health 一致，不靠 Clear 放行）
+        // 库不可达等非 schema 失败：业务路由继续 503（与 /health 一致，不要 Clear 放行）
         SetBlocked("schema_bounds:db_unavailable");
     }
 

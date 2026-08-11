@@ -1,4 +1,5 @@
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Diagnostics;
 using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Api.Hosting;
@@ -37,14 +38,31 @@ public sealed class HostAppLogger : IAppLogger
 
     private void Log(LogLevel level, string module, string eventName, string message, Exception? ex, string? traceId)
     {
+        var resolvedTrace = string.IsNullOrWhiteSpace(traceId)
+            ? PacTrace.CurrentTraceId
+            : traceId.Trim();
+        var spanId = PacTrace.CurrentSpanId;
         var logger = _factory.CreateLogger(module);
         if (ex is null)
         {
-            logger.Log(level, "{Event} {Message} traceId={TraceId}", eventName, message, traceId);
+            logger.Log(
+                level,
+                "{Event} {Message} traceId={TraceId} spanId={SpanId}",
+                eventName,
+                message,
+                resolvedTrace,
+                spanId);
         }
         else
         {
-            logger.Log(level, ex, "{Event} {Message} traceId={TraceId}", eventName, message, traceId);
+            logger.Log(
+                level,
+                ex,
+                "{Event} {Message} traceId={TraceId} spanId={SpanId}",
+                eventName,
+                message,
+                resolvedTrace,
+                spanId);
         }
     }
 }

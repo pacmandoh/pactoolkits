@@ -7,6 +7,7 @@ using PacToolkits.Api.Changes;
 using PacToolkits.Api.Hosting;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Threading;
 
 namespace PacToolkits.Api.Endpoints;
 
@@ -41,6 +42,7 @@ public static class ChangeEndpoints
         HttpContext http,
         ChangeBus bus,
         ClaimsPrincipal user,
+        TimeProvider time,
         CancellationToken ct)
     {
         var clientId = user.FindFirstValue(JwtTokenIssuer.ClientIdClaim);
@@ -50,8 +52,15 @@ public static class ChangeEndpoints
             return;
         }
 
-        // 建连只验一次 JWT：流寿命不超过 exp；客户端换票后重建连接
+        // 建连只验一次 JWT：流寿命不超过绝对 exp；客户端换票后重建连接
         if (!TryGetJwtExpires(user, out var expiresAt))
+        {
+            http.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        // Bearer 允许 ClockSkew；SSE 仍按绝对 exp，已过期勿占订阅名额
+        if (expiresAt <= time.GetUtcNow())
         {
             http.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
@@ -60,12 +69,14 @@ public static class ChangeEndpoints
         if (!bus.TrySubscribe(clientId, out var sub))
         {
             http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            // 给 SSE 客户端背压；短于 Desktop 最大退避，避免叠满 60s
+            http.Response.Headers.RetryAfter = "5";
             await http.Response.WriteAsJsonAsync(
                 new ApiProblem(
                     StatusCodes.Status429TooManyRequests,
                     ApiErrors.RateLimited,
                     "Too many change stream subscriptions for this client",
-                    http.TraceIdentifier),
+                    ApiProblem.ResolveTraceId(http)),
                 ct).ConfigureAwait(false);
             return;
         }
@@ -78,51 +89,55 @@ public static class ChangeEndpoints
         http.Response.Headers["X-Accel-Buffering"] = "no";
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, http.RequestAborted);
-        // Bearer 有 ClockSkew，流仍按绝对 exp 收口；已过期则立刻取消
-        var remaining = expiresAt - DateTimeOffset.UtcNow;
-        linked.CancelAfter(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero);
+        var remaining = expiresAt - time.GetUtcNow();
+        await using var expTimer = CancelAfter.Schedule(
+            linked,
+            remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero,
+            time);
         var streamCt = linked.Token;
-
-        await http.Response.WriteAsync("event: ready\ndata: {}\n\n", streamCt).ConfigureAwait(false);
-        await http.Response.Body.FlushAsync(streamCt).ConfigureAwait(false);
 
         try
         {
-            // SingleReader：heartbeat 用 CancelAfter 取消 WaitToRead，禁止二次并发 Wait
+            // ready 也在 try 内：检查后到写入前到期时吞掉 OCE，勿冒泡成 500
+            await http.Response.WriteAsync("event: ready\ndata: {}\n\n", streamCt).ConfigureAwait(false);
+            await http.Response.Body.FlushAsync(streamCt).ConfigureAwait(false);
+
+            // SingleReader：heartbeat 用定时取消 WaitToRead，禁止二次并发 Wait
             while (!streamCt.IsCancellationRequested)
             {
                 using var waitCts = CancellationTokenSource.CreateLinkedTokenSource(streamCt);
-                waitCts.CancelAfter(HeartbeatInterval);
+                await using (CancelAfter.Schedule(waitCts, HeartbeatInterval, time))
+                {
+                    bool hasData;
+                    try
+                    {
+                        hasData = await sub.Reader.WaitToReadAsync(waitCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (!streamCt.IsCancellationRequested)
+                    {
+                        var hb = JsonSerializer.Serialize(
+                            new ChangeHeartbeat(time.GetUtcNow()),
+                            JsonOptions);
+                        await http.Response.WriteAsync($"event: heartbeat\ndata: {hb}\n\n", streamCt)
+                            .ConfigureAwait(false);
+                        await http.Response.Body.FlushAsync(streamCt).ConfigureAwait(false);
+                        continue;
+                    }
 
-                bool hasData;
-                try
-                {
-                    hasData = await sub.Reader.WaitToReadAsync(waitCts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (!streamCt.IsCancellationRequested)
-                {
-                    var hb = JsonSerializer.Serialize(
-                        new ChangeHeartbeat(DateTimeOffset.UtcNow),
-                        JsonOptions);
-                    await http.Response.WriteAsync($"event: heartbeat\ndata: {hb}\n\n", streamCt)
-                        .ConfigureAwait(false);
+                    if (!hasData)
+                    {
+                        break;
+                    }
+
+                    while (sub.Reader.TryRead(out var topic))
+                    {
+                        var payload = JsonSerializer.Serialize(new ChangeEvent(topic), JsonOptions);
+                        await http.Response.WriteAsync($"event: change\ndata: {payload}\n\n", streamCt)
+                            .ConfigureAwait(false);
+                    }
+
                     await http.Response.Body.FlushAsync(streamCt).ConfigureAwait(false);
-                    continue;
                 }
-
-                if (!hasData)
-                {
-                    break;
-                }
-
-                while (sub.Reader.TryRead(out var topic))
-                {
-                    var payload = JsonSerializer.Serialize(new ChangeEvent(topic), JsonOptions);
-                    await http.Response.WriteAsync($"event: change\ndata: {payload}\n\n", streamCt)
-                        .ConfigureAwait(false);
-                }
-
-                await http.Response.Body.FlushAsync(streamCt).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -151,8 +166,6 @@ public static class ChangeEndpoints
         }
     }
 }
-
-public sealed record ChangeWatermarksResponse(IReadOnlyList<ChangeWatermarkItem> Items);
 
 public sealed record ChangeEvent(string Topic);
 

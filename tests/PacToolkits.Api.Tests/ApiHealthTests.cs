@@ -43,7 +43,8 @@ public sealed class ApiHealthTests
             {
                 MinDbSchema = "1.2.25",
                 MaxDbSchema = "1.2.25",
-            }));
+            }),
+            TimeProvider.System);
 
     private sealed class CountingDbConfig : IDbConfigService
     {

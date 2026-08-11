@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Diagnostics;
 using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Api.Changes;
@@ -9,7 +10,7 @@ namespace PacToolkits.Api.Changes;
 /// <summary>
 /// API 进程侧 LISTEN <c>pactoolkits_change</c>，分发到 <see cref="ChangeBus"/>
 ///
-/// 过渡期 Desktop 仍可对本库各自 LISTEN；Pg 允许多会话同时听同一 channel
+/// 现在 Desktop 仍可对本库各自 LISTEN；Pg 允许多会话同时听同一 channel
 /// NOTIFY 只作唤醒：按 topic 记 pending，突发合并或丢弃；version 以 watermark 为准
 /// </summary>
 public sealed class PostgresNotifyListener : BackgroundService
@@ -19,6 +20,7 @@ public sealed class PostgresNotifyListener : BackgroundService
     private readonly IDbConfigService _dbConfig;
     private readonly ChangeBus _bus;
     private readonly IAppLogger _logger;
+    private readonly TimeProvider _time;
     private readonly ChangeListenOptions _options;
     private readonly TimeSpan _retryDelay = TimeSpan.FromSeconds(2);
     private readonly TimeSpan _coalesceWindow = TimeSpan.FromMilliseconds(120);
@@ -27,11 +29,13 @@ public sealed class PostgresNotifyListener : BackgroundService
         IDbConfigService dbConfig,
         ChangeBus bus,
         IAppLogger logger,
+        TimeProvider timeProvider,
         IOptions<ChangeListenOptions> options)
     {
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _bus = bus ?? throw new ArgumentNullException(nameof(bus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _time = timeProvider ?? TimeProvider.System;
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
     }
 
@@ -43,7 +47,7 @@ public sealed class PostgresNotifyListener : BackgroundService
             return;
         }
 
-        // topic 集合 + 容量 1 的唤醒信号：NOTIFY 洪峰不堆积字符串队列
+        // pending topic 集合与容量 1 唤醒：NOTIFY 洪峰不堆积字符串队列
         var pendingGate = new object();
         var pendingTopics = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
@@ -96,7 +100,7 @@ public sealed class PostgresNotifyListener : BackgroundService
                 _logger.Warn("ChangeNotify", "listen.retry", "LISTEN disconnected; retrying", ex);
                 try
                 {
-                    await Task.Delay(_retryDelay, stoppingToken).ConfigureAwait(false);
+                    await Task.Delay(_retryDelay, _time, stoppingToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -121,7 +125,7 @@ public sealed class PostgresNotifyListener : BackgroundService
             try
             {
                 _ = await wake.ReadAsync(ct).ConfigureAwait(false);
-                await Task.Delay(_coalesceWindow, ct).ConfigureAwait(false);
+                await Task.Delay(_coalesceWindow, _time, ct).ConfigureAwait(false);
                 while (wake.TryRead(out _))
                 {
                 }
@@ -134,6 +138,7 @@ public sealed class PostgresNotifyListener : BackgroundService
                 }
 
                 // 合并窗内多 topic 均 Publish；客户端宜 GET watermarks 再按 topic 处理
+                using var activity = PacActivities.Api.StartActivity("change.notify.publish");
                 foreach (var topic in topics)
                 {
                     _bus.Publish(topic);

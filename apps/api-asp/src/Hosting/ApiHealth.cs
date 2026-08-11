@@ -4,7 +4,7 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Api.Hosting;
 
-/// <summary>进程、PostgreSQL 与 schema 门禁的健康快照</summary>
+/// <summary>进程、PostgreSQL 与 schema 区间校验的健康快照</summary>
 public sealed record ApiHealthSnapshot(
     bool Ok,
     string Database,
@@ -29,6 +29,7 @@ public sealed class ApiHealth : IApiHealth
     private readonly IDbConfigService _db;
     private readonly IDbSchemaGate _schemaGate;
     private readonly SchemaBoundsOptions _bounds;
+    private readonly TimeProvider _time;
     private readonly SemaphoreSlim _probeGate = new(1, 1);
     private readonly object _cacheGate = new();
 
@@ -38,11 +39,13 @@ public sealed class ApiHealth : IApiHealth
     public ApiHealth(
         IDbConfigService db,
         IDbSchemaGate schemaGate,
-        IOptions<SchemaBoundsOptions> bounds)
+        IOptions<SchemaBoundsOptions> bounds,
+        TimeProvider timeProvider)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _schemaGate = schemaGate ?? throw new ArgumentNullException(nameof(schemaGate));
         _bounds = bounds?.Value ?? throw new ArgumentNullException(nameof(bounds));
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default)
@@ -66,7 +69,7 @@ public sealed class ApiHealth : IApiHealth
             lock (_cacheGate)
             {
                 _cache = snap;
-                _cacheUtc = DateTimeOffset.UtcNow;
+                _cacheUtc = _time.GetUtcNow();
             }
 
             return snap;
@@ -82,7 +85,7 @@ public sealed class ApiHealth : IApiHealth
         lock (_cacheGate)
         {
             var cached = _cache;
-            if (cached is not null && DateTimeOffset.UtcNow - _cacheUtc < CacheTtl)
+            if (cached is not null && _time.GetUtcNow() - _cacheUtc < CacheTtl)
             {
                 return cached;
             }

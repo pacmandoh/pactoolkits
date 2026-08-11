@@ -3,7 +3,7 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Api.Hosting;
 
 /// <summary>
-/// <see cref="IDbAccessGuard"/> 阻断时对数据面返回 503
+/// <see cref="IDbAccessGuard"/> 阻断时，对业务路由回 503
 ///
 /// 不拦：/health、换票、/v1/ping、/v1/system/*
 /// </summary>
@@ -29,7 +29,7 @@ public sealed class DbAccessGateMiddleware
                     StatusCodes.Status503ServiceUnavailable,
                     ApiErrors.ServiceUnavailable,
                     guard.BlockReason ?? "database access blocked",
-                    context.TraceIdentifier),
+                    ApiProblem.ResolveTraceId(context)),
                 context.RequestAborted).ConfigureAwait(false);
             return;
         }
@@ -37,7 +37,7 @@ public sealed class DbAccessGateMiddleware
         await _next(context).ConfigureAwait(false);
     }
 
-    // /v1 默认拦业务路由；auth / ping / system 不拦
+    // /v1 默认拦业务路由；auth、ping、system 不拦
     private static bool IsDataPlane(PathString path)
     {
         if (!path.StartsWithSegments("/v1"))

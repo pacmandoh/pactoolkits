@@ -1,6 +1,7 @@
 using System.Reflection;
 using PacToolkits.Api.Auth;
 using PacToolkits.Api.Hosting;
+using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Api.Endpoints;
 
@@ -16,7 +17,7 @@ public static class SystemInfoEndpoints
         return routes;
     }
 
-    private static IResult GetInfo()
+    private static IResult GetInfo(TimeProvider time)
     {
         var asm = Assembly.GetExecutingAssembly();
         var version = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
@@ -24,19 +25,19 @@ public static class SystemInfoEndpoints
             ?? asm.GetName().Version?.ToString()
             ?? "unknown";
 
-        return Results.Ok(new SystemInfoResponse(
+        return Results.Ok(new PacApiSystemInfo(
             Product: "pactoolkits-api",
             ApiVersion: version,
             ContractVersion: ApiContract.Version,
-            Utc: DateTimeOffset.UtcNow));
+            Utc: time.GetUtcNow()));
     }
 
-    private static async Task<IResult> GetStatus(IApiHealth health, CancellationToken ct)
+    private static async Task<IResult> GetStatus(IApiHealth health, TimeProvider time, CancellationToken ct)
     {
         var snap = await health.CheckAsync(ct).ConfigureAwait(false);
         var body = new SystemStatusResponse(
             Status: snap.Ok ? "ok" : "unavailable",
-            Utc: DateTimeOffset.UtcNow,
+            Utc: time.GetUtcNow(),
             Database: snap.Database,
             Schema: snap.Schema,
             SchemaVersion: snap.SchemaVersion,
@@ -63,12 +64,6 @@ public static class SystemInfoEndpoints
         };
     }
 }
-
-public sealed record SystemInfoResponse(
-    string Product,
-    string ApiVersion,
-    string ContractVersion,
-    DateTimeOffset Utc);
 
 public sealed record SystemStatusResponse(
     string Status,
