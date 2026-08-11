@@ -7,4 +7,5 @@ public sealed record PacApiProblem(
     string? Title,
     string? Detail,
     string? TraceId,
-    TimeSpan? RetryAfter);
+    TimeSpan? RetryAfter,
+    long? CurrentVersion = null);
