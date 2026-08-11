@@ -7,6 +7,8 @@ public enum PageDataAvailability
 {
     NotLoaded,
     AwaitingDatabase,
+    // 等 API 等远端服务，别和本机库断开的 AwaitingDatabase 混用
+    AwaitingService,
     AccessBlocked,
     Loading,
     LoadFailed,

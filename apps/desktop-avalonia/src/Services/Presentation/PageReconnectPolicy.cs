@@ -3,7 +3,7 @@ using PacToolkits.Desktop.Avalonia.Contracts;
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 /// <summary>
-/// 定义页面断开数据库连接后的缓存展示与重载状态抑制规则
+/// 本机库断连与远端服务不可用时的页面可用性，以及静默刷新是否压 busy
 /// </summary>
 public static class PageReconnectPolicy
 {
@@ -12,9 +12,17 @@ public static class PageReconnectPolicy
             ? PageDataAvailability.Stale
             : PageDataAvailability.AwaitingDatabase;
 
+    /// <summary>远端瞬时不可用：有缓存进 Stale，否则 AwaitingService</summary>
+    public static PageDataAvailability ServiceUnavailableAvailability(
+        bool hasLoadedOnce,
+        bool supportsStaleWhileReconnect)
+        => hasLoadedOnce && supportsStaleWhileReconnect
+            ? PageDataAvailability.Stale
+            : PageDataAvailability.AwaitingService;
+
     public static bool SuppressReloadBusy(
         bool hasLoadedOnce,
         bool supportsStaleWhileReconnect,
-        bool reloadFromDbSignal)
-        => reloadFromDbSignal && hasLoadedOnce && supportsStaleWhileReconnect;
+        bool reloadFromSignal)
+        => reloadFromSignal && hasLoadedOnce && supportsStaleWhileReconnect;
 }

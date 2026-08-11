@@ -9,6 +9,7 @@ public static class SectionEmptyPolicy
         => !hasLoadedOnce
            && availability is PageDataAvailability.NotLoaded
                or PageDataAvailability.AwaitingDatabase
+               or PageDataAvailability.AwaitingService
                or PageDataAvailability.Loading;
 
     /// <summary>

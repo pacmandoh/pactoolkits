@@ -22,6 +22,7 @@ public sealed class SectionEmptyPolicyTests
     [InlineData(PageDataAvailability.Loading)]
     [InlineData(PageDataAvailability.NotLoaded)]
     [InlineData(PageDataAvailability.AwaitingDatabase)]
+    [InlineData(PageDataAvailability.AwaitingService)]
     public void Show_hides_empty_state_during_first_fetch(PageDataAvailability availability)
     {
         Assert.False(SectionEmptyPolicy.Show(

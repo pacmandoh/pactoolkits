@@ -35,6 +35,26 @@ public sealed class PageReconnectPolicyTests
         Assert.Equal(PageDataAvailability.AwaitingDatabase, availability);
     }
 
+    [Fact]
+    public void ServiceUnavailableAvailability_returns_awaiting_service_before_first_load()
+    {
+        var availability = PageReconnectPolicy.ServiceUnavailableAvailability(
+            hasLoadedOnce: false,
+            supportsStaleWhileReconnect: true);
+
+        Assert.Equal(PageDataAvailability.AwaitingService, availability);
+    }
+
+    [Fact]
+    public void ServiceUnavailableAvailability_returns_stale_when_loaded_and_supported()
+    {
+        var availability = PageReconnectPolicy.ServiceUnavailableAvailability(
+            hasLoadedOnce: true,
+            supportsStaleWhileReconnect: true);
+
+        Assert.Equal(PageDataAvailability.Stale, availability);
+    }
+
     [Theory]
     [InlineData(true, true, true, true)]
     [InlineData(true, true, false, false)]

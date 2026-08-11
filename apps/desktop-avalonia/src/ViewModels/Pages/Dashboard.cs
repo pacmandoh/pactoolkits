@@ -740,7 +740,7 @@ public sealed partial class Dashboard : AppPageBase
             _dirtyRefresh.Clear(this);
         }
 
-        if (!IsDbSignalReload)
+        if (!IsSignalReload)
         {
             PostOnUi(BumpKpiProgressReplay);
         }
@@ -1131,7 +1131,7 @@ public sealed partial class Dashboard : AppPageBase
                     NormalizeInput(filter.Spec));
                 var request = new DashboardRequest(
                     Filter: filter,
-                    RefreshDistributions: IsDbSignalReload
+                    RefreshDistributions: IsSignalReload
                                           || _dirtyRefresh.IsDirty(this)
                                           || _distributionScope != distributionScope,
                     OverviewTopN: DefaultTopN,

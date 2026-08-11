@@ -11,12 +11,16 @@ public abstract partial class AppPageBase
     internal void TestInjectDbServices(
         IDbConnectionMonitorService? dbMonitor = null,
         IDbAccessGuard? accessGuard = null,
-        IAppStartupStateService? startupState = null)
+        IAppStartupStateService? startupState = null,
+        TimeProvider? timeProvider = null)
     {
         if (dbMonitor is not null)
         {
             _cachedDbMonitor = dbMonitor;
-            HookDbMonitor(dbMonitor);
+            if (RequiresLocalDbForReload)
+            {
+                HookDbMonitor(dbMonitor);
+            }
         }
 
         if (accessGuard is not null)
@@ -28,6 +32,22 @@ public abstract partial class AppPageBase
         {
             _cachedStartupState = startupState;
         }
+
+        if (timeProvider is not null)
+        {
+            _cachedTime = timeProvider;
+        }
+    }
+
+    internal void TestSetServiceRetryDelay(TimeSpan delay)
+        => _serviceRetryDelay = delay;
+
+    internal DateTimeOffset? TestNextRetryAt()
+    {
+        lock (_serviceRetryGate)
+        {
+            return _nextRetryAt;
+        }
     }
 
     internal Task TestRunReloadAsync(Func<CancellationToken, Task> action)
@@ -35,4 +55,7 @@ public abstract partial class AppPageBase
 
     internal Task TestRunReloadCoreAsync()
         => RunReloadAsync(ReloadCoreAsync);
+
+    internal Task TestOnPageActivatedAsync()
+        => OnPageActivatedAsync();
 }
