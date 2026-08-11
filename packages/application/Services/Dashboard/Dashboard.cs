@@ -145,4 +145,14 @@ public sealed class DashboardService : IDashboardService
         int pageSize,
         CancellationToken ct)
         => _repo.GetAbnormalQueuePageAsync(BuildQuery(filter, topN: 0), page, pageSize, ct);
+
+    public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct)
+        => _repo.GetDrugIdsAsync(ct);
+
+    public Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct)
+    {
+        var key = InputNormalizer.Normalize(drugId)
+                  ?? throw new ArgumentException("drugId is required", nameof(drugId));
+        return _repo.GetSpecsByDrugAsync(key, ct);
+    }
 }
