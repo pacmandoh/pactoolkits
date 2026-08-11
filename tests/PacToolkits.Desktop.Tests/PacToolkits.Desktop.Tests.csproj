@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(PostgresIntegration)' != 'true'">
-    <Compile Remove="PostgresIntegrationTests.cs" />
+    <Compile Remove="**/PostgresIntegrationTests.cs" />
   </ItemGroup>
 
 </Project>
