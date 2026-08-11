@@ -17,6 +17,8 @@ public sealed class JsonLogRecord
 
     public string? TraceId { get; init; }
 
+    public string? SpanId { get; init; }
+
     public string Version { get; init; } = string.Empty;
 
     public object? Context { get; init; }

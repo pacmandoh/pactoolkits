@@ -8,10 +8,7 @@ namespace PacToolkits.Application.Services;
 /// </summary>
 public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
 {
-    private static readonly HttpClient SharedHttp = new()
-    {
-        Timeout = TimeSpan.FromSeconds(15)
-    };
+    public const string HttpClientName = "pac-release-manifest";
 
     private readonly IDbSchemaGate _schemaGate;
     private readonly IAppLogger _logger;
@@ -19,19 +16,12 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
 
     public ReleaseManifestProbeService(
         IDbSchemaGate schemaGate,
-        IAppLogger logger)
-        : this(schemaGate, logger, SharedHttp)
-    {
-    }
-
-    internal ReleaseManifestProbeService(
-        IDbSchemaGate schemaGate,
         IAppLogger logger,
         HttpClient http)
     {
         _schemaGate = schemaGate ?? throw new ArgumentNullException(nameof(schemaGate));
-        _logger = logger;
-        _http = http;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _http = http ?? throw new ArgumentNullException(nameof(http));
     }
 
     public async Task<ReleaseManifestProbe> ProbeAsync(
@@ -161,6 +151,13 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
             throw new FileNotFoundException("release-manifest.json not found", manifestPath);
         }
 
+        var info = new FileInfo(manifestPath);
+        if (info.Length > 2 * 1024 * 1024)
+        {
+            throw new InvalidOperationException("release-manifest.json exceeds 2 MiB");
+        }
+
+        ct.ThrowIfCancellationRequested();
         await using var stream = new FileStream(
             manifestPath,
             FileMode.Open,
@@ -168,10 +165,7 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
             FileShare.Read,
             bufferSize: 4096,
             options: FileOptions.Asynchronous | FileOptions.SequentialScan);
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
-        timeoutCts.Token.ThrowIfCancellationRequested();
-        // JsonDocument.Parse 为同步 API；超时令牌覆盖打开与解析阶段
+        // 本地文件先卡大小再同步 Parse；Parse 不看 token，别挂假 CancelAfter
         return ReadManifest(stream);
     }
 

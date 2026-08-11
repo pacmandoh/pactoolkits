@@ -137,7 +137,10 @@ public sealed class ReleaseManifestProbeServiceTests
                 TestContext.Current.CancellationToken);
 
             var schema = new FakeDbSchemaVersionService("1.2.23");
-            var service = new ReleaseManifestProbeService(new DbSchemaGate(schema), new NullLogger());
+            var service = new ReleaseManifestProbeService(
+                new DbSchemaGate(schema),
+                new NullLogger(),
+                new HttpClient());
 
             var result = await service.ProbeAsync(
                 root, "beta", new PgOptions(), TestContext.Current.CancellationToken);
@@ -165,7 +168,8 @@ public sealed class ReleaseManifestProbeServiceTests
         {
             var service = new ReleaseManifestProbeService(
                 new DbSchemaGate(new FakeDbSchemaVersionService("1.2.23")),
-                new NullLogger());
+                new NullLogger(),
+                new HttpClient());
 
             var result = await service.ProbeAsync(
                 root, "stable", new PgOptions(), TestContext.Current.CancellationToken);
