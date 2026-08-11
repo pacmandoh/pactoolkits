@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
-using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Ui.Threading;
 using Velopack;
 using Velopack.Locators;
 
