@@ -26,7 +26,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDbConnectionTester, DbConnectionTester>();
         services.AddSingleton<IDbConnectionMonitorService, DbConnectionMonitorService>();
         services.AddSingleton<IDbSchemaVersionService, DbSchemaVersionService>();
-        // Desktop 过渡：本机 LISTEN；IChangeWatermarkRepo 供 API watermarks 端点
+        // ChangeWatermarkService：本机 LISTEN；IChangeWatermarkRepo：API watermarks 端点
         services.AddSingleton<IChangeWatermarkService, ChangeWatermarkService>();
         services.AddSingleton<IChangeWatermarkRepo, ChangeWatermarkRepo>();
         services.AddSingleton<ITraceEntryLogService, TraceEntryLogService>();
