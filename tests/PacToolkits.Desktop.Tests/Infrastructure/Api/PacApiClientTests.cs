@@ -117,8 +117,8 @@ public sealed class PacApiClientTests
                 () => new HttpRequestMessage(HttpMethod.Get, client.Resolve("/v1/ping")),
                 TestContext.Current.CancellationToken));
 
-        // 非法 expiresIn 不得污染缓存；仍保留换票前的有效票
-        Assert.Equal("tok-1", client.CurrentAccessToken);
+        // 401 清票后换票失败：缓存为空，非法 expiresIn 未写入
+        Assert.Null(client.CurrentAccessToken);
     }
 
     [Theory]
