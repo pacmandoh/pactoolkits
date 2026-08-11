@@ -32,10 +32,4 @@ public interface IDashboardService
         int page,
         int pageSize,
         CancellationToken ct);
-
-    /// <summary>筛选用药品目录</summary>
-    Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct);
-
-    /// <summary>筛选用规格</summary>
-    Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct);
 }

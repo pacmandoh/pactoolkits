@@ -13,7 +13,7 @@ public interface IDrugIndexService
 
     Task<DrugIndexSaveResult> SaveAsync(DrugIndexSaveRequest request, CancellationToken ct);
 
-    Task DeleteAsync(string drugId, string spec, CancellationToken ct);
+    Task DeleteAsync(string drugId, string spec, long expectedVersion, CancellationToken ct);
 
     Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(
         string sourceDrugId,

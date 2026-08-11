@@ -24,6 +24,9 @@ public sealed class ScanCodeService : IScanCodeService
 
     public async Task<ScanCodeSubmitResult> SubmitAsync(ScanCodeSubmitRequest request, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        EnsureAnalysisMatchesCodes(request);
+
         var dto = await _drugIndexRepo.GetByKeyAsync(request.DrugId, request.Spec, ct).ConfigureAwait(false);
         if (dto is null)
         {
@@ -35,38 +38,36 @@ public sealed class ScanCodeService : IScanCodeService
                 EntryMessage: "drug/spec not found");
         }
 
+        // 写库只认顶层 ValidUniqueCodes；Analysis 仅作流水计数且须与之对齐
+        var codes = request.ValidUniqueCodes;
+        var analysis = request.Analysis;
         var result = await _scanCodeRepo
-            .InsertTraceCodesAsync(request.DrugId, request.Spec, dto.Qty, request.ValidUniqueCodes, ct)
+            .InsertTraceCodesAsync(request.DrugId, request.Spec, dto.Qty, codes, ct)
             .ConfigureAwait(false);
 
-        var failedCount = Math.Max(0, request.Analysis.Total - result.InsertedCount);
+        // 池内/扫码重复只是输入过滤；失败只计无效与未写入的有效码
+        var insertMiss = Math.Max(0, codes.Count - result.InsertedCount);
+        var failedCount = analysis.Invalid + insertMiss;
         var entryResult = result.InsertedCount == 0
-            ? "failed"
+            ? failedCount > 0 ? "failed" : "success"
             : failedCount > 0 ? "partial" : "success";
         var entryMessage =
-            $"{request.Source} input={request.Analysis.Total}, valid={request.ValidUniqueCodes.Count}, duplicate={request.Analysis.Duplicate}, invalid={request.Analysis.Invalid}, inserted={result.InsertedCount}, skipped={result.SkippedCount}";
+            $"{request.Source} input={analysis.Total}, valid={codes.Count}, duplicate={analysis.Duplicate}, poolDuplicate={analysis.PoolDuplicate}, invalid={analysis.Invalid}, inserted={result.InsertedCount}, skipped={result.SkippedCount}";
 
-        try
-        {
-            await _traceEntryLog.WriteAsync(new TraceEntryLogDto(
-                EntryAt: DateTimeOffset.Now,
-                DrugId: request.DrugId,
-                Spec: request.Spec,
-                EntryCount: request.Analysis.Total,
-                QtyPerTrace: dto.Qty,
-                TotalAvailableQty: result.InsertedCount * dto.Qty,
-                FailedCount: failedCount,
-                Result: entryResult,
-                TxnId: null,
-                Client: request.ClientRaw,
-                Source: request.Source,
-                Message: entryMessage
-            ), ct).ConfigureAwait(false);
-        }
-        catch
-        {
-            entryMessage = $"insert ok but log failed: {entryMessage}";
-        }
+        await _traceEntryLog.WriteAsync(new TraceEntryLogDto(
+            EntryAt: DateTimeOffset.Now,
+            DrugId: request.DrugId,
+            Spec: request.Spec,
+            EntryCount: analysis.Total,
+            QtyPerTrace: dto.Qty,
+            TotalAvailableQty: result.InsertedCount * dto.Qty,
+            FailedCount: failedCount,
+            Result: entryResult,
+            TxnId: null,
+            Client: request.ClientRaw,
+            Source: request.Source,
+            Message: entryMessage
+        ), ct).ConfigureAwait(false);
 
         return new ScanCodeSubmitResult(
             DrugFound: true,
@@ -74,6 +75,53 @@ public sealed class ScanCodeService : IScanCodeService
             QtyPerTrace: dto.Qty,
             EntryResult: entryResult,
             EntryMessage: entryMessage);
+    }
+
+    /// <summary>
+    /// ValidUniqueCodes 与 Analysis 必须同一套数据，否则流水计数与落库会互相矛盾
+    /// </summary>
+    private static void EnsureAnalysisMatchesCodes(ScanCodeSubmitRequest request)
+    {
+        var codes = request.ValidUniqueCodes
+                    ?? throw new ArgumentException("ValidUniqueCodes is required", nameof(request));
+        var analysis = request.Analysis
+                       ?? throw new ArgumentException("Analysis is required", nameof(request));
+        var analysisCodes = analysis.ValidUniqueCodes
+                            ?? throw new ArgumentException("Analysis.ValidUniqueCodes is required", nameof(request));
+
+        if (analysis.Total < 0
+            || analysis.Invalid < 0
+            || analysis.Duplicate < 0
+            || analysis.PoolDuplicate < 0)
+        {
+            throw new ArgumentException("Analysis counts must be non-negative", nameof(request));
+        }
+
+        // ValidUniqueCodes 已排除池内重复；Total 须含 PoolDuplicate
+        if (analysis.Total
+            != analysis.Invalid + analysis.Duplicate + analysis.PoolDuplicate + codes.Count)
+        {
+            throw new ArgumentException(
+                "Analysis.Total must equal Invalid + Duplicate + PoolDuplicate + ValidUniqueCodes.Count",
+                nameof(request));
+        }
+
+        if (analysisCodes.Count != codes.Count)
+        {
+            throw new ArgumentException(
+                "Analysis.ValidUniqueCodes must match ValidUniqueCodes",
+                nameof(request));
+        }
+
+        for (var i = 0; i < codes.Count; i++)
+        {
+            if (!string.Equals(codes[i], analysisCodes[i], StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Analysis.ValidUniqueCodes must match ValidUniqueCodes",
+                    nameof(request));
+            }
+        }
     }
 
     public Task<IReadOnlyList<string>> FindExistingTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct)

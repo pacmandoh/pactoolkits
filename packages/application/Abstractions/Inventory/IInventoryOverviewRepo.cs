@@ -32,19 +32,16 @@ public interface IInventoryOverviewRepo
         int pageSize,
         CancellationToken ct);
 
-    Task<long> UpdateStockRowAsync(
-        string matchTraceCode,
-        long expectedVersion,
-        string? newTraceCode,
-        int? newRemain,
+    Task<StockRowEditBatchResult> ApplyStockRowEditsAsync(
+        IReadOnlyList<StockRowEditRequest> edits,
         CancellationToken ct);
 
     Task<int> DeleteStockByTraceCodesAsync(
         IReadOnlyList<string> traceCodes,
         CancellationToken ct);
 
-    Task<StockReassignApplyResultDto> ReassignStockByTraceCodeAsync(
-        string traceCode,
+    Task<StockReassignApplyResultDto> ReassignStockByTraceCodesAsync(
+        IReadOnlyList<string> traceCodes,
         string targetDrugId,
         string targetSpec,
         int targetQty,

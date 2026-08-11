@@ -3,9 +3,6 @@ namespace PacToolkits.Application.DTOs;
 /// <summary>快照中的客户端计数</summary>
 public sealed record ClientCountDto(string Client, long Value);
 
-/// <summary>药品目录或规格列表</summary>
-public sealed record DashboardStringListResponse(IReadOnlyList<string> Items);
-
 /// <summary>Dashboard 快照 HTTP 响应</summary>
 public sealed record DashboardSnapshotResponse(
     IReadOnlyList<string> ClientNames,
