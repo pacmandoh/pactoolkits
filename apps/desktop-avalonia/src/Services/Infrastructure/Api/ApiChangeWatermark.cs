@@ -18,7 +18,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 ///
 /// 不直连 Pg NOTIFY；SSE 断了只重连流，不要把整站判成断开
 /// ready 与 change 都补查 watermark；第一次见到的 topic 只有 change 才刷页
-/// Desktop DI 注册本机 ChangeWatermarkService；本类型供经 PacApi 消费变更时使用
+/// Desktop DI 唯一的 <see cref="IChangeWatermarkService"/>
 /// </summary>
 public sealed class ApiChangeWatermark : IChangeWatermarkService
 {

@@ -1,6 +1,7 @@
 using System.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
@@ -38,6 +39,9 @@ public static class ServiceRegistration
         services.AddDesktopInfrastructure(config);
         services.AddPacToolkitsInfrastructure(config);
         services.AddPacToolkitsApplication();
+        // Dashboard 与变更水位使用 PacApi 实现
+        services.Replace(ServiceDescriptor.Singleton<IDashboardService, ApiDashboard>());
+        services.Replace(ServiceDescriptor.Singleton<IChangeWatermarkService, ApiChangeWatermark>());
         services.AddUiShell();
         services.AddDesktopMsfxUpdate();
         services.AddDesktopWorkspace();

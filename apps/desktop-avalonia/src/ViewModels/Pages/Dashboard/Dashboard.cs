@@ -32,13 +32,11 @@ public sealed partial class Dashboard : AppPageBase
     public override string DisplayName => "概览";
     public override string Icon => "LayoutPanelLeft";
     public override int Index => 0;
-    protected override bool AutoRefreshOnDbDisconnected => true;
-    protected override bool AutoRefreshOnDbReconnected => true;
+    protected override bool RequiresLocalDbForReload => false;
 
     private readonly IDashboardService _dashboard;
     private readonly IToastService _toast;
     private readonly IClientAliasService _clientAlias;
-    private readonly ILookupCatalogService _lookup;
     private readonly PageNavigationService _nav;
     private readonly InventoryOverview _inventoryOverview;
     private readonly WorkspaceDirtyRefresh _dirtyRefresh;
@@ -175,24 +173,12 @@ public sealed partial class Dashboard : AppPageBase
         }
     }
 
-    private async Task RefreshDrugCatalogAsync(CancellationToken ct, bool forceRefresh = false)
+    private async Task RefreshDrugCatalogAsync(CancellationToken ct)
     {
-        if (IsLookupCatalogSuspended())
-        {
-            await RunOnUiAsync(() =>
-            {
-                using (SuppressReload())
-                {
-                    DrugOptions.Clear();
-                    _drugCatalog = [];
-                    IsDrugSuggestOpen = false;
-                    ResetSpecToAll();
-                }
-            }, DispatcherPriority.Background);
-            return;
-        }
-
-        var list = await DrugCatalogRefresh.LoadAsync(_lookup, forceRefresh, ct).ConfigureAwait(false);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linked.CancelAfter(DrugCatalogRefresh.Timeout);
+        var drugs = await _dashboard.GetDrugIdsAsync(linked.Token).ConfigureAwait(false);
+        var list = LookupOptions.ToOptions(drugs);
 
         await RunOnUiAsync(() =>
         {
@@ -222,7 +208,7 @@ public sealed partial class Dashboard : AppPageBase
         {
             try
             {
-                await RefreshDrugCatalogAsync(CancellationToken.None, forceRefresh: true).ConfigureAwait(false);
+                await RefreshDrugCatalogAsync(CancellationToken.None).ConfigureAwait(false);
 
                 var drug = NormalizeInput(DrugText);
                 if (!string.IsNullOrWhiteSpace(drug))
@@ -249,7 +235,7 @@ public sealed partial class Dashboard : AppPageBase
 
             if (!string.IsNullOrWhiteSpace(drug))
             {
-                specs = await LookupOptions.GetSpecsAsync(_lookup, drug, ct).ConfigureAwait(false);
+                specs = await _dashboard.GetSpecsByDrugAsync(drug, ct).ConfigureAwait(false);
             }
 
             await RunOnUiAsync(() =>
@@ -485,18 +471,6 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsAbnormalEmpty));
     }
 
-    protected override void OnLookupCatalogSuspended()
-    {
-        using (SuppressReload())
-        {
-            DrugOptions.Clear();
-            _drugCatalog = [];
-            IsDrugSuggestOpen = false;
-            DrugText = null;
-            ResetSpecToAll();
-        }
-    }
-
     protected override void OnPageAvailabilityChanged()
     {
         OnPropertyChanged(nameof(IsTrendEmpty));
@@ -558,14 +532,13 @@ public sealed partial class Dashboard : AppPageBase
     private bool _firstLoadTriggered;
     private bool _filtersLoaded;
 
-    public Dashboard(IDashboardService dashboard, ILookupCatalogService lookup, IToastService toast,
+    public Dashboard(IDashboardService dashboard, IToastService toast,
         IClientAliasService clientAlias, PageNavigationService nav, InventoryOverview inventoryOverview,
         WorkspaceDirtyRefresh dirtyRefresh)
     {
         _dashboard = dashboard;
         _toast = toast;
         _clientAlias = clientAlias;
-        _lookup = lookup;
         _nav = nav;
         _inventoryOverview = inventoryOverview;
         _dirtyRefresh = dirtyRefresh;
@@ -626,19 +599,16 @@ public sealed partial class Dashboard : AppPageBase
             {
                 _filtersLoaded = true;
 
-                if (!IsDbAccessBlocked(out _))
-                {
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-                    await RefreshDrugCatalogAsync(cts.Token);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+                await RefreshDrugCatalogAsync(cts.Token);
 
-                    if (!string.IsNullOrWhiteSpace(DrugText))
-                    {
-                        await ReloadSpecsAsync(NormalizeInput(DrugText)!);
-                    }
-                    else
-                    {
-                        await RunOnUiAsync(ResetSpecToAll, DispatcherPriority.Background);
-                    }
+                if (!string.IsNullOrWhiteSpace(DrugText))
+                {
+                    await ReloadSpecsAsync(NormalizeInput(DrugText)!);
+                }
+                else
+                {
+                    await RunOnUiAsync(ResetSpecToAll, DispatcherPriority.Background);
                 }
             }
         }
