@@ -79,6 +79,23 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
         }
     }
 
+    public void Reset()
+    {
+        lock (_gate)
+        {
+            _versions.Clear();
+            _silentBootstrap.Clear();
+        }
+
+        lock (_pulseGate)
+        {
+            _pendingEmitOnBootstrap = false;
+        }
+
+        Start();
+        EnqueuePulse(emitOnBootstrap: true);
+    }
+
     internal int TestDispatchLoopStarts => Volatile.Read(ref _dispatchLoopStarts);
 
     internal int TestPollLoopStarts => Volatile.Read(ref _pollLoopStarts);
@@ -184,7 +201,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             {
                 _ = await _wake.Reader.ReadAsync(ct).ConfigureAwait(false);
 
-                // 短窗内合并突发唤醒，避免一次水位刷新打成多次
+                // 短窗内合并突发唤醒，避免一次水位刷新变成多次
                 await Task.Delay(_notifyCoalesceWindow, _time, ct).ConfigureAwait(false);
                 while (_wake.Reader.TryRead(out _))
                 {
