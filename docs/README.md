@@ -9,7 +9,7 @@
 | [monorepo-layout.md](./architecture/monorepo-layout.md) | 目录职责与解决方案成员                                   |
 | [layering.md](./architecture/layering.md)               | 依赖方向与各层职责                                       |
 | [agents.md](./architecture/agents.md)                   | Agents 三边界：Host 监管、Desktop desired、管道 Snapshot |
-| [api.md](./architecture/api.md)                         | API 宿主、鉴权、变更流与架构红线                         |
+| [api.md](./architecture/api.md)                         | API 宿主、鉴权、变更流与 Desktop 连接边界                |
 | [desktop-state.md](./architecture/desktop-state.md)     | Desktop 连接、页面可用性与区块空状态                     |
 
 ## 运维

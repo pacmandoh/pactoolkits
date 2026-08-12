@@ -136,7 +136,7 @@ pactoolkits/
 - [Monorepo 布局](./docs/architecture/monorepo-layout.md)
 - [分层与依赖规则](./docs/architecture/layering.md)
 - [Agents 运行时架构](./docs/architecture/agents.md)
-- [API 宿主与架构红线](./docs/architecture/api.md)
+- [API 宿主](./docs/architecture/api.md)
 - [Desktop 状态模型](./docs/architecture/desktop-state.md)
 - [发布流程](./docs/operations/release-flow.md)
 - [Beta 发布规则](./docs/operations/beta-release-policy.md)

@@ -1,6 +1,6 @@
 # PacToolkits API
 
-`apps/api-asp`（`PacToolkits.Api`）是站点业务 HTTP 宿主：鉴权、健康检查、变更流、域用例路由。业务数据经 Application 与 Infrastructure 访问 PostgreSQL。HTTP 按**用例级命令**暴露，不按 Repository 方法机械映射。
+`apps/api-asp`（`PacToolkits.Api`）是站点业务 HTTP 宿主：鉴权、健康检查、变更流、域用例路由。业务数据经 Application 与 Infrastructure 访问 PostgreSQL。HTTP 按**用例级命令**暴露，不按 Repository 方法机械映射
 
 ## 职责边界
 
@@ -10,7 +10,7 @@
 | `packages/application`    | 与 Desktop 共用的用例与访问策略                                            | 不引用 ASP.NET / Avalonia / Npgsql |
 | `packages/infrastructure` | Pg 连接与仓储                                                              | 不定义 HTTP 协议                   |
 
-依赖方向：API 依赖 Application 与 Infrastructure（见 [layering.md](./layering.md)）。
+依赖方向：API 依赖 Application 与 Infrastructure（见 [layering.md](./layering.md)）
 
 ## 鉴权与授权
 
@@ -25,6 +25,7 @@ GET  /v1/catalog/*    Bearer read；drug-ids / drugs/{drugId}/specs|quantity|dep
 GET/PUT/DELETE /v1/drugs*  Bearer read|write；检索、保存、删除、主键修复
 POST /v1/trace-codes/*  Bearer write；check-existing / submit
 GET/POST /v1/inventory/*  Bearer read|write；库存分页，以及批量编辑与改派
+GET/POST /v1/msfx/*       Bearer read|write；看板、游标、映射、注入等库侧同步（码上放心 HTTP 由 Desktop 直连）
 ```
 
 - **客户端**：`Auth:Clients` 具名条目；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）。ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白
@@ -33,7 +34,7 @@ GET/POST /v1/inventory/*  Bearer read|write；库存分页，以及批量编辑�
 - **Scope / Policy**：`read` / `write` / `system.status`；端点 `.RequireAuthorization(...)`；配置出现未知 scope 则启动失败
 - **Clients 启动校验**：Production 至少要有一个 Enabled client（合法 hash，且至少一个已知 scope）；`dev` 等非 Production 允许空 `Clients`
 - **换票**：失败统一 401；不区分 Key 不存在 / 错误 / 已禁用；日志不记明文 Key
-- **换票限流**：按 `RemoteIpAddress` 固定窗 30 次/分钟。多终端经同一机器转发或 NAT 出口时共用额度；上线前用真实中转拓扑验证（约 10 台同时启动换票，观察是否 429）
+- **换票限流**：按 `RemoteIpAddress` 固定窗 30 次/分钟。多终端经同一机器转发或 NAT 出口时共用额度
 - **协议版本**：`GET /v1/system/info` 返回 `contractVersion`（协议 SemVer，来自清单 `components.api.contractVersion`，export 为 `ApiContract.Version`）。客户端用该字段判断协议是否兼容；`apiVersion` 只标识进程构建（清单 `components.api.version`），不参与协议判断
 
 ## 健康与错误
@@ -63,9 +64,18 @@ GET/POST /v1/inventory/*  Bearer read|write；库存分页，以及批量编辑�
 
 数据变更经 `pg_notify('pactoolkits_change', topic)`
 
-Desktop：变更水位用 `ApiChangeWatermark`（SSE 与 watermarks）。Dashboard、药品目录、药品索引、扫码、库存分别走 `ApiDashboard`、`ApiLookupCatalog`、`ApiDrugIndex`、`ApiScanCode`、`ApiInventory`。MSFX、Shell、Settings 走本机 Infrastructure
+Desktop：变更水位用 `ApiChangeWatermark`（SSE 与 watermarks）。Dashboard、药品目录、药品索引、扫码、库存、MSFX 库侧同步分别走 `ApiDashboard`、`ApiLookupCatalog`、`ApiDrugIndex`、`ApiScanCode`、`ApiInventory`、`ApiSync`。Shell 可用性走 `IApiAvailabilityService`（探测 `/v1/system/info` 与 `/v1/system/status`）。Settings 站点业务项（MSFX 接入凭据、客户端别名、追溯码规则）与码上放心 HTTP 在 Desktop 直连；`IMsfxAutoRunService` 在 Desktop 编排码上放心请求与入库（与 `ApiSync` 须同一 PostgreSQL）
 
-Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册三类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。401 且 Bearer 对应当前缓存票时清票；GET/HEAD 换票后重放（并发换票进锁复用，不连打 `/token`）；写命令不重放。共享 HTTP DTO 在 `packages/application/DTOs/Api/`
+Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFactory` 注册四类命名客户端：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、可用性探测（短超时、JWT、无 Resilience）、SSE（长连接与 JWT）。出站带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。401 且 Bearer 对应当前缓存票时清票；GET/HEAD 换票后重放（并发换票进锁复用，不连续请求 `/token`）；写命令不重放。共享 HTTP DTO 在 `packages/application/DTOs/Api/`
+
+命名（同目录 `Services/Infrastructure/Api/`）：
+
+| 前缀      | 职责                                                                               | 例                                                  |
+| --------- | ---------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `PacApi*` | 连 `PacToolkits.Api` 宿主的传输与协议：客户端、选项、异常、JWT/trace、协议门禁、DI | `PacApiClient`、`PacApiOptions`、`PacApiException`  |
+| `Api*`    | 经 `PacApiClient` 实现 Application 抽象的域适配，以及 Shell 可用性探测             | `ApiDashboard`、`ApiSync`、`ApiAvailabilityService` |
+
+配置字段在 AppConfig 的 `PacApi`（设置页持久化）；DTO 放 `DTOs/Api/`（HTTP 契约，不绑 Desktop 类名前缀）
 
 异常约定：
 
@@ -76,7 +86,7 @@ Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）经 `IHttpClientFa
 - 裸 `SendAsync`、`SendSseAsync` 返回 `HttpResponseMessage`，由调用方 `EnsureSuccessAsync` 或自读状态（如 `ApiChangeWatermark`）
 - 不向外抛裸 `HttpRequestException`
 
-`ApiChangeWatermark` 为 Desktop 唯一 `IChangeWatermarkService`（SSE 与 watermarks）。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。消费变更的页面需要突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）
+`ApiChangeWatermark` 为 Desktop 唯一 `IChangeWatermarkService`（SSE 与 watermarks）。SSE 的 `ready`（含重连）与 `change` 都会再 GET watermarks 补 version；第一次见到的 topic 只有 `change` 才刷页，避免冷启动连环刷新。PacApi 配置变更时 `Reset` 重绑 SSE 与本地水位，已配置则按 change 语义刷当前 topic。唤醒容量为 1，在锁内合并。`TopicChanged` 按订阅者隔离，单页异常不拖死其它 topic。消费变更的页面需要突发合并、编辑中暂缓刷新、Stale、恢复后自动刷新（见 [desktop-state.md](./desktop-state.md)）
 
 **API 侧**：
 
@@ -89,12 +99,12 @@ Pg NOTIFY
 
 - SSE：`ready`、`change`、`heartbeat`；单 `client_id` 最多 2 条并发流；订阅通道有界，落后时丢旧 topic
 - LISTEN 侧按 topic 记 pending，经短合并窗再 `Publish`（NOTIFY 可合并或丢弃；**version 以 watermark 为准**）
-- SSE 在 JWT `exp` 时由服务端关闭；客户端换票后重连，并 GET watermarks 补偿（勿只信 SSE 推送）
+- SSE 在 JWT `exp` 时由服务端关闭；客户端换票后重连，并 GET watermarks 补偿（version 以 watermark 为准，不以 SSE 推送单独为准）
 - `Changes:ListenEnabled`：是否启 LISTEN（测试可关）
 
 ## 审计
 
-请求日志至少含：W3C `traceId`、`spanId`（若有）、每请求 `requestId`（`TraceIdentifier`）、`clientId`（若有）、方法与路径、HTTP 状态、耗时。禁止记录 API Key、JWT、数据库密码、完整连接串。
+请求日志至少含：W3C `traceId`、`spanId`（若有）、每请求 `requestId`（`TraceIdentifier`）、`clientId`（若有）、方法与路径、HTTP 状态、耗时。禁止记录 API Key、JWT、数据库密码、完整连接串
 
 ## 部署边界
 
@@ -103,21 +113,23 @@ Pg NOTIFY
 - Nginx 必须用 `$remote_addr` **覆盖** `X-Forwarded-For`，禁止 `$proxy_add_x_forwarded_for`（否则客户端可伪造来源 IP，绕过按来源聚合的限流）
 - 代理与应用日志均不记录认证头
 
-本地密钥、Nginx 片段与换票限流手工验证见 [API README](../../apps/api-asp/README.md)。
+本地密钥、Nginx 片段与换票限流手工验证见 [API README](../../apps/api-asp/README.md)
 
-## 架构红线
+## 约束
 
-1. 不按 Repo / SQL 机械暴露 HTTP
-2. 需要事务的写操作在 API 内完整提交（客户端不跨请求拼事务）
-3. 实时变更走 SSE 与 watermark；不以常规定时轮询作主路径
-4. Agents / AHK 禁止通用 `execute-sql`；只走专用业务 API
-5. 关键写具备幂等（CommandId + 持久化去重，或可靠业务键）；禁止只靠进程内存
-6. 同一域只保留一条数据路径；禁止双写
+- HTTP 按用例级命令暴露，不按 Repository / SQL 机械映射
+- 需要事务的写在 API 内完整提交；客户端不跨请求拼事务
+- 实时变更走 SSE 与 watermark；常规定时轮询不是主路径
+- Agents / AHK 只走专用业务 API，无通用 `execute-sql`
+- 关键写具备幂等：CommandId + 持久化去重，或可靠业务键；不以进程内存作唯一去重
+- 同一域一条数据路径，无双写
 
 ### Desktop 业务数据
 
-- 变更水位、Dashboard、药品目录、药品索引、扫码入库、库存走 PacApi。MSFX、Shell、Settings 走本机 Infrastructure
-- 页面可用性三层见 [desktop-state.md](./desktop-state.md)
+- 变更水位、Dashboard、药品目录、药品索引、扫码入库、库存、MSFX 库侧同步（`ApiSync`）走 PacApi
+- Shell 连接与刷新门禁跟 `IApiAvailabilityService` / `ConnectionView`；本机 DB monitor / AccessGuard 仅服务 Settings
+- Settings 业务配置与码上放心 HTTP 在 Desktop 直连；不经 PacApi 落库
+- 页面连接与可用性见 [desktop-state.md](./desktop-state.md)
 
 ### 配置入口
 
@@ -129,24 +141,25 @@ Pg NOTIFY
 | `SchemaBounds` | schema 闭区间；同时约束 `/health` 与经 `IDb` 的业务读写 |
 | `Changes`      | `ListenEnabled` 等变更流宿主开关                        |
 
-DI 组装入口：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）。注册全量 Application 与 Infrastructure。Desktop 专属 Store 与 MSFX 客户端在 API 宿主里另注册（无 Desktop 配置文件；MSFX 外呼未接）。域用例 HTTP 按域挂到已注册服务
+DI 组装入口：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）。注册全量 Application 与 Infrastructure。API 宿主用 Empty/Memory 适配 Desktop 专属 Store；`IMsfxApiClient` 为 Unsupported（码上放心 HTTP 不走 API 宿主）。域用例 HTTP 按域挂到已注册服务
 
-### Desktop 侧 PacApi（部署注入）
+### Desktop 侧 PacApi（设置页配置）
 
-Desktop 访问 API 的密钥与地址由环境变量或受保护配置提供，**不要**写入普通 `AppConfigStore`。
+Desktop 访问 API 的地址与密钥在设置的「连接设置」写入 `AppConfigStore`（与码上放心 API 凭证同一套持久化）。保存后立即热应用到 `PacApiClient`，并 `Reset` 变更水位与 Shell 可用性探测
 
-| 变量                             | 含义                                         |
-| -------------------------------- | -------------------------------------------- |
-| `PACTOOLKITS_PacApi__BaseUrl`    | API 根地址（绝对 URI；非 loopback 须 HTTPS） |
-| `PACTOOLKITS_PacApi__ApiKey`     | 换票用明文 Key（仅部署侧持有）               |
-| `PACTOOLKITS_PacApi__HeaderName` | 可选；默认 `X-Api-Key`                       |
+| 字段         | 含义                                         |
+| ------------ | -------------------------------------------- |
+| `BaseUrl`    | API 根地址（绝对 URI；非 loopback 须 HTTPS） |
+| `ApiKey`     | 换票用明文 Key                               |
+| `HeaderName` | 可选；默认 `X-Api-Key`（设置页不暴露）       |
 
-Options 规则：
+规则：
 
-- `BaseUrl` 与 `ApiKey` 都空：校验通过；此时变更流不启动，经 PacApi 的业务页也不可用
-- 只配一侧：失败
-- 两侧都有：须为绝对 URI；非 loopback 须 HTTPS；`HeaderName` 须是合法 HTTP field-name；`BaseUrl` 不得带 query、fragment、userinfo
+- `BaseUrl` 与 `ApiKey` 都空：合法，表示未配置；此时不探测 PacApi，`ConnectionView` 为 `NotConfigured`，变更流不启动
+- 只配一侧：保存失败
+- 两侧都有：须为绝对 URI；非 loopback 须 HTTPS；`BaseUrl` 不得带 query、fragment、userinfo
+- 保存后热应用、`Reset` 水位并立刻 `Probe`；换票 401/403 后可用性挂起自动探测，改密钥抬 `ConfigEpoch` 再探
 
-`PacApiClient` 与 `PacApiContractGate` 启动时读 `IOptions<PacApiOptions>` 快照；改环境变量或配置文件不会热更新，须重启 Desktop。
+未配置是配置态，不是 API 探测态：`IApiAvailabilityService.IsConfigured` 为假时不发 HTTP，也不把「未配置」写成 `ApiAvailabilityState`
 
-App DI 在 `IReleaseVersionService` 之后注册 `IPacApiContractGate`。已配置时，业务请求进 Jwt Handler 前会先 GET `/v1/system/info`，用 Desktop 清单的 `minApiContract`、`maxApiContract` 对照 API 的 `contractVersion`；对不上就拦下业务请求。
+App DI 在 `IReleaseVersionService` 之后注册 `IPacApiContractGate`。已配置时，业务请求进 Jwt Handler 前会先 GET `/v1/system/info`，用 Desktop 清单的 `minApiContract`、`maxApiContract` 对照 API 的 `contractVersion`；对不上就拦下业务请求。设置页改密钥后会 `Reset` 协议检查结果

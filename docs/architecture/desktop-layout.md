@@ -1,8 +1,8 @@
 # Desktop 目录与 namespace
 
-Desktop 使用 Avalonia MVVM，packages 侧保持 Clean Architecture。大目录按职责或业务域分子目录。禁止 `Common`、`Helpers`、`Utils`、`Misc`。
+Desktop 使用 Avalonia MVVM，packages 侧保持 Clean Architecture。大目录按职责或业务域分子目录。禁止 `Common`、`Helpers`、`Utils`、`Misc`
 
-页面状态与 DI 边界见 [layering.md](./layering.md)、[desktop-state.md](./desktop-state.md)。本文约定路径与 namespace。
+页面状态与 DI 边界见 [layering.md](./layering.md)、[desktop-state.md](./desktop-state.md)。本文约定路径与 namespace
 
 ## 顶层（`apps/desktop-avalonia/src/`）
 
@@ -32,7 +32,7 @@ Views/
 Styles/  Assets/  Resources/
 ```
 
-`App.axaml`、`Program.cs` 等入口可放在 `src/` 根下。
+`App.axaml`、`Program.cs` 等入口可放在 `src/` 根下
 
 ## namespace
 
@@ -51,11 +51,11 @@ Styles/  Assets/  Resources/
 | `Services/Presentation/<Sub>/`   | `.Services.Presentation.<Sub>`   |
 | `Services/Workspace/<Sub>/`      | `.Services.Workspace.<Sub>`      |
 
-`Services/Infrastructure/Agents/` 使用 `.Services.Infrastructure.Agents`。
+`Services/Infrastructure/Agents/` 使用 `.Services.Infrastructure.Agents`
 
-剪贴板与 `UiBehavior` 在 `Infrastructure/Platform/`（namespace 同名）。禁止 `.Services.Infrastructure.System`：同层代码中的 `System.IO`、`System.Net` 会被解析到该命名空间。
+剪贴板与 `UiBehavior` 在 `Infrastructure/Platform/`（namespace 同名）。禁止 `.Services.Infrastructure.System`：同层代码中的 `System.IO`、`System.Net` 会被解析到该命名空间
 
-PacApi 客户端在 `Services/Infrastructure/Api/`。共享 HTTP DTO 在 `packages/application/DTOs/Api/`，不放在 Desktop Api 目录。
+PacApi 客户端在 `Services/Infrastructure/Api/`。同目录两类前缀：**`PacApi*`** 是连宿主的传输与协议（`PacApiClient`、选项、异常、Handler）；**`Api*`** 是经客户端实现 Application 抽象的域适配（`ApiDashboard`、`ApiSync` 等）以及 Shell 可用性（`ApiAvailabilityService`）。共享 HTTP DTO 在 `packages/application/DTOs/Api/`，不放在 Desktop Api 目录。详见 [api.md](./api.md)
 
 ### 物理子目录与稳定 namespace
 
@@ -69,17 +69,17 @@ PacApi 客户端在 `Services/Infrastructure/Api/`。共享 HTTP DTO 在 `packag
 | `Views/Shell/`             | `.Views`            |
 | `ViewModels/Shell/`        | `.ViewModels`       |
 
-`AppPageBase`、`IPageLifecycleAware`、`ViewModelBase` 在 `ViewModels/` 根。页面与 Shell 平行分目录，不使用 `Features/<X>/Views` 结构。
+`AppPageBase`、`IPageLifecycleAware`、`ViewModelBase` 在 `ViewModels/` 根。页面与 Shell 平行分目录，不使用 `Features/<X>/Views` 结构
 
 ## packages
 
-Application 顶层为 `Abstractions`、DTOs、Services，以及 Diagnostics、Serialization、TextSearch、Threading。前三者按业务域分子目录；PacApi DTO 在 `DTOs/Api/`。Diagnostics、Serialization、Threading 在顶层。
+Application 顶层为 `Abstractions`、DTOs、Services，以及 Diagnostics、Serialization、TextSearch、Threading。前三者按业务域分子目录；PacApi DTO 在 `DTOs/Api/`。Diagnostics、Serialization、Threading 在顶层
 
-Infrastructure 的 Database、Repositories 按区域或业务域分子目录。
+Infrastructure 的 Database、Repositories 按区域或业务域分子目录
 
-public namespace 为 `.Application.*` 与 `.Infrastructure.*`（不随物理子目录变化）。
+public namespace 为 `.Application.*` 与 `.Infrastructure.*`（不随物理子目录变化）
 
-API 宿主目录为 `Auth/`、`Changes/`、`Endpoints/`、`Hosting/`。
+API 宿主目录为 `Auth/`、`Changes/`、`Endpoints/`、`Hosting/`
 
 ## 测试
 
@@ -89,7 +89,7 @@ API 宿主目录为 `Auth/`、`Changes/`、`Endpoints/`、`Hosting/`。
 | `tests/PacToolkits.Api.Tests/`       | `Auth/`、`Changes/`、`Hosting/`、`TestSupport/`                   |
 | `tests/PacToolkits.Desktop.UiTests/` | 按 Behaviors、Controls、Dialogs 等分组；共用设施在 `TestSupport/` |
 
-测试文件放在被测类型对应目录下，不堆在测试项目根。
+测试文件放在被测类型对应目录下，不堆在测试项目根
 
 ## 新增文件
 

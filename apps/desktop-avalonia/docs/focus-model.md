@@ -104,13 +104,3 @@ DrugIndex 工作集在 reload 上的语义：
 | `Clear`            | 在无未保存草稿时清空 `Selected` 与编辑器基线 |
 
 `forceFull` 路径在 `ApplyFullReload` 内自行清空工作集，不叠加 `Clear` 参数。
-
-## 反模式
-
-- 用「焦点」一词同时指 K 与 W
-- 各页 `SelectionChanged` 手写「点 B 清 A」复制壳层 peer 逻辑
-- 留下无调用的清焦点 shim，或并行两套清焦点路径
-- 在页面 code-behind 复制 `TabScope` 已覆盖的 Tab 环
-- 把 MainWindow / 页 root 当成可编辑输入保留区，导致空白点击失效
-- 壳层经 Tunnel 处理 pointer，抢在 AutoComplete 选中之前关下拉
-- 无 `SuppressGridClear` 又期望空白后编辑区仍绑定当前行（应改页声明 suppress，或改 W 设计）
