@@ -9,13 +9,13 @@ using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
-/// <summary>标题胶囊与底栏 chrome：DB 探测展示、Agents 控制、状态入口</summary>
+/// <summary>标题胶囊与底栏 chrome：PacApi 可用性、Agents 控制、状态入口</summary>
 public partial class MainWindowViewModel
 {
     private static readonly TimeSpan ChromeActionDebounce = TimeSpan.FromMilliseconds(1200);
@@ -34,26 +34,94 @@ public partial class MainWindowViewModel
 
     [ObservableProperty] private bool _isAgentsActionRunning;
     [ObservableProperty] private bool _isTopModulesExpanded;
+    [ObservableProperty] private bool _isApiProbeRunning;
 
     public bool IsHostMenuChecked => Agents.IsHostRunning;
 
-    public RuntimeVisualState DbVisualState
-        => IsDbProbeRunning
-            ? RuntimeVisualState.Transitioning
-            : IsDbConnected
-                ? RuntimeVisualState.Active
-                : RuntimeVisualState.Inactive;
+    public RuntimeVisualState ApiVisualState
+    {
+        get
+        {
+            if (!_apiAvailability.IsConfigured)
+            {
+                return RuntimeVisualState.Inactive;
+            }
 
-    public string DbItemText
-        => IsDbProbeRunning ? "检测中…"
-        : IsDbConnected ? "已连接"
-        : "未连接";
+            if (IsApiProbeRunning || !_apiAvailability.Current.FirstCheckCompleted)
+            {
+                return RuntimeVisualState.Transitioning;
+            }
 
-    public bool IsDbStatusConnected => !IsDbProbeRunning && IsDbConnected;
+            return ConnectionView.From(_apiAvailability.Current, isConfigured: true).Kind switch
+            {
+                ConnectionKind.Up => RuntimeVisualState.Active,
+                ConnectionKind.Unknown => RuntimeVisualState.Transitioning,
+                ConnectionKind.NotConfigured => RuntimeVisualState.Inactive,
+                _ => RuntimeVisualState.Inactive,
+            };
+        }
+    }
 
-    public bool IsDbStatusDisconnected => !IsDbProbeRunning && !IsDbConnected;
+    public string ApiItemText
+    {
+        get
+        {
+            if (IsApiProbeRunning)
+            {
+                return "检测中…";
+            }
 
-    private bool CanProbeDb() => !IsDbProbeRunning;
+            // 未配置文案
+            if (!_apiAvailability.IsConfigured)
+            {
+                return "PacApi 服务未配置";
+            }
+
+            var snap = _apiAvailability.Current;
+            if (!snap.FirstCheckCompleted)
+            {
+                return "PacApi 服务检查中…";
+            }
+
+            var view = ConnectionView.From(snap, isConfigured: true);
+            return view.Kind switch
+            {
+                ConnectionKind.Up => "PacApi 服务已连接",
+                ConnectionKind.NotConfigured => "PacApi 服务未配置",
+                ConnectionKind.Blocked => view.Title,
+                ConnectionKind.Down => string.IsNullOrEmpty(view.Title) ? "PacApi 服务不可用" : view.Title,
+                _ => "PacApi 服务检查中…",
+            };
+        }
+    }
+
+    public bool IsApiStatusReady
+        => !IsApiProbeRunning
+           && ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured);
+
+    public bool IsApiStatusNotConfigured
+        => !IsApiProbeRunning && !_apiAvailability.IsConfigured;
+
+    public bool IsApiStatusDown
+    {
+        get
+        {
+            if (IsApiProbeRunning || !_apiAvailability.IsConfigured)
+            {
+                return false;
+            }
+
+            if (!_apiAvailability.Current.FirstCheckCompleted)
+            {
+                return false;
+            }
+
+            return ConnectionView.From(_apiAvailability.Current, isConfigured: true).Kind
+                is ConnectionKind.Down or ConnectionKind.Blocked;
+        }
+    }
+
+    private bool CanProbeApi() => !IsApiProbeRunning;
 
     public bool CanControlAgents
         => !IsAgentsActionRunning && Agents.HostState != AgentsRunState.Starting;
@@ -96,12 +164,19 @@ public partial class MainWindowViewModel
             _ => RuntimeVisualState.Inactive,
         };
 
-    public bool ShowAccessGuardItem => _accessGuard.IsBlocked;
+    public bool ShowServiceBlockItem
+        => ConnectionView.IsBlocked(_apiAvailability.Current, _apiAvailability.IsConfigured);
 
-    public string AccessGuardItemText
-        => string.IsNullOrWhiteSpace(_accessGuard.BlockReason)
-            ? "配置未完成"
-            : _accessGuard.BlockReason!;
+    public string ServiceBlockItemText
+    {
+        get
+        {
+            var view = ConnectionView.From(
+                _apiAvailability.Current,
+                isConfigured: _apiAvailability.IsConfigured);
+            return string.IsNullOrEmpty(view.Title) ? "PacApi 服务不可用" : view.Title;
+        }
+    }
 
     public bool IsSettingsPageActive => ActivePage is ISettingsPage;
 
@@ -114,11 +189,10 @@ public partial class MainWindowViewModel
     private void DetachChromeHooks()
         => Agents.StatusChanged -= OnAgentsStatusChanged;
 
-    partial void OnIsDbProbeRunningChanged(bool value)
+    partial void OnIsApiProbeRunningChanged(bool value)
     {
-        TryReconnectDbCommand.NotifyCanExecuteChanged();
-        // 统一走 RaiseDbStateChanged，避免 probe 与 dedupe 字段双写
-        RaiseDbStateChanged();
+        TryProbeApiCommand.NotifyCanExecuteChanged();
+        RaiseApiChromeChanged();
     }
 
     partial void OnIsAgentsActionRunningChanged(bool value)
@@ -133,6 +207,17 @@ public partial class MainWindowViewModel
         OnPropertyChanged(nameof(TopModulesExpandTip));
     }
 
+    private void RaiseApiChromeChanged()
+    {
+        OnPropertyChanged(nameof(ApiVisualState));
+        OnPropertyChanged(nameof(ApiItemText));
+        OnPropertyChanged(nameof(IsApiStatusReady));
+        OnPropertyChanged(nameof(IsApiStatusNotConfigured));
+        OnPropertyChanged(nameof(IsApiStatusDown));
+        OnPropertyChanged(nameof(ShowServiceBlockItem));
+        OnPropertyChanged(nameof(ServiceBlockItemText));
+    }
+
     [RelayCommand]
     private void ToggleTopModulesExpanded()
         => IsTopModulesExpanded = !IsTopModulesExpanded;
@@ -142,8 +227,8 @@ public partial class MainWindowViewModel
         => NavigateSettingsTab("main.nav.settings.agents", static s => s.OpenAgentsTab());
 
     [RelayCommand]
-    private void OpenDatabaseSettings()
-        => NavigateSettingsTab("main.nav.settings.database", static s => s.OpenDatabaseTab());
+    private void OpenConnectivitySettings()
+        => NavigateSettingsTab("main.nav.settings.connection", static s => s.OpenConnectionTab());
 
     [RelayCommand]
     private void OpenModuleSettings(string? moduleId)
@@ -158,64 +243,56 @@ public partial class MainWindowViewModel
             s => s.OpenModuleSettingsTab(moduleId));
     }
 
-    [RelayCommand(CanExecute = nameof(CanProbeDb))]
-    private async Task TryReconnectDb()
+    [RelayCommand(CanExecute = nameof(CanProbeApi))]
+    private async Task TryProbeApi()
     {
-        if (SkipTrigger("main.db.probe", (int)ChromeActionDebounce.TotalMilliseconds))
+        if (SkipTrigger("main.api.probe", (int)ChromeActionDebounce.TotalMilliseconds))
         {
             return;
         }
 
-        _dbMonitor.Start();
-
-        await RunOnUiAsync(() => IsDbProbeRunning = true);
-
-        var kind = _dbMonitor.IsConnected
-            ? DbProbeKind.HealthCheck
-            : DbProbeKind.Reconnect;
-
-        DbProbeReport report;
+        await RunOnUiAsync(() => IsApiProbeRunning = true);
 
         try
         {
+            if (!_apiAvailability.IsConfigured)
+            {
+                _toasts.Error("PacApi 服务", "请前往设置配置地址与密钥并测试连接");
+                return;
+            }
+
             using var cts = new CancellationTokenSource(ProbeTimeout);
-            report = await _dbMonitor.ProbeAsync(kind, cts.Token);
+            await _apiAvailability.ProbeAsync(cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            _logger.Warn("MainWindowVM", "db.probe.timeout", "Database probe timed out");
-            _toasts.Error("数据库", "操作超时：请检查网络/配置");
+            _logger.Warn("MainWindowVM", "api.probe.timeout", "API availability probe timed out");
+            _toasts.Error("PacApi 服务", "操作超时：请检查网络与配置");
             return;
         }
         catch (Exception ex)
         {
-            _logger.Error("MainWindowVM", "db.probe.error", "Database probe failed", ex);
-            _toasts.Error("数据库", ex.Message);
+            _logger.Error("MainWindowVM", "api.probe.error", "API availability probe failed", ex);
+            _toasts.Error("PacApi 服务", "PacApi 服务不可用");
             return;
         }
         finally
         {
-            // known 必须先于 probe 落盘：RaiseDb 从 OnIsDbProbeRunningChanged 发出时带上 known
-            await RunOnUiAsync(() =>
-            {
-                MarkDbConnectivityKnown();
-                IsDbProbeRunning = false;
-            });
+            await RunOnUiAsync(() => IsApiProbeRunning = false);
         }
 
-        if (report.Success)
+        var snap = _apiAvailability.Current;
+        if (ConnectionView.IsReady(snap, isConfigured: true))
         {
-            _toasts.Success("数据库", kind == DbProbeKind.HealthCheck ? "健康检查通过" : "重连成功");
+            _toasts.Success("PacApi 服务", "PacApi 服务可用");
+            return;
         }
-        else
-        {
-            _logger.Warn("MainWindowVM", "db.probe.unsuccessful", "Database probe finished with unsuccessful result", null, new
-            {
-                kind,
-                report.Reason
-            });
-            _toasts.Error("数据库", report.Reason ?? "连接失败");
-        }
+
+        var view = ConnectionView.From(snap, isConfigured: true);
+        var detail = !string.IsNullOrWhiteSpace(view.Message)
+            ? view.Message
+            : snap.Detail ?? "PacApi 服务不可用";
+        _toasts.Error("PacApi 服务", detail);
     }
 
     [RelayCommand(CanExecute = nameof(CanControlAgents))]

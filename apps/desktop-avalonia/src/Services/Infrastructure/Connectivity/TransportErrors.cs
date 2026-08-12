@@ -10,9 +10,10 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Connectivity;
 /// <summary>
 /// 哪些异常只做页面 Stale 重试，哪些才通知 DB 监控断线
 ///
-/// PacApi 瞬时失败与 Resilience 超时只重试页面；只有本机 Pg 类故障才 Signal monitor
-/// 按异常分支分类：远端包装只屏蔽自己的 inner chain，不否决 Aggregate 的独立 Pg sibling
-/// 裸 HttpRequestException（含内层 Socket）常见于 MSFX 或更新源，不要当成库断了
+/// PacApi 瞬时失败与 Resilience 超时只重试页面；本机 Pg（Agents 等）才 Signal monitor
+/// Aggregate 里 PacApi / HttpRequestException 与裸 Socket 同批时，不让 Socket 抢成库断；
+/// 同批若另有 Npgsql 提供方异常，仍保留 SignalsDb（本机 Pg 真断）
+/// 裸 HttpRequestException（含内层 Socket）常见于 MSFX 或更新源，不当成库断
 /// </summary>
 public static class TransportErrors
 {
@@ -62,13 +63,35 @@ public static class TransportErrors
 
         if (ex is AggregateException aggregate)
         {
+            var flat = aggregate.Flatten().InnerExceptions;
             var flags = default(Flags);
-            foreach (var inner in aggregate.Flatten().InnerExceptions)
+            var anyRemote = false;
+            foreach (var inner in flat)
             {
                 flags = Or(flags, Classify(inner));
+                if (HasRemoteMarker(inner))
+                {
+                    anyRemote = true;
+                }
             }
 
-            return flags;
+            // PacApi / HTTP 与裸 Socket 同批：压掉 Socket 的库断；Npgsql 提供方仍保留
+            if (!anyRemote)
+            {
+                return flags;
+            }
+
+            var signalsDb = false;
+            foreach (var inner in flat)
+            {
+                if (HasNpgsqlProvider(inner))
+                {
+                    signalsDb = true;
+                    break;
+                }
+            }
+
+            return new Flags(flags.IsTransport, signalsDb);
         }
 
         var hasPacApi = false;
@@ -122,6 +145,33 @@ public static class TransportErrors
         }
 
         return new Flags(hasLocalDb || hasResilience, hasLocalDb);
+    }
+
+    // Aggregate 入口已 Flatten；只扫本支 Inner 链
+    private static bool HasRemoteMarker(Exception ex)
+    {
+        for (Exception? cur = ex; cur is not null; cur = cur.InnerException)
+        {
+            if (cur is PacApiException or HttpRequestException)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasNpgsqlProvider(Exception ex)
+    {
+        for (Exception? cur = ex; cur is not null; cur = cur.InnerException)
+        {
+            if (IsPgProviderException(cur))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static Flags RemoteFlags(bool pacApiTransient, bool resilience)

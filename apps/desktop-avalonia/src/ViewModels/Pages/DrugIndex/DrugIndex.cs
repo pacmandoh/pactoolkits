@@ -67,64 +67,65 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             }
         }
 
-        IsBusy = true;
-        try
+        await RunLocalBusyAsync(CancellationToken.None, v => IsBusy = v, async () =>
         {
-            var clip = (await _clipboard.GetTextAsync() ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(clip))
-            {
-                _toast.Warn("药品信息维护", "剪贴板为空，请先复制包含“物资名称/规格”的表格数据");
-                return;
-            }
-
-            var parse = ParseClipboardRows(clip);
-            if (parse.Rows.Count == 0)
-            {
-                _toast.Warn("药品信息维护", "未识别到可导入数据，请确认表头包含“物资名称(或药品名称)”和“规格”");
-                return;
-            }
-
-            var first = parse.Rows[0];
-
-            _suppressSelectionGuard = true;
             try
             {
-                Selected?.NotePreview = null;
+                var clip = (await _clipboard.GetTextAsync() ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(clip))
+                {
+                    _toast.Warn("药品信息维护", "剪贴板为空，请先复制包含“物资名称/规格”的表格数据");
+                    return;
+                }
 
-                Selected = null;
-                _selectionBeforeChange = null;
+                var parse = ParseClipboardRows(clip);
+                if (parse.Rows.Count == 0)
+                {
+                    _toast.Warn("药品信息维护", "未识别到可导入数据，请确认表头包含“物资名称(或药品名称)”和“规格”");
+                    return;
+                }
+
+                var first = parse.Rows[0];
+
+                _suppressSelectionGuard = true;
+                try
+                {
+                    Selected?.NotePreview = null;
+
+                    Selected = null;
+                    _selectionBeforeChange = null;
+                }
+                finally
+                {
+                    _suppressSelectionGuard = false;
+                }
+
+                _loadedSnapshot = null;
+                ClearEditor(keepEditorVisible: true);
+                HasEditor = true;
+
+                EditDrugId = first.DrugId;
+                EditSpec = first.Spec;
+                EditQty = first.Qty;
+
+                IsDirty = true;
+                RefreshPageCommands();
+
+                var msg = parse.Rows.Count > 1
+                    ? $"已填充第 1 条（共识别 {parse.Rows.Count} 条），请审计后手动保存"
+                    : "已填充到新建编辑区，请审计后手动保存";
+                _toast.Success("药品信息维护", msg);
+            }
+            catch (Exception ex)
+            {
+                LogError("drug_index.import_clipboard.fail", "Failed importing drug rows from clipboard", ex);
+                _toast.Error("药品信息维护", $"剪贴板导入失败：{ex.Message}");
             }
             finally
             {
-                _suppressSelectionGuard = false;
+                RefreshPageCommands();
             }
-
-            _loadedSnapshot = null;
-            ClearEditor(keepEditorVisible: true);
-            HasEditor = true;
-
-            EditDrugId = first.DrugId;
-            EditSpec = first.Spec;
-            EditQty = first.Qty;
-
-            IsDirty = true;
-            RefreshPageCommands();
-
-            var msg = parse.Rows.Count > 1
-                ? $"已填充第 1 条（共识别 {parse.Rows.Count} 条），请审计后手动保存"
-                : "已填充到新建编辑区，请审计后手动保存";
-            _toast.Success("药品信息维护", msg);
-        }
-        catch (Exception ex)
-        {
-            LogError("drug_index.import_clipboard.fail", "Failed importing drug rows from clipboard", ex);
-            _toast.Error("药品信息维护", $"剪贴板导入失败：{ex.Message}");
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshPageCommands();
-        }
+        });
     }
 
     private async Task ExportAsync()
@@ -291,6 +292,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         OnPropertyChanged(nameof(ItemsEmptyText));
         OnPropertyChanged(nameof(ItemsEmptyHint));
         OnPropertyChanged(nameof(IsListSectionPending));
+        RefreshPageCommands();
     }
 
     public bool IsItemsEmpty => ShowSectionEmpty(Items.Count == 0);
@@ -339,7 +341,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     public bool HasActiveKeyword => !string.IsNullOrWhiteSpace(NormalizeInput(_query.Keyword));
 
-    public bool IsListSectionPending => IsSectionPending || IsListBusy || !IsDrugGridMounted;
+    public bool IsListSectionPending => IsSectionPending || IsListBusy || IsMountPending(IsDrugGridMounted);
 
     partial void OnIsListBusyChanged(bool value)
         => OnPropertyChanged(nameof(IsListSectionPending));
@@ -465,7 +467,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         OnPropertyChanged(nameof(IsResultTruncated));
     }
 
-    private bool CanRefreshLocal() => CanOperateUi();
+    private bool CanRefreshLocal() => CanOperateUi() && CanPage;
 
     partial void OnSelectedChanging(DrugRow? value)
     {
@@ -1010,98 +1012,100 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     private async Task<bool> SaveRowAsync(bool reselectSavedRow = true)
     {
-        IsBusy = true;
-
-        try
+        var saved = false;
+        await RunLocalBusyAsync(CancellationToken.None, v => IsBusy = v, async () =>
         {
-            var inputDrugId = NormalizeInput(EditDrugId);
-            var inputSpec = NormalizeInput(EditSpec);
-
-            var drugId = inputDrugId ?? throw new InvalidOperationException("药品名不能为空");
-            var spec = inputSpec ?? throw new InvalidOperationException("规格不能为空");
-
-            var isNew = string.IsNullOrWhiteSpace(_originDrugId) && string.IsNullOrWhiteSpace(_originSpec);
-            var note = NormalizeInput(EditNote);
-            var dto = new DrugIndexDto(
-                DrugId: drugId,
-                Spec: spec,
-                Qty: EditQty!.Value,
-                RuleKey: NormalizeInput(EditRuleKey),
-                PreTc: NormalizeInput(EditPreTc),
-                Note: note,
-                CreatedAt: CreatedAt == default ? DateTimeOffset.UtcNow : CreatedAt,
-                UpdatedAt: DateTimeOffset.UtcNow,
-                Version: _loadedSnapshot?.Version ?? 0);
-
-            var saveResult = await _drugIndex.SaveAsync(
-                new DrugIndexSaveRequest(
-                    Dto: dto,
-                    OriginDrugId: _originDrugId,
-                    OriginSpec: _originSpec,
-                    ExpectedVersion: isNew ? null : _loadedSnapshot?.Version,
-                    IsNew: isNew,
-                    HasPrimaryKeyChanges: !isNew && HasPrimaryKeyChanges(),
-                    HasQtyChanged: !isNew && HasQtyChanged()),
-                default);
-
-            switch (saveResult.Outcome)
+            try
             {
-                case DrugSaveOutcome.BlockedPrimaryKeyChange:
-                    await _dialog.Warn("主键已变更", "药品名/规格变更请使用“纠错迁移”按钮执行");
-                    return false;
-                case DrugSaveOutcome.BlockedQtyChange:
-                    Dispatcher.UIThread.Post(() =>
-                        _toast.Warn("保存已拦截", "当前药品规格已被库存或事务引用，单盒数量变更请使用纠错迁移"));
-                    return false;
-                case DrugSaveOutcome.BlockedDuplicate:
-                    await _dialog.Warn("名称/规格重复",
-                        $"已存在相同记录：\n{DrugLabel.Format(drugId, spec)}\n\n请改成“编辑已有记录”或修改药品名/规格");
-                    return false;
-                case DrugSaveOutcome.ConcurrencyConflict:
-                    LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
-                    return await HandleSaveConflictAsync(saveResult.Saved, drugId, spec, reselectSavedRow);
-            }
+                var inputDrugId = NormalizeInput(EditDrugId);
+                var inputSpec = NormalizeInput(EditSpec);
 
-            var saved = saveResult.Saved ?? throw new InvalidOperationException("保存成功但未返回记录");
+                var drugId = inputDrugId ?? throw new InvalidOperationException("药品名不能为空");
+                var spec = inputSpec ?? throw new InvalidOperationException("规格不能为空");
 
-            CommitPostWrite(saved);
-            RefreshPageCommands();
+                var isNew = string.IsNullOrWhiteSpace(_originDrugId) && string.IsNullOrWhiteSpace(_originSpec);
+                var note = NormalizeInput(EditNote);
+                var dto = new DrugIndexDto(
+                    DrugId: drugId,
+                    Spec: spec,
+                    Qty: EditQty!.Value,
+                    RuleKey: NormalizeInput(EditRuleKey),
+                    PreTc: NormalizeInput(EditPreTc),
+                    Note: note,
+                    CreatedAt: CreatedAt == default ? DateTimeOffset.UtcNow : CreatedAt,
+                    UpdatedAt: DateTimeOffset.UtcNow,
+                    Version: _loadedSnapshot?.Version ?? 0);
 
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ApplySavedRowToGrid(saved);
+                var saveResult = await _drugIndex.SaveAsync(
+                    new DrugIndexSaveRequest(
+                        Dto: dto,
+                        OriginDrugId: _originDrugId,
+                        OriginSpec: _originSpec,
+                        ExpectedVersion: isNew ? null : _loadedSnapshot?.Version,
+                        IsNew: isNew,
+                        HasPrimaryKeyChanges: !isNew && HasPrimaryKeyChanges(),
+                        HasQtyChanged: !isNew && HasQtyChanged()),
+                    default);
 
-                if (reselectSavedRow)
+                switch (saveResult.Outcome)
                 {
-                    if (FindRow(drugId, spec) is not null)
-                    {
-                        ReselectRow(drugId, spec);
-                    }
-
-                    // 记录待选键，使后续远端变更替换集合后仍能恢复当前选择
-                    QueueReselect(drugId, spec);
+                    case DrugSaveOutcome.BlockedPrimaryKeyChange:
+                        await _dialog.Warn("主键已变更", "药品名/规格变更请使用“纠错迁移”按钮执行");
+                        return;
+                    case DrugSaveOutcome.BlockedQtyChange:
+                        Dispatcher.UIThread.Post(() =>
+                            _toast.Warn("保存已拦截", "当前药品规格已被库存或事务引用，单盒数量变更请使用纠错迁移"));
+                        return;
+                    case DrugSaveOutcome.BlockedDuplicate:
+                        await _dialog.Warn("名称/规格重复",
+                            $"已存在相同记录：\n{DrugLabel.Format(drugId, spec)}\n\n请改成“编辑已有记录”或修改药品名/规格");
+                        return;
+                    case DrugSaveOutcome.ConcurrencyConflict:
+                        LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
+                        saved = await HandleSaveConflictAsync(saveResult.Saved, drugId, spec, reselectSavedRow);
+                        return;
                 }
-            }, DispatcherPriority.Normal);
 
-            NotifyDrugCatalogChanged();
-            Dispatcher.UIThread.Post(() => _toast.Success("已保存", DrugLabel.Format(drugId, spec)));
+                var savedRow = saveResult.Saved ?? throw new InvalidOperationException("保存成功但未返回记录");
 
-            return true;
-        }
-        catch (Exception ex)
-        {
-            LogError("drug_index.save.fail", "Failed to save drug row", ex);
-            var target = DrugLabel.Format(
-                NormalizeInput(EditDrugId) ?? (EditDrugId ?? string.Empty).Trim(),
-                NormalizeInput(EditSpec) ?? (EditSpec ?? string.Empty).Trim());
-            Dispatcher.UIThread.Post(() => _toast.Error("保存失败", $"{target}：{ex.Message}"));
-            return false;
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshPageCommands();
-        }
+                CommitPostWrite(savedRow);
+                RefreshPageCommands();
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    ApplySavedRowToGrid(savedRow);
+
+                    if (reselectSavedRow)
+                    {
+                        if (FindRow(drugId, spec) is not null)
+                        {
+                            ReselectRow(drugId, spec);
+                        }
+
+                        // 记录待选键，使后续远端变更替换集合后仍能恢复当前选择
+                        QueueReselect(drugId, spec);
+                    }
+                }, DispatcherPriority.Normal);
+
+                NotifyDrugCatalogChanged();
+                Dispatcher.UIThread.Post(() => _toast.Success("已保存", DrugLabel.Format(drugId, spec)));
+
+                saved = true;
+            }
+            catch (Exception ex)
+            {
+                LogError("drug_index.save.fail", "Failed to save drug row", ex);
+                var target = DrugLabel.Format(
+                    NormalizeInput(EditDrugId) ?? (EditDrugId ?? string.Empty).Trim(),
+                    NormalizeInput(EditSpec) ?? (EditSpec ?? string.Empty).Trim());
+                Dispatcher.UIThread.Post(() => _toast.Error("保存失败", $"{target}：{ex.Message}"));
+            }
+            finally
+            {
+                RefreshPageCommands();
+            }
+        });
+        return saved;
     }
 
     private async Task<bool> HandleSaveConflictAsync(
@@ -1171,124 +1175,125 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         var sameKey = string.Equals(sourceDrugId, targetDrugId, StringComparison.Ordinal)
                       && string.Equals(sourceSpec, targetSpec, StringComparison.Ordinal);
 
-        IsBusy = true;
-        try
+        await RunLocalBusyAsync(CancellationToken.None, v => IsBusy = v, async () =>
         {
-            var source = await _drugIndex.GetByKeyAsync(sourceDrugId, sourceSpec, default);
-            if (source is null)
+            try
             {
-                await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
+                var source = await _drugIndex.GetByKeyAsync(sourceDrugId, sourceSpec, default);
+                if (source is null)
+                {
+                    await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
+                    await ReloadAsync(forceFull: true);
+                    return;
+                }
+
+                var preview = await _drugIndex.PreviewKeyFixAsync(
+                    source.DrugId,
+                    source.Spec,
+                    targetDrugId,
+                    targetSpec,
+                    default);
+
+                if (!preview.SourceExists)
+                {
+                    await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
+                    return;
+                }
+
+                var confirm = await _dialog.ConfirmDrugKeyFixPreview(
+                    source.DrugId,
+                    source.Spec,
+                    source.Qty,
+                    targetDrugId,
+                    targetSpec,
+                    EditQty.Value,
+                    preview.TargetExists,
+                    preview.TracePoolAffected,
+                    preview.TraceTxnAffected);
+                if (!confirm)
+                {
+                    return;
+                }
+
+                var target = new DrugIndexDto(
+                    DrugId: targetDrugId,
+                    Spec: targetSpec,
+                    Qty: EditQty.Value,
+                    RuleKey: NormalizeInput(EditRuleKey),
+                    PreTc: NormalizeInput(EditPreTc),
+                    Note: NormalizeInput(EditNote),
+                    CreatedAt: source.CreatedAt,
+                    UpdatedAt: DateTimeOffset.UtcNow,
+                    Version: 0);
+
+                var reason = $"drug-key-fix: {source.DrugId}/{source.Spec} -> {targetDrugId}/{targetSpec}";
+                var commit = await _drugIndex.ApplyKeyFixAsync(
+                    new DrugKeyFixRequest(
+                        Source: source,
+                        Target: target,
+                        Reason: reason,
+                        OperatorName: $"{Environment.UserName}@{Environment.MachineName}",
+                        SourceTag: "drug_index_desktop"),
+                    default);
+
+                var result = commit.Apply;
+                var dbSourceAfter = commit.SourceAfter;
+                var dbTargetAfter = commit.TargetAfter;
+                if (!sameKey)
+                {
+                    if (dbSourceAfter is not null || dbTargetAfter is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"迁移提交校验失败(DB)：sourceExists={(dbSourceAfter is not null ? 1 : 0)}, targetExists={(dbTargetAfter is not null ? 1 : 0)}");
+                    }
+                }
+                else
+                {
+                    if (dbTargetAfter is null)
+                    {
+                        throw new InvalidOperationException("迁移提交校验失败(DB)：目标键未找到");
+                    }
+
+                    if (dbTargetAfter.Qty != EditQty.Value)
+                    {
+                        throw new InvalidOperationException(
+                            $"迁移提交校验失败(DB)：qty 未生效，期望 {EditQty.Value}，实际 {dbTargetAfter.Qty}");
+                    }
+                }
+
+                var focusDrugId = dbTargetAfter!.DrugId;
+                var focusSpec = dbTargetAfter.Spec;
+
+                CommitPostWrite(dbTargetAfter);
+                QueueReselect(focusDrugId, focusSpec);
+                await ReloadAsync();
+
+                Dispatcher.UIThread.Post(() =>
+                    _toast.Success(
+                        "药品纠错迁移",
+                        $"源药品名/规格：{DrugLabel.WithQty(source.DrugId, source.Spec, source.Qty)}\n" +
+                        $"目标药品名/规格：{DrugLabel.WithQty(focusDrugId, focusSpec, dbTargetAfter.Qty)}\n" +
+                        $"追溯码池影响：{result.TracePoolAffected} 条\n" +
+                        $"执行事务影响：{result.TraceTxnAffected} 条"));
+
+                NotifyDrugCatalogChanged();
+            }
+            catch (DrugIndexConcurrencyException cx)
+            {
+                LogWarn("drug_index.fix_key.concurrency_conflict", "Detected key-fix concurrency conflict", cx);
+                await _dialog.Warn("迁移冲突", "该记录已被其他终端修改，请先刷新后再试");
                 await ReloadAsync(forceFull: true);
-                return;
             }
-
-            var preview = await _drugIndex.PreviewKeyFixAsync(
-                source.DrugId,
-                source.Spec,
-                targetDrugId,
-                targetSpec,
-                default);
-
-            if (!preview.SourceExists)
+            catch (Exception ex)
             {
-                await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
-                return;
+                LogError("drug_index.fix_key.fail", "Failed to fix drug key", ex);
+                Dispatcher.UIThread.Post(() => _toast.Error("纠错迁移失败", ex.Message));
             }
-
-            var confirm = await _dialog.ConfirmDrugKeyFixPreview(
-                source.DrugId,
-                source.Spec,
-                source.Qty,
-                targetDrugId,
-                targetSpec,
-                EditQty.Value,
-                preview.TargetExists,
-                preview.TracePoolAffected,
-                preview.TraceTxnAffected);
-            if (!confirm)
+            finally
             {
-                return;
+                RefreshPageCommands();
             }
-
-            var target = new DrugIndexDto(
-                DrugId: targetDrugId,
-                Spec: targetSpec,
-                Qty: EditQty.Value,
-                RuleKey: NormalizeInput(EditRuleKey),
-                PreTc: NormalizeInput(EditPreTc),
-                Note: NormalizeInput(EditNote),
-                CreatedAt: source.CreatedAt,
-                UpdatedAt: DateTimeOffset.UtcNow,
-                Version: 0);
-
-            var reason = $"drug-key-fix: {source.DrugId}/{source.Spec} -> {targetDrugId}/{targetSpec}";
-            var commit = await _drugIndex.ApplyKeyFixAsync(
-                new DrugKeyFixRequest(
-                    Source: source,
-                    Target: target,
-                    Reason: reason,
-                    OperatorName: $"{Environment.UserName}@{Environment.MachineName}",
-                    SourceTag: "drug_index_desktop"),
-                default);
-
-            var result = commit.Apply;
-            var dbSourceAfter = commit.SourceAfter;
-            var dbTargetAfter = commit.TargetAfter;
-            if (!sameKey)
-            {
-                if (dbSourceAfter is not null || dbTargetAfter is null)
-                {
-                    throw new InvalidOperationException(
-                        $"迁移提交校验失败(DB)：sourceExists={(dbSourceAfter is not null ? 1 : 0)}, targetExists={(dbTargetAfter is not null ? 1 : 0)}");
-                }
-            }
-            else
-            {
-                if (dbTargetAfter is null)
-                {
-                    throw new InvalidOperationException("迁移提交校验失败(DB)：目标键未找到");
-                }
-
-                if (dbTargetAfter.Qty != EditQty.Value)
-                {
-                    throw new InvalidOperationException(
-                        $"迁移提交校验失败(DB)：qty 未生效，期望 {EditQty.Value}，实际 {dbTargetAfter.Qty}");
-                }
-            }
-
-            var focusDrugId = dbTargetAfter!.DrugId;
-            var focusSpec = dbTargetAfter.Spec;
-
-            CommitPostWrite(dbTargetAfter);
-            QueueReselect(focusDrugId, focusSpec);
-            await ReloadAsync();
-
-            Dispatcher.UIThread.Post(() =>
-                _toast.Success(
-                    "药品纠错迁移",
-                    $"源药品名/规格：{DrugLabel.WithQty(source.DrugId, source.Spec, source.Qty)}\n" +
-                    $"目标药品名/规格：{DrugLabel.WithQty(focusDrugId, focusSpec, dbTargetAfter.Qty)}\n" +
-                    $"追溯码池影响：{result.TracePoolAffected} 条\n" +
-                    $"执行事务影响：{result.TraceTxnAffected} 条"));
-
-            NotifyDrugCatalogChanged();
-        }
-        catch (DrugIndexConcurrencyException cx)
-        {
-            LogWarn("drug_index.fix_key.concurrency_conflict", "Detected key-fix concurrency conflict", cx);
-            await _dialog.Warn("迁移冲突", "该记录已被其他终端修改，请先刷新后再试");
-            await ReloadAsync(forceFull: true);
-        }
-        catch (Exception ex)
-        {
-            LogError("drug_index.fix_key.fail", "Failed to fix drug key", ex);
-            Dispatcher.UIThread.Post(() => _toast.Error("纠错迁移失败", ex.Message));
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshPageCommands();
-        }
+        });
     }
 
     private async Task ReloadAsync(
@@ -1364,25 +1369,6 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         catch (Exception ex)
         {
             LogError("drug_index.reload.fail", "Failed to reload drug index", ex);
-            if (!CanToastError(ex))
-            {
-                throw;
-            }
-
-            await Task.Delay(180, ct).ConfigureAwait(false);
-
-            if (ct.IsCancellationRequested)
-            {
-                throw;
-            }
-
-            if (Volatile.Read(ref _lastSuccessfulReloadEpoch) > epoch)
-            {
-                return;
-            }
-
-            Dispatcher.UIThread.Post(() =>
-                _toast.Error("药品信息加载失败", ex.Message));
             throw;
         }
     }
@@ -1470,26 +1456,27 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             return;
         }
 
-        IsBusy = true;
-        try
+        await RunLocalBusyAsync(CancellationToken.None, v => IsBusy = v, async () =>
         {
-            var expectedVersion = _loadedSnapshot?.Version
-                                  ?? throw new InvalidOperationException("missing row version for delete");
-            await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, expectedVersion, default);
-            Dispatcher.UIThread.Post(() => _toast.Success("已删除", DrugLabel.Format(deleteDrugId, deleteSpec)));
-            await ReloadAsync(workingSet: WorkingSetReload.Clear);
-            NotifyDrugCatalogChanged();
-        }
-        catch (Exception ex)
-        {
-            LogError("drug_index.delete.fail", "Failed to delete drug row", ex, new { deleteDrugId, deleteSpec });
-            Dispatcher.UIThread.Post(() => _toast.Error("删除失败", ex.Message));
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshPageCommands();
-        }
+            try
+            {
+                var expectedVersion = _loadedSnapshot?.Version
+                                      ?? throw new InvalidOperationException("missing row version for delete");
+                await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, expectedVersion, default);
+                Dispatcher.UIThread.Post(() => _toast.Success("已删除", DrugLabel.Format(deleteDrugId, deleteSpec)));
+                await ReloadAsync(workingSet: WorkingSetReload.Clear);
+                NotifyDrugCatalogChanged();
+            }
+            catch (Exception ex)
+            {
+                LogError("drug_index.delete.fail", "Failed to delete drug row", ex, new { deleteDrugId, deleteSpec });
+                Dispatcher.UIThread.Post(() => _toast.Error("删除失败", ex.Message));
+            }
+            finally
+            {
+                RefreshPageCommands();
+            }
+        });
     }
 
     [RelayCommand(CanExecute = nameof(CanToggleFlags))]

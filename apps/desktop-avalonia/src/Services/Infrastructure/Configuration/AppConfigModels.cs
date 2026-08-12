@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 
@@ -14,6 +15,7 @@ public sealed class AppConfigRoot
     public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
     public AgentsOptions Agents { get; set; } = new();
+    public PacApiOptions PacApi { get; set; } = new();
     public MsfxApiOptions MsfxApi { get; set; } = new();
     public UiBehaviorOptions UiBehavior { get; set; } = new();
     public UpdateOptions Update { get; set; } = new();

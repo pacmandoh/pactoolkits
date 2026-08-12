@@ -140,6 +140,11 @@ public sealed partial class Dashboard : AppPageBase
 
     private async Task ReloadTxnPageOnlyAsync(int pageIndex)
     {
+        if (!CanPage)
+        {
+            return;
+        }
+
         try
         {
             await RunLocalBusyAsync(
@@ -170,6 +175,11 @@ public sealed partial class Dashboard : AppPageBase
 
     private async Task ReloadTxnTrendPageOnlyAsync(int pageIndex)
     {
+        if (!CanPage)
+        {
+            return;
+        }
+
         try
         {
             await RunLocalBusyAsync(

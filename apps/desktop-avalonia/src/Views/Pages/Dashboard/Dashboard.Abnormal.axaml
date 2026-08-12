@@ -118,7 +118,7 @@
           Classes="CardPanelBodyInset"
           FirstPageCommand="{Binding FirstAbnormalPageCommand}"
           IsContentEmpty="{Binding IsAbnormalEmpty}"
-          IsEnabled="{Binding CanPageFromDb}"
+          IsEnabled="{Binding CanPage}"
           LastPageCommand="{Binding LastAbnormalPageCommand}"
           NextPageCommand="{Binding NextAbnormalPageCommand}"
           PageSizeOptions="{Binding TabPageSizeOptions}"

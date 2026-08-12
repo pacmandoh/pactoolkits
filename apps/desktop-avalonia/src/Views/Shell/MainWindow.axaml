@@ -555,7 +555,7 @@
               Grid.Column="2"
               VerticalAlignment="Center"
               Classes="Outline"
-              Command="{Binding OpenSettingsCommand}"
+              Command="{Binding OpenConnectivitySettingsCommand}"
               Content="前往设置"
               IsVisible="{Binding ShowConnectivityBannerAction}" />
           </Grid>

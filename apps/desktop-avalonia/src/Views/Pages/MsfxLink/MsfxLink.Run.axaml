@@ -12,7 +12,10 @@
     MinHeight="0"
     Classes="DashboardLayout"
     RowDefinitions="Auto,*">
-    <ContentControl Classes="FilterBarChrome" IsVisible="{Binding IsRunConfigBarVisible}">
+    <ContentControl
+      Classes="FilterBarChrome"
+      IsEnabled="{Binding CanPage}"
+      IsVisible="{Binding IsRunConfigBarVisible}">
       <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,*,Auto">
         <Grid ColumnDefinitions="Auto,Auto,Auto">
           <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
@@ -177,9 +180,11 @@
             <Grid RowDefinitions="*,Auto">
               <shad:BusyArea MinHeight="120" IsBusy="{Binding IsPullPanelBusy}">
                 <controls:EmptyStatePanel
-                  EmptyHint="执行一次巡检后查看最近批次详情"
-                  EmptyText="暂无拉取批次数据"
-                  IsEmpty="{Binding IsAutoPullBatchEmpty}">
+                  EmptyHint="{Binding AutoPullBatchEmptyHint}"
+                  EmptyText="{Binding AutoPullBatchEmptyText}"
+                  Icon="{Binding SectionEmptyIcon}"
+                  IsEmpty="{Binding IsAutoPullBatchEmpty}"
+                  IsPending="{Binding IsSectionPending}">
                   <DataGrid
                     x:Name="AutoPullBatchGrid"
                     HorizontalAlignment="Stretch"
@@ -257,7 +262,7 @@
                 ClearTarget="{Binding #AutoPullBatchGrid}"
                 FirstPageCommand="{Binding FirstPullBatchPageCommand}"
                 IsContentEmpty="{Binding IsAutoPullBatchEmpty}"
-                IsEnabled="{Binding CanPageFromDb}"
+                IsEnabled="{Binding CanPage}"
                 LastPageCommand="{Binding LastPullBatchPageCommand}"
                 NextPageCommand="{Binding NextPullBatchPageCommand}"
                 PageSizeOptions="{Binding PullBatchPageSizeOptions}"
@@ -304,9 +309,11 @@
             </controls:CardPanel.Title>
             <Grid RowDefinitions="*,Auto">
               <controls:EmptyStatePanel
-                EmptyHint="点击“立即巡检”或开启自动监控后将显示执行日志"
-                EmptyText="暂无自动化日志"
-                IsEmpty="{Binding IsAutoLogsEmpty}">
+                EmptyHint="{Binding AutoLogsEmptyHint}"
+                EmptyText="{Binding AutoLogsEmptyText}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsEmpty="{Binding IsAutoLogsEmpty}"
+                IsPending="{Binding IsSectionPending}">
                 <DataGrid
                   x:Name="AutoLogGrid"
                   HorizontalAlignment="Stretch"

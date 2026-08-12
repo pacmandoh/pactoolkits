@@ -16,7 +16,10 @@
       MinHeight="0"
       IsVisible="{Binding IsQueueMonitorWorkspace}"
       RowDefinitions="Auto,*">
-      <ContentControl Classes="FilterBarChrome" IsVisible="{Binding ShowQueueToolbar}">
+      <ContentControl
+        Classes="FilterBarChrome"
+        IsEnabled="{Binding CanPage}"
+        IsVisible="{Binding ShowQueueToolbar}">
         <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,*,Auto">
           <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
             <TextBlock
@@ -223,9 +226,11 @@
                   MinHeight="120"
                   IsBusy="{Binding IsMapPanelBusy}">
                   <controls:EmptyStatePanel
-                    EmptyHint="待映射、需人工、失败和待下发记录将显示在这里"
-                    EmptyText="暂无映射队列数据"
-                    IsEmpty="{Binding IsAutoMapQueueEmpty}">
+                    EmptyHint="{Binding AutoMapQueueEmptyHint}"
+                    EmptyText="{Binding AutoMapQueueEmptyText}"
+                    Icon="{Binding SectionEmptyIcon}"
+                    IsEmpty="{Binding IsAutoMapQueueEmpty}"
+                    IsPending="{Binding IsSectionPending}">
                     <DataGrid
                       x:Name="AutoMapQueueGrid"
                       HorizontalAlignment="Stretch"
@@ -350,7 +355,7 @@
                   ClearTarget="{Binding #AutoMapQueueGrid}"
                   FirstPageCommand="{Binding FirstMapQueuePageCommand}"
                   IsContentEmpty="{Binding IsAutoMapQueueEmpty}"
-                  IsEnabled="{Binding CanPageFromDb}"
+                  IsEnabled="{Binding CanPage}"
                   LastPageCommand="{Binding LastMapQueuePageCommand}"
                   NextPageCommand="{Binding NextMapQueuePageCommand}"
                   PageSizeOptions="{Binding MapQueuePageSizeOptions}"
@@ -456,9 +461,11 @@
                   MinHeight="120"
                   IsBusy="{Binding IsTaskPanelBusy}">
                   <controls:EmptyStatePanel
-                    EmptyHint="仅 MAPPED + NEW 的码会创建任务"
-                    EmptyText="暂无 Injector 任务队列"
-                    IsEmpty="{Binding IsAutoTaskQueueEmpty}">
+                    EmptyHint="{Binding AutoTaskQueueEmptyHint}"
+                    EmptyText="{Binding AutoTaskQueueEmptyText}"
+                    Icon="{Binding SectionEmptyIcon}"
+                    IsEmpty="{Binding IsAutoTaskQueueEmpty}"
+                    IsPending="{Binding IsSectionPending}">
                     <DataGrid
                       x:Name="AutoTaskQueueGrid"
                       HorizontalAlignment="Stretch"
@@ -553,7 +560,7 @@
                   ClearTarget="{Binding #AutoTaskQueueGrid}"
                   FirstPageCommand="{Binding FirstTaskQueuePageCommand}"
                   IsContentEmpty="{Binding IsAutoTaskQueueEmpty}"
-                  IsEnabled="{Binding CanPageFromDb}"
+                  IsEnabled="{Binding CanPage}"
                   LastPageCommand="{Binding LastTaskQueuePageCommand}"
                   NextPageCommand="{Binding NextTaskQueuePageCommand}"
                   PageSizeOptions="{Binding TaskQueuePageSizeOptions}"
@@ -574,7 +581,10 @@
       MinHeight="0"
       IsVisible="{Binding IsMappingWorkspace}"
       RowDefinitions="Auto,*">
-      <ContentControl Classes="FilterBarChrome" IsVisible="{Binding IsMappingConfigBarVisible}">
+      <ContentControl
+        Classes="FilterBarChrome"
+        IsEnabled="{Binding CanPage}"
+        IsVisible="{Binding IsMappingConfigBarVisible}">
         <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*,*,Auto">
           <Grid
             Grid.Column="0"
@@ -714,9 +724,11 @@
 
           <shad:BusyArea IsBusy="{Binding IsMappingBusy}">
             <controls:EmptyStatePanel
-              EmptyHint="调整左上角搜索条件，或等待新的待映射分组"
-              EmptyText="暂无批量映射分组"
-              IsEmpty="{Binding IsMappingGroupEmpty}">
+              EmptyHint="{Binding MappingGroupEmptyHint}"
+              EmptyText="{Binding MappingGroupEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsMappingGroupEmpty}"
+              IsPending="{Binding IsSectionPending}">
               <DataGrid
                 x:Name="MappingGroupGrid"
                 MinHeight="0"

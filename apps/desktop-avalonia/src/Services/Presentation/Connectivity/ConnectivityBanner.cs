@@ -1,4 +1,4 @@
-using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 
@@ -10,6 +10,9 @@ public enum ConnectivitySeverity
     Error
 }
 
+/// <summary>
+/// 未配置：Warning，可进设置；已配置但不可用（Down/Blocked）：Error
+/// </summary>
 public sealed record ConnectivityBanner(
     bool IsVisible,
     string Title,
@@ -18,36 +21,32 @@ public sealed record ConnectivityBanner(
     bool ShowOpenSettings)
 {
     public static ConnectivityBanner Create(
-        bool isDbConnected,
-        bool isConnectivityKnown,
-        IDbAccessGuard accessGuard)
+        ApiAvailabilitySnapshot snap,
+        bool isConfigured = true)
     {
-        if (accessGuard.IsBlocked)
+        var view = ConnectionView.From(snap, isConfigured);
+        return view.Kind switch
         {
-            return new ConnectivityBanner(
+            ConnectionKind.NotConfigured => new ConnectivityBanner(
                 IsVisible: true,
-                Title: "数据库不可用",
-                Message: accessGuard.BlockReason ?? "数据库版本不兼容，业务操作已阻断",
-                Severity: ConnectivitySeverity.Error,
-                ShowOpenSettings: true);
-        }
-
-        if (!isDbConnected)
-        {
-            if (!isConnectivityKnown)
-            {
-                return Hidden;
-            }
-
-            return new ConnectivityBanner(
-                IsVisible: true,
-                Title: "数据库未连接",
-                Message: "正在等待重连，恢复后页面将自动刷新",
+                Title: view.Title,
+                Message: view.Message,
                 Severity: ConnectivitySeverity.Warning,
-                ShowOpenSettings: true);
-        }
-
-        return Hidden;
+                ShowOpenSettings: true),
+            ConnectionKind.Blocked => new ConnectivityBanner(
+                IsVisible: true,
+                Title: view.Title,
+                Message: view.Message,
+                Severity: ConnectivitySeverity.Error,
+                ShowOpenSettings: false),
+            ConnectionKind.Down => new ConnectivityBanner(
+                IsVisible: true,
+                Title: view.Title,
+                Message: view.Message,
+                Severity: ConnectivitySeverity.Error,
+                ShowOpenSettings: false),
+            _ => Hidden,
+        };
     }
 
     private static readonly ConnectivityBanner Hidden = new(

@@ -10,6 +10,7 @@ using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Files;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Logging;
 using PacToolkits.Logger;
@@ -191,6 +192,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         root.Postgres ??= new PgOptions();
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
         root.Agents ??= new AgentsOptions();
+        root.PacApi ??= new PacApiOptions();
         root.MsfxApi ??= new MsfxApiOptions();
         root.UiBehavior ??= new UiBehaviorOptions();
         root.Update ??= new UpdateOptions();
@@ -207,6 +209,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         }
 
         root.Agents = NormalizeAgents(root.Agents);
+        root.PacApi = NormalizePacApi(root.PacApi);
         root.MsfxApi = NormalizeMsfxApi(root.MsfxApi);
         root.Update = NormalizeUpdate(root.Update);
         root.Logging = NormalizeLogging(root.Logging);
@@ -255,6 +258,17 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         }
 
         return existing;
+    }
+
+    private static PacApiOptions NormalizePacApi(PacApiOptions? source)
+    {
+        var options = source ?? new PacApiOptions();
+        options.BaseUrl = (options.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
+        options.ApiKey = (options.ApiKey ?? string.Empty).Trim();
+        options.HeaderName = string.IsNullOrWhiteSpace(options.HeaderName)
+            ? "X-Api-Key"
+            : options.HeaderName.Trim();
+        return options;
     }
 
     private static MsfxApiOptions NormalizeMsfxApi(MsfxApiOptions? source)

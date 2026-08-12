@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Logging;
@@ -16,6 +17,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Notifications;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Platform;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Update;
 using PacToolkits.Desktop.Avalonia.Ui.Threading;
 
@@ -57,6 +59,11 @@ public partial class Settings : AppPageBase, ISettingsPage
     private readonly IAppLogger _logger;
     private readonly IClipboardService _clipboard;
     private readonly ISyncService _msfxSync;
+    private readonly PacApiClient _pacApi;
+    private readonly IApiAvailabilityService _apiAvailability;
+    private readonly IPacApiContractGate _pacApiContractGate;
+    private readonly IChangeWatermarkService _changeWatermark;
+    private PacApiOptions _pacApiBaseline = new();
     private readonly HashSet<ClientAliasRow> _trackedAliasRows = new();
     private CancellationTokenSource _pageWorkCts = new();
     private bool _disposed;
@@ -75,6 +82,10 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private string _database;
     [ObservableProperty] private string _username;
     [ObservableProperty] private string _password;
+
+    [ObservableProperty] private string _pacApiUrl = string.Empty;
+    [ObservableProperty] private string _pacApiKey = string.Empty;
+    [ObservableProperty] private bool _isPacApiBusy;
 
     [ObservableProperty] private bool _isDbConnected;
     [ObservableProperty] private bool _isClientAliasRefreshing;
@@ -185,6 +196,10 @@ public partial class Settings : AppPageBase, ISettingsPage
         IAppLogger logger,
         IClipboardService clipboard,
         ISyncService msfxSync,
+        PacApiClient pacApi,
+        IApiAvailabilityService apiAvailability,
+        IPacApiContractGate pacApiContractGate,
+        IChangeWatermarkService changeWatermark,
         IAgentsRuntime agents,
         IAgentsConfigService agentsConfig,
         IModuleSettingsStore moduleSettings)
@@ -204,6 +219,10 @@ public partial class Settings : AppPageBase, ISettingsPage
         _logger = logger;
         _clipboard = clipboard;
         _msfxSync = msfxSync;
+        _pacApi = pacApi ?? throw new ArgumentNullException(nameof(pacApi));
+        _apiAvailability = apiAvailability ?? throw new ArgumentNullException(nameof(apiAvailability));
+        _pacApiContractGate = pacApiContractGate ?? throw new ArgumentNullException(nameof(pacApiContractGate));
+        _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
         _agents = agents;
         _agentsConfig = agentsConfig;
         _moduleSettings = moduleSettings ?? throw new ArgumentNullException(nameof(moduleSettings));
@@ -220,6 +239,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         IsClientAliasReadOnly = true;
 
         SyncTraceCodeRule();
+        SyncPacApi();
         SyncMsfxApi();
         SyncUiBehavior();
         SyncUpdateOptions();
@@ -262,8 +282,8 @@ public partial class Settings : AppPageBase, ISettingsPage
         ReloadAgentsRuntime();
         RefreshUnsaved();
         ReloadClientAliasesIfVisible("client_alias.reload.activate_fail");
-        // MSFX 游标持久化依赖数据库；连接异常由主窗口统一反馈，此处不重复报告
-        if (CanPageFromDb)
+        // 游标经 PacApi；仅服务就绪时请求
+        if (ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured))
         {
             RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");
         }

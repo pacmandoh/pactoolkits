@@ -393,14 +393,7 @@ public sealed partial class ScanCode : AppPageBase
         catch (Exception ex)
         {
             LogError("scan.specs.load_fail", "Failed to load specs for selected drug", ex);
-            await RunOnUiAsync(() =>
-            {
-                UpdateStatus($"加载规格失败：{ex.Message}", 2);
-                if (CanToastError(ex))
-                {
-                    _toast.Error("规格加载失败", ex.Message);
-                }
-            });
+            await RunOnUiAsync(() => UpdateStatus($"加载规格失败：{ex.Message}", 2));
         }
     }
 

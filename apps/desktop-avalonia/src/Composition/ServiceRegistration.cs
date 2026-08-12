@@ -16,7 +16,6 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Notifications;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Platform;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Runtime;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
-using PacToolkits.Desktop.Avalonia.Services.Integration.Msfx;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Tasks;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Unlock;
@@ -27,6 +26,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using PacToolkits.Desktop.Avalonia.Views.Dialogs;
 using PacToolkits.Infrastructure.Database;
+using PacToolkits.Infrastructure.Msfx;
 using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Composition;
@@ -45,6 +45,7 @@ public static class ServiceRegistration
         services.Replace(ServiceDescriptor.Singleton<IDrugIndexService, ApiDrugIndex>());
         services.Replace(ServiceDescriptor.Singleton<IScanCodeService, ApiScanCode>());
         services.Replace(ServiceDescriptor.Singleton<IInventoryOverviewService, ApiInventory>());
+        services.Replace(ServiceDescriptor.Singleton<ISyncService, ApiSync>());
         services.AddUiShell();
         services.AddDesktopMsfxUpdate();
         services.AddDesktopWorkspace();
@@ -69,10 +70,11 @@ public static class ServiceRegistration
         services.AddSingleton<ILoggingSettingsService, LoggingSettingsService>();
         services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<IAppLogger, AppLogger>();
-        services.AddPacApiClient(config);
+        services.AddPacApiClient();
         services.AddSingleton<IReleaseVersionService, ReleaseVersionService>();
         // 覆盖 AddPacApiClient 的 AllowAll；要读清单区间，须排在 PacApiClient 与 ReleaseVersion 之后
         services.AddSingleton<IPacApiContractGate, PacApiContractGate>();
+        services.AddSingleton<IApiAvailabilityService, ApiAvailabilityService>();
         services.AddSingleton<IAppStartupStateService, AppStartupStateService>();
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IDialogService, DialogService>();
@@ -107,7 +109,7 @@ public static class ServiceRegistration
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddMsfxApiClient();
         // Application 已注册同名 client；此处再挂标准 Resilience（探测用 GET）
-        // Timeout 交给 Resilience 总预算，避免原先 15s 先掐掉重试
+        // Timeout 交给 Resilience 总预算，避免 HttpClient 先截断重试
         services.AddHttpClient(ReleaseManifestProbeService.HttpClientName)
             .ConfigureHttpClient(static client => client.Timeout = Timeout.InfiniteTimeSpan)
             .AddStandardResilienceHandler();

@@ -48,7 +48,9 @@ public sealed partial class MsfxLink
     public bool IsQueueMonitorWorkspace => !IsMappingWorkspace;
     public string QueueWorkspaceToggleText => IsMappingWorkspace ? "队列监控" : "批量映射";
     public string QueueWorkspaceToggleIcon => IsMappingWorkspace ? "ListTree" : "Table2";
-    public bool IsMappingGroupEmpty => MappingGroups.Count == 0;
+    public bool IsMappingGroupEmpty => ShowSectionEmpty(MappingGroups.Count == 0);
+    public string MappingGroupEmptyText => GetSectionEmptyTitle("暂无批量映射分组");
+    public string MappingGroupEmptyHint => GetSectionEmptyHint("调整左上角搜索条件，或等待新的待映射分组");
     public bool HasMappingKeyword => !string.IsNullOrWhiteSpace(MappingKeyword);
     public bool IsMappingSpecSelected => MappingSelectedSpec is not null;
     public int MappingSelectedCount => MappingGroups.Count(static row => row.IsSelected);
@@ -287,10 +289,6 @@ public sealed partial class MsfxLink
                 "msfx.mapping.groups.reload_fail",
                 "Failed to reload mapping groups",
                 ex);
-            if (CanToastError(ex))
-            {
-                _toast.Error("批量映射", ex.Message);
-            }
         }
     }
 
@@ -329,6 +327,8 @@ public sealed partial class MsfxLink
         }
 
         OnPropertyChanged(nameof(IsMappingGroupEmpty));
+        OnPropertyChanged(nameof(MappingGroupEmptyText));
+        OnPropertyChanged(nameof(MappingGroupEmptyHint));
         OnPropertyChanged(nameof(MappingGroupCountText));
         SyncMappingGroupSelection();
     }

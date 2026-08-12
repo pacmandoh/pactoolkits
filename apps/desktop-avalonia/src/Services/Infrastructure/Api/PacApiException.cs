@@ -29,8 +29,9 @@ public class PacApiException : Exception
     /// <summary>瞬时失败：页面 Stale 重试；不要当成业务 LoadFailed</summary>
     public bool IsTransient
         => Status is 408 or 429 or 502 or 503 or 504
-           || string.Equals(Code, "transport", StringComparison.Ordinal)
-           || string.Equals(Code, "timeout", StringComparison.Ordinal);
+           || string.Equals(Code, "transport", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(Code, "timeout", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(Code, "rate_limited", StringComparison.OrdinalIgnoreCase);
 
     private static string FormatMessage(PacApiProblem problem)
     {

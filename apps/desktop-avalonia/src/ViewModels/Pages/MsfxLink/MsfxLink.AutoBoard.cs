@@ -21,10 +21,10 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class MsfxLink : AppPageBase
 {
     private bool CanRunAutoOnce()
-        => !IsAutoBusy && !IsManualMsfxWriteActive;
+        => _dbMonitor.IsConnected && !IsAutoBusy && !IsManualMsfxWriteActive;
 
     private bool CanRefreshAutoBoard()
-        => !IsAutoBoardBusy && !IsAutoBusy && !IsManualMsfxWriteActive;
+        => CanPage && !IsAutoBoardBusy && !IsAutoBusy && !IsManualMsfxWriteActive;
 
     [RelayCommand(CanExecute = nameof(CanRunAutoOnce))]
     private async Task RunAutoOnceAsync()
@@ -1053,11 +1053,6 @@ public sealed partial class MsfxLink : AppPageBase
         {
             AddAutoLog("审计", $"刷新数据库概览失败：{ex.Message}", TraceEntryState.Warning);
             LogWarn("msfx.audit.snapshot.refresh_fail", "MSFX snapshot refresh failed", ex);
-            if (CanToastError(ex))
-            {
-                _toast.Error("刷新审计", ex.Message);
-            }
-
             throw;
         }
     }

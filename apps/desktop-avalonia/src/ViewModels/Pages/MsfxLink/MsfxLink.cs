@@ -36,6 +36,7 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
     private readonly ISyncService _syncService;
     private readonly ILookupCatalogService _lookup;
     private readonly IMsfxAutoRunService _autoRun;
+    private readonly IDbConnectionMonitorService _dbMonitor;
     private readonly IAppConfigStore _configStore;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
@@ -62,9 +63,8 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         1 => RefreshQueueTabCommand,
         _ => null
     };
-    protected override bool AutoRefreshOnDbDisconnected => true;
-    protected override bool AutoRefreshOnDbReconnected => true;
-    protected override bool CanAutoRefreshFromDbSignal() => SelectedTabIndex <= 1 && base.CanAutoRefreshFromDbSignal();
+    // 看板与 Sync 走 PacApi；AutoRun 写本机库
+    protected override bool RequiresLocalDbForReload => false;
 
     [ObservableProperty] private int _selectedTabIndex;
     [ObservableProperty] private int _upstreamQueryMode;
@@ -217,15 +217,15 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
     public int TaskQueueSelectedCount => SelectedAutoTaskQueueRowsSnapshot.Count;
     public int TaskQueuePagerSelectedCount => IsTaskQueueBatchModeActive ? TaskQueueSelectedCount : -1;
 
-    public bool IsUpoutEmpty => UpoutRows.Count == 0;
-    public bool IsSubCodeEmpty => SubCodeRows.Count == 0;
-    public bool IsAutoLogsEmpty => AutoLogs.Count == 0;
+    public bool IsUpoutEmpty => ShowSectionEmpty(UpoutRows.Count == 0);
+    public bool IsSubCodeEmpty => ShowSectionEmpty(SubCodeRows.Count == 0);
+    public bool IsAutoLogsEmpty => ShowSectionEmpty(AutoLogs.Count == 0);
     public int AutoLogCount => AutoLogs.Count;
     public bool IsLastRunSuccess => AutoPullState == TraceEntryState.Success;
     public bool IsLastRunWarning => AutoPullState is TraceEntryState.Warning or TraceEntryState.Info or TraceEntryState.Unknown;
     public bool IsLastRunFailed => AutoPullState == TraceEntryState.Failed;
-    public bool IsAutoPullBatchEmpty => AutoPullBatchRows.Count == 0;
-    public bool IsAutoMapQueueEmpty => AutoMapQueueRows.Count == 0;
+    public bool IsAutoPullBatchEmpty => ShowSectionEmpty(AutoPullBatchRows.Count == 0);
+    public bool IsAutoMapQueueEmpty => ShowSectionEmpty(AutoMapQueueRows.Count == 0);
     public bool HasActiveMapQueueFilter => !string.IsNullOrWhiteSpace(QueueSearchKeyword) || _mapQueueStatusFilters.Count > 0;
     public bool HasActiveTaskQueueFilter => !string.IsNullOrWhiteSpace(QueueSearchKeyword) || _taskQueueStatusFilters.Count > 0;
     public bool IsMapPendingFilterActive => _mapQueueStatusFilters.Contains("PENDING");
@@ -237,7 +237,46 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
     public bool IsTaskSuccessFilterActive => _taskQueueStatusFilters.Contains("SUCCESS");
     public bool IsTaskFailedFilterActive => _taskQueueStatusFilters.Contains("FAILED");
     public bool IsTaskDiscardedFilterActive => _taskQueueStatusFilters.Contains("DISCARDED");
-    public bool IsAutoTaskQueueEmpty => AutoTaskQueueRows.Count == 0;
+    public bool IsAutoTaskQueueEmpty => ShowSectionEmpty(AutoTaskQueueRows.Count == 0);
+
+    public string UpoutEmptyText => GetSectionEmptyTitle("暂无上游出库单");
+    public string UpoutEmptyHint => GetSectionEmptyHint("请调整查询条件并执行查询");
+    public string SubCodeEmptyText => GetSectionEmptyTitle("暂无子码结果");
+    public string SubCodeEmptyHint => GetSectionEmptyHint("请输入单据编码并执行查询");
+    public string AutoLogsEmptyText => GetSectionEmptyTitle("暂无自动化日志");
+    public string AutoLogsEmptyHint => GetSectionEmptyHint("点击“立即巡检”或开启自动监控后将显示执行日志");
+    public string AutoPullBatchEmptyText => GetSectionEmptyTitle("暂无拉取批次数据");
+    public string AutoPullBatchEmptyHint => GetSectionEmptyHint("执行一次巡检后查看最近批次详情");
+    public string AutoMapQueueEmptyText => GetSectionEmptyTitle("暂无映射队列数据");
+    public string AutoMapQueueEmptyHint => GetSectionEmptyHint("待映射、需人工、失败和待下发记录将显示在这里");
+    public string AutoTaskQueueEmptyText => GetSectionEmptyTitle("暂无 Injector 任务队列");
+    public string AutoTaskQueueEmptyHint => GetSectionEmptyHint("仅 MAPPED + NEW 的码会创建任务");
+
+    protected override void OnPageAvailabilityChanged()
+    {
+        OnPropertyChanged(nameof(IsUpoutEmpty));
+        OnPropertyChanged(nameof(UpoutEmptyText));
+        OnPropertyChanged(nameof(UpoutEmptyHint));
+        OnPropertyChanged(nameof(IsSubCodeEmpty));
+        OnPropertyChanged(nameof(SubCodeEmptyText));
+        OnPropertyChanged(nameof(SubCodeEmptyHint));
+        OnPropertyChanged(nameof(IsAutoLogsEmpty));
+        OnPropertyChanged(nameof(AutoLogsEmptyText));
+        OnPropertyChanged(nameof(AutoLogsEmptyHint));
+        OnPropertyChanged(nameof(IsAutoPullBatchEmpty));
+        OnPropertyChanged(nameof(AutoPullBatchEmptyText));
+        OnPropertyChanged(nameof(AutoPullBatchEmptyHint));
+        OnPropertyChanged(nameof(IsAutoMapQueueEmpty));
+        OnPropertyChanged(nameof(AutoMapQueueEmptyText));
+        OnPropertyChanged(nameof(AutoMapQueueEmptyHint));
+        OnPropertyChanged(nameof(IsAutoTaskQueueEmpty));
+        OnPropertyChanged(nameof(AutoTaskQueueEmptyText));
+        OnPropertyChanged(nameof(AutoTaskQueueEmptyHint));
+        OnPropertyChanged(nameof(IsMappingGroupEmpty));
+        OnPropertyChanged(nameof(MappingGroupEmptyText));
+        OnPropertyChanged(nameof(MappingGroupEmptyHint));
+    }
+
     public int PullBatchTotalPages => Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)GetPullBatchPageSize()));
     public int MapQueueEffectivePageSize => GetMapQueueQueryPageSize();
     public int MapQueueTotalPages => Math.Max(1, (int)Math.Ceiling(MapQueueTotalCount / (double)Math.Max(1, MapQueueEffectivePageSize)));
@@ -288,6 +327,7 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         ISyncService syncService,
         ILookupCatalogService lookup,
         IMsfxAutoRunService autoRun,
+        IDbConnectionMonitorService dbMonitor,
         IAppConfigStore configStore,
         ISensitiveUnlockService unlockService,
         IToastService toast,
@@ -299,6 +339,7 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         _syncService = syncService;
         _lookup = lookup;
         _autoRun = autoRun;
+        _dbMonitor = dbMonitor;
         _configStore = configStore;
         _unlockService = unlockService;
         _toast = toast;

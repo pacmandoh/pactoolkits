@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindowShellStatusBar"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -31,28 +31,32 @@
 
           <Button
             Classes="StatusBarItem"
-            Command="{Binding TryReconnectDbCommand}"
+            Command="{Binding TryProbeApiCommand}"
             ToolTip.ShowDelay="400"
-            ToolTip.Tip="{Binding DbItemText}">
+            ToolTip.Tip="{Binding ApiItemText}">
             <shad:ButtonAssist.Icon>
               <controls:RuntimeStateIcon
                 ActiveIcon="Link"
                 InactiveIcon="Unlink"
                 IsHitTestVisible="False"
-                State="{Binding DbVisualState}" />
+                State="{Binding ApiVisualState}" />
             </shad:ButtonAssist.Icon>
             <Panel IsHitTestVisible="False">
               <icons:AppIcon
                 Foreground="{DynamicResource WarningColor}"
-                IsVisible="{Binding IsDbProbeRunning}"
+                IsVisible="{Binding IsApiProbeRunning}"
                 Kind="LoaderCircle" />
               <icons:AppIcon
                 Foreground="{DynamicResource SuccessColor}"
-                IsVisible="{Binding IsDbStatusConnected}"
+                IsVisible="{Binding IsApiStatusReady}"
                 Kind="CircleCheck" />
               <icons:AppIcon
+                Foreground="{DynamicResource WarningColor}"
+                IsVisible="{Binding IsApiStatusNotConfigured}"
+                Kind="Settings" />
+              <icons:AppIcon
                 Foreground="{DynamicResource ErrorColor}"
-                IsVisible="{Binding IsDbStatusDisconnected}"
+                IsVisible="{Binding IsApiStatusDown}"
                 Kind="CircleAlert" />
             </Panel>
           </Button>
@@ -90,18 +94,18 @@
             </MenuItem>
           </Menu>
 
-          <Border Classes="StatusBarDivider" IsVisible="{Binding ShowAccessGuardItem}" />
+          <Border Classes="StatusBarDivider" IsVisible="{Binding ShowServiceBlockItem}" />
 
           <Button
             Classes="StatusBarItem"
             Command="{Binding OpenSettingsCommand}"
-            IsVisible="{Binding ShowAccessGuardItem}">
+            IsVisible="{Binding ShowServiceBlockItem}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="ShieldAlert" />
               <TextBlock
                 MaxWidth="220"
                 Classes="Caption Muted"
-                Text="{Binding AccessGuardItemText}"
+                Text="{Binding ServiceBlockItemText}"
                 TextTrimming="CharacterEllipsis" />
             </StackPanel>
           </Button>
