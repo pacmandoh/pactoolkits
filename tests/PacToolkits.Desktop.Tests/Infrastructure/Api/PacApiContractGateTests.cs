@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
 
 namespace PacToolkits.Desktop.Tests;
@@ -63,7 +63,7 @@ public sealed class PacApiContractGateTests
                 () => new HttpRequestMessage(HttpMethod.Get, api.Resolve("/v1/business")),
                 TestContext.Current.CancellationToken));
 
-        Assert.Contains("incompatible", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("不兼容", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class PacApiContractGateTests
                     return false;
                 }
                 catch (InvalidOperationException ex)
-                    when (ex.Message.Contains("incompatible", StringComparison.OrdinalIgnoreCase))
+                    when (ex.Message.Contains("不兼容", StringComparison.Ordinal))
                 {
                     return true;
                 }
@@ -112,19 +112,11 @@ public sealed class PacApiContractGateTests
         Func<HttpRequestMessage, HttpResponseMessage> onApi)
     {
         var services = new ServiceCollection();
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["PacApi:BaseUrl"] = "http://127.0.0.1:9",
-                ["PacApi:ApiKey"] = "test-key",
-            })
-            .Build();
-
-        services.AddSingleton<IConfiguration>(config);
+        services.AddSingleton<IAppConfigStore>(new StubPacApiConfigStore());
         services.AddSingleton<IAppLogger, NullLogger>();
         services.AddSingleton<IReleaseVersionService>(new StubVersions(min, max));
         services.AddSingleton(TimeProvider.System);
-        services.AddPacApiClient(config);
+        services.AddPacApiClient();
         services.AddSingleton<IPacApiContractGate, PacApiContractGate>();
 
         services.AddHttpClient(PacApiClient.TokenClientName)
@@ -133,6 +125,10 @@ public sealed class PacApiContractGateTests
                 """{"accessToken":"tok","tokenType":"Bearer","expiresIn":3600,"clientId":"c"}"""));
 
         services.AddHttpClient(PacApiClient.ApiClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new ScriptHandler(onApi));
+
+        // 协议门禁走可用性客户端；与业务 Api 共用同一脚本
+        services.AddHttpClient(PacApiClient.AvailabilityClientName)
             .ConfigurePrimaryHttpMessageHandler(() => new ScriptHandler(onApi));
 
         return services.BuildServiceProvider();
@@ -226,5 +222,33 @@ public sealed class PacApiContractGateTests
 
         public Task<string> ExportRecentAsync(TimeSpan window, CancellationToken ct = default)
             => Task.FromResult(string.Empty);
+    }
+
+    private sealed class StubPacApiConfigStore : IAppConfigStore
+    {
+        public string ConfigPath => string.Empty;
+
+        public AppConfigRoot Load() => new()
+        {
+            PacApi = new PacApiOptions
+            {
+                BaseUrl = "http://127.0.0.1:9",
+                ApiKey = "test-key",
+            },
+        };
+
+        public void Save(AppConfigRoot config)
+        {
+        }
+
+        public Task SaveAsync(AppConfigRoot config, CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public void Update(Action<AppConfigRoot> mutator)
+        {
+        }
+
+        public Task UpdateAsync(Action<AppConfigRoot> mutator, CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 }

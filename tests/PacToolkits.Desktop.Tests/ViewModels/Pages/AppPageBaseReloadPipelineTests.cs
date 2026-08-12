@@ -1,6 +1,7 @@
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Runtime;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.EmptyState;
 using PacToolkits.Desktop.Avalonia.ViewModels;
@@ -67,14 +68,14 @@ public sealed class AppPageBaseReloadPipelineTests
 
         await page.TestRunReloadCoreAsync();
 
-        Assert.True(page.CanPageFromDb);
+        Assert.True(page.CanPage);
 
         monitor.IsConnected = false;
         page.SyncPageAvailability();
 
         Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);
         Assert.True(page.IsShowingStaleData);
-        Assert.False(page.CanPageFromDb);
+        Assert.False(page.CanPage);
     }
 
     [Fact]
@@ -92,7 +93,156 @@ public sealed class AppPageBaseReloadPipelineTests
         page.SyncPageAvailability();
 
         Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
-        Assert.True(page.CanPageFromDb);
+        Assert.True(page.CanPage);
+    }
+
+    [Fact]
+    public void SyncConnection_hard_block_sets_access_blocked_on_remote_page()
+    {
+        var page = CreateRemotePage();
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.ContractBlocked,
+            Detail: "contract boom",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.Equal(PageDataAvailability.AccessBlocked, page.PageDataAvailability);
+        Assert.Equal("PacApi 服务协议不兼容", page.PageUnavailableTitle);
+        Assert.Equal("contract boom", page.PageUnavailableHint);
+        Assert.False(page.IsBusy);
+        Assert.False(page.IsSectionPending);
+    }
+
+    [Fact]
+    public void SyncConnection_schema_block_sets_access_blocked_on_remote_page()
+    {
+        var page = CreateRemotePage();
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.SchemaBlocked,
+            Detail: "服务端数据库结构不兼容",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.Equal(PageDataAvailability.AccessBlocked, page.PageDataAvailability);
+        Assert.Equal("PacApi 服务数据库结构不兼容", page.PageUnavailableTitle);
+        Assert.False(page.IsBusy);
+        Assert.True(page.ShowPageUnavailable);
+    }
+
+    [Fact]
+    public void SyncConnection_server_database_down_is_awaiting_service_not_blocked()
+    {
+        var page = CreateRemotePage();
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.ServerDatabaseBlocked,
+            Detail: "PacApi 服务已连接，但服务端数据库不可用",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.IsBusy);
+        Assert.False(page.ShowPageUnavailable);
+        Assert.False(page.IsSectionPending);
+    }
+
+    [Fact]
+    public void SyncConnection_unavailable_sets_awaiting_service_on_remote_page()
+    {
+        var page = CreateRemotePage();
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Unavailable,
+            Detail: "connection refused",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.ShowPageUnavailable);
+        Assert.False(page.IsBusy);
+        Assert.False(page.IsSectionPending);
+    }
+
+    [Fact]
+    public void SyncConnection_ready_clears_access_blocked_on_remote_page()
+    {
+        var page = CreateRemotePage();
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.SchemaBlocked,
+            Detail: "schema boom",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+        Assert.Equal(PageDataAvailability.AccessBlocked, page.PageDataAvailability);
+
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Ready,
+            Detail: null,
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.Equal(PageDataAvailability.NotLoaded, page.PageDataAvailability);
+        Assert.False(page.ShowPageUnavailable);
+    }
+
+    [Fact]
+    public void SyncConnection_ready_clears_awaiting_service_on_remote_page()
+    {
+        var page = CreateRemotePage();
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Unavailable,
+            Detail: "down",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.ShowPageUnavailable);
+
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Ready,
+            Detail: null,
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.Equal(PageDataAvailability.NotLoaded, page.PageDataAvailability);
+        Assert.False(page.ShowPageUnavailable);
+        Assert.True(page.CanPage);
+    }
+
+    [Fact]
+    public async Task SyncConnection_ready_clears_stale_on_remote_page()
+    {
+        var page = CreateRemotePage(reload: _ => Task.CompletedTask);
+        await page.TestRunReloadCoreAsync();
+        Assert.True(page.HasLoadedOnce);
+
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Unavailable,
+            Detail: "down",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+        Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);
+        Assert.False(page.IsBusy);
+
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Ready,
+            Detail: null,
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+        Assert.False(page.ShowPageUnavailable);
+        Assert.False(page.IsShowingStaleData);
+        Assert.False(page.IsBusy);
+    }
+
+    [Fact]
+    public void SyncConnection_ignores_local_db_pages()
+    {
+        var page = CreatePage(dbMonitor: new FakeDbMonitor { IsConnected = true });
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.ContractBlocked,
+            Detail: "contract boom",
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: true));
+
+        Assert.NotEqual(PageDataAvailability.AccessBlocked, page.PageDataAvailability);
     }
 
     [Fact]
@@ -194,14 +344,13 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.Equal(0, monitor.SignalCount);
         Assert.True(monitor.IsConnected);
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
-        Assert.Equal("等待服务可用", page.PageUnavailableTitle);
-        Assert.True(page.ShowPageUnavailable);
+        Assert.False(page.ShowPageUnavailable);
 
         // 本机库仍连着时，Sync 不要清掉 AwaitingService
         page.SyncPageAvailability();
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
 
-        // 本机库短暂断开，也不要把 AwaitingService 打成 AwaitingDatabase
+        // 本机库短暂断开，也不要把 AwaitingService 标成 AwaitingDatabase
         monitor.IsConnected = false;
         page.SyncPageAvailability();
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
@@ -239,9 +388,7 @@ public sealed class AppPageBaseReloadPipelineTests
         var page = CreateRemotePage(dbMonitor: new FakeDbMonitor { IsConnected = false });
 
         Assert.Equal(PageDataAvailability.NotLoaded, page.PageDataAvailability);
-        Assert.Equal("等待服务可用", page.PageUnavailableTitle);
-        Assert.Equal("服务恢复后将自动重试", page.PageUnavailableHint);
-        Assert.Equal("Server", page.PageUnavailableIcon);
+        Assert.False(page.ShowPageUnavailable);
         Assert.Equal(SectionEmptyCopy.ServiceStaleHint, page.PageStaleHint);
     }
 
@@ -262,7 +409,37 @@ public sealed class AppPageBaseReloadPipelineTests
 
         Assert.Equal(1, attempts);
         Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
-        Assert.True(page.CanPageFromDb);
+        Assert.True(page.CanPage);
+    }
+
+    [Fact]
+    public async Task Remote_page_reload_skips_fetch_when_api_unavailable()
+    {
+        var attempts = 0;
+        var page = CreateRemotePage(
+            api: FakeApiAvailability.Unavailable(),
+            reload: _ =>
+            {
+                attempts++;
+                return Task.CompletedTask;
+            });
+
+        await page.TestRunReloadCoreAsync();
+
+        Assert.Equal(0, attempts);
+        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.IsBusy);
+        Assert.False(page.CanPage);
+    }
+
+    [Fact]
+    public void Remote_page_CanToastError_false_when_api_down()
+    {
+        var down = CreateRemotePage(api: FakeApiAvailability.Unavailable());
+        Assert.False(down.TestCanToastError(new InvalidOperationException("boom")));
+
+        var up = CreateRemotePage();
+        Assert.True(up.TestCanToastError(new InvalidOperationException("business")));
     }
 
     [Fact]
@@ -328,7 +505,7 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.True(afterFail >= 1);
 
         page.Dispose();
-        // 超过注入的重试间隔；若未取消会再打 Reload
+        // 超过注入的重试间隔；若未取消会再次 Reload
         await Task.Delay(200, TestContext.Current.CancellationToken);
 
         Assert.Equal(afterFail, attempts);
@@ -339,7 +516,7 @@ public sealed class AppPageBaseReloadPipelineTests
     {
         var monitor = new FakeDbMonitor { IsConnected = true };
         var attempts = 0;
-        var page = CreateRemotePage(
+        var page = CreatePage(
             dbMonitor: monitor,
             reload: _ =>
             {
@@ -372,7 +549,7 @@ public sealed class AppPageBaseReloadPipelineTests
     {
         var monitor = new FakeDbMonitor { IsConnected = true };
         var attempts = 0;
-        var page = CreateRemotePage(
+        var page = CreatePage(
             dbMonitor: monitor,
             reload: _ =>
             {
@@ -401,7 +578,7 @@ public sealed class AppPageBaseReloadPipelineTests
     }
 
     [Fact]
-    public async Task PacApi_transient_skips_page_level_transport_retry()
+    public async Task PacApi_transient_while_up_arms_service_retry()
     {
         var attempts = 0;
         var page = CreateRemotePage(
@@ -415,13 +592,131 @@ public sealed class AppPageBaseReloadPipelineTests
                         Title: "down",
                         Detail: null,
                         TraceId: "t",
-                        RetryAfter: null));
+                        RetryAfter: TimeSpan.FromSeconds(12)));
             });
 
         await page.TestRunReloadCoreAsync();
 
         Assert.Equal(1, attempts);
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.NotNull(page.TestNextRetryAt());
+        Assert.False(page.IsBusy);
+    }
+
+    [Fact]
+    public async Task PacApi_transient_while_down_skips_page_level_retry()
+    {
+        var attempts = 0;
+        var page = CreateRemotePage(
+            api: FakeApiAvailability.Unavailable(),
+            reload: _ =>
+            {
+                attempts++;
+                throw new PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api.PacApiException(
+                    new PacToolkits.Application.DTOs.PacApiProblem(
+                        Status: 503,
+                        Code: "service_unavailable",
+                        Title: "down",
+                        Detail: null,
+                        TraceId: "t",
+                        RetryAfter: null));
+            });
+
+        // Down：预检跳过 fetch，不 Arm
+        await page.TestRunReloadCoreAsync();
+
+        Assert.Equal(0, attempts);
+        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.Null(page.TestNextRetryAt());
+        Assert.False(page.IsBusy);
+    }
+
+    [Fact]
+    public async Task Remote_transport_fail_while_ready_goes_stale_not_ready()
+    {
+        var page = CreateRemotePage(reload: _ => Task.CompletedTask);
+        await page.TestRunReloadCoreAsync();
+        Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+
+        page.ReloadAction = _ => throw new PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api.PacApiException(
+            new PacToolkits.Application.DTOs.PacApiProblem(
+                Status: 503,
+                Code: "service_unavailable",
+                Title: "down",
+                Detail: null,
+                TraceId: "t",
+                RetryAfter: null));
+
+        await page.TestRunReloadCoreAsync();
+
+        Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);
+        Assert.NotNull(page.TestNextRetryAt());
+        Assert.False(page.IsBusy);
+        Assert.False(page.ShowPageUnavailable);
+    }
+
+    [Fact]
+    public void SyncConnection_first_check_incomplete_is_wait_not_busy()
+    {
+        var page = CreateRemotePage();
+        page.SyncConnection(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Connecting,
+            Detail: null,
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: false));
+
+        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.ShowPageUnavailable);
+        Assert.False(page.IsBusy);
+        Assert.False(page.IsSectionPending);
+        Assert.False(page.CanPage);
+    }
+
+    [Fact]
+    public async Task Remote_manual_reload_enters_loading_without_immediate_busy()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var page = CreateRemotePage(reload: async ct =>
+        {
+            started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+        });
+
+        var run = page.TestRunReloadCoreAsync();
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+        Assert.Equal(PageDataAvailability.Loading, page.PageDataAvailability);
+        Assert.False(page.IsBusy);
+
+        await page.OnPageDeactivatedAsync(TestContext.Current.CancellationToken);
+        await run;
+    }
+
+    [Fact]
+    public async Task Remote_signal_reload_does_not_enter_loading_or_busy()
+    {
+        var page = CreateRemotePage(reload: _ => Task.CompletedTask);
+        await page.TestRunReloadCoreAsync();
+        Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        page.ReloadAction = async ct =>
+        {
+            started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+        };
+
+        using (page.TestBeginSilentReload())
+        {
+            var run = page.TestRunReloadCoreAsync();
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+            Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+            Assert.False(page.IsBusy);
+
+            await page.OnPageDeactivatedAsync(TestContext.Current.CancellationToken);
+            await run;
+        }
     }
 
     [Fact]
@@ -429,7 +724,7 @@ public sealed class AppPageBaseReloadPipelineTests
     {
         var time = new ControllableTime(new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero));
         var attempts = 0;
-        var page = CreateRemotePage(
+        var page = CreatePage(
             timeProvider: time,
             reload: _ =>
             {
@@ -465,7 +760,7 @@ public sealed class AppPageBaseReloadPipelineTests
     {
         var time = new ControllableTime(new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero));
         var attempts = 0;
-        var page = CreateRemotePage(
+        var page = CreatePage(
             timeProvider: time,
             reload: _ =>
             {
@@ -515,7 +810,7 @@ public sealed class AppPageBaseReloadPipelineTests
     {
         var time = new ControllableTime(new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero));
         var attempts = 0;
-        var page = CreateRemotePage(
+        var page = CreatePage(
             timeProvider: time,
             reload: _ =>
             {
@@ -579,7 +874,7 @@ public sealed class AppPageBaseReloadPipelineTests
     {
         var time = new ControllableTime(new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero));
         var attempts = 0;
-        var page = CreateRemotePage(
+        var page = CreatePage(
             timeProvider: time,
             reload: _ =>
             {
@@ -973,7 +1268,8 @@ public sealed class AppPageBaseReloadPipelineTests
         Func<CancellationToken, Task>? reload = null,
         FakeDbMonitor? dbMonitor = null,
         FakeAccessGuard? accessGuard = null,
-        FakeStartupState? startupState = null)
+        FakeStartupState? startupState = null,
+        TimeProvider? timeProvider = null)
     {
         var page = new TestReloadPage
         {
@@ -982,7 +1278,8 @@ public sealed class AppPageBaseReloadPipelineTests
         page.TestInjectDbServices(
             dbMonitor ?? new FakeDbMonitor { IsConnected = true },
             accessGuard ?? new FakeAccessGuard(),
-            startupState ?? new FakeStartupState { IsDbInitCompleted = true });
+            startupState ?? new FakeStartupState { IsDbInitCompleted = true },
+            timeProvider: timeProvider);
         return page;
     }
 
@@ -990,7 +1287,8 @@ public sealed class AppPageBaseReloadPipelineTests
         Func<CancellationToken, Task>? reload = null,
         FakeDbMonitor? dbMonitor = null,
         FakeAccessGuard? accessGuard = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        FakeApiAvailability? api = null)
     {
         var page = new RemoteReloadPage
         {
@@ -1000,7 +1298,8 @@ public sealed class AppPageBaseReloadPipelineTests
             dbMonitor ?? new FakeDbMonitor { IsConnected = false },
             accessGuard ?? new FakeAccessGuard(),
             new FakeStartupState { IsDbInitCompleted = false },
-            timeProvider: timeProvider);
+            timeProvider: timeProvider,
+            apiAvailability: api ?? FakeApiAvailability.Ready());
         return page;
     }
 
@@ -1122,6 +1421,61 @@ public sealed class AppPageBaseReloadPipelineTests
         public void MarkDbInitCompleted()
         {
             DbInitCompleted?.Invoke();
+        }
+    }
+
+    internal sealed class FakeApiAvailability : IApiAvailabilityService
+    {
+        public ApiAvailabilitySnapshot Current { get; set; }
+
+        public bool IsConfigured { get; set; } = true;
+
+        public event Action? Changed
+        {
+            add { }
+            remove { }
+        }
+
+        public FakeApiAvailability(ApiAvailabilitySnapshot current)
+            => Current = current;
+
+        public static FakeApiAvailability Ready()
+            => new(new ApiAvailabilitySnapshot(
+                ApiAvailabilityState.Ready,
+                Detail: null,
+                CheckedAt: DateTimeOffset.UtcNow,
+                FirstCheckCompleted: true));
+
+        public static FakeApiAvailability Unavailable()
+            => new(new ApiAvailabilitySnapshot(
+                ApiAvailabilityState.Unavailable,
+                Detail: "down",
+                CheckedAt: DateTimeOffset.UtcNow,
+                FirstCheckCompleted: true));
+
+        public static FakeApiAvailability Unconfigured()
+            => new(new ApiAvailabilitySnapshot(
+                ApiAvailabilityState.Connecting,
+                Detail: null,
+                CheckedAt: DateTimeOffset.UtcNow,
+                FirstCheckCompleted: false))
+            {
+                IsConfigured = false,
+            };
+
+        public void Start()
+        {
+        }
+
+        public Task ProbeAsync(CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public void Notify()
+        {
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

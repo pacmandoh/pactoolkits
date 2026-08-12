@@ -240,7 +240,7 @@ public sealed class ApiChangeWatermarkTests
             },
             TestContext.Current.CancellationToken);
 
-        // 再等一窗合并结束，确认没有按脉冲数打满 GET
+        // 再等一窗合并结束，确认没有按脉冲数重复拉 GET
         await Task.Delay(120, TestContext.Current.CancellationToken);
         var burstGets = api.WatermarkGets - baselineGets;
         Assert.True(
@@ -346,6 +346,176 @@ public sealed class ApiChangeWatermarkTests
         Assert.Equal(1, watermark.TestStreamLoopStarts);
     }
 
+    [Fact]
+    public async Task Reset_aborts_hanging_sse_and_bootstrap_emits_topics()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        token.EnqueueJson(TokenJson("tok-2"));
+        api.FallbackJson = """{"items":[{"topic":"inventory","version":1}]}""";
+        sse.EnqueueHangingSse();
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+
+        var topics = new List<string>();
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac);
+        watermark.TopicChanged += t =>
+        {
+            lock (topics)
+            {
+                topics.Add(t);
+            }
+        };
+        watermark.Start();
+
+        await WaitAsync(() => sse.Calls.Count >= 1, TestContext.Current.CancellationToken);
+        await Task.Delay(60, TestContext.Current.CancellationToken);
+
+        watermark.Reset();
+
+        await WaitAsync(
+            () =>
+            {
+                lock (topics)
+                {
+                    return sse.Calls.Count >= 2 && topics.Contains("inventory");
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, watermark.TestStreamLoopStarts);
+    }
+
+    [Fact]
+    public async Task Reset_after_silent_ready_emits_first_seen_topics()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        api.FallbackJson = """{"items":[{"topic":"inventory","version":1}]}""";
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+        sse.EnqueueSse("event: ready\ndata: {}\n\n");
+
+        var topics = new List<string>();
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac);
+        watermark.TopicChanged += t =>
+        {
+            lock (topics)
+            {
+                topics.Add(t);
+            }
+        };
+        watermark.Start();
+
+        await WaitAsync(
+            () => sse.Calls.Count >= 1 && api.WatermarkGets >= 1,
+            TestContext.Current.CancellationToken);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
+        lock (topics)
+        {
+            Assert.Empty(topics);
+        }
+
+        watermark.Reset();
+
+        await WaitAsync(
+            () =>
+            {
+                lock (topics)
+                {
+                    return topics.Contains("inventory");
+                }
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Reset_discards_in_flight_watermark_from_prior_epoch()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        token.EnqueueJson(TokenJson("tok-2"));
+        var stale = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        api.EnqueueDelayedJson(WatermarkJson(100), stale.Task);
+        var version = 1L;
+        api.FallbackFactory = _ => WatermarkJson(version);
+        sse.EnqueueHangingSse();
+        sse.EnqueueHangingSse();
+
+        var topics = new List<string>();
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac, pollInterval: TimeSpan.FromMilliseconds(50));
+        watermark.TopicChanged += t =>
+        {
+            lock (topics)
+            {
+                topics.Add(t);
+            }
+        };
+        watermark.Start();
+
+        await WaitAsync(() => api.WatermarkGets >= 1, TestContext.Current.CancellationToken);
+
+        pac.Apply(new PacApiOptions
+        {
+            BaseUrl = "http://127.0.0.1:5081",
+            ApiKey = "key-2",
+        });
+        watermark.Reset();
+        stale.TrySetResult();
+
+        await WaitAsync(() => api.WatermarkGets >= 2, TestContext.Current.CancellationToken);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
+        lock (topics)
+        {
+            topics.Clear();
+        }
+
+        version = 2;
+
+        await WaitAsync(
+            () =>
+            {
+                lock (topics)
+                {
+                    return topics.Contains("inventory");
+                }
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Reset_aborts_sse_backoff_without_waiting()
+    {
+        var time = new ControllableTime();
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        var sse = new ScriptedHandler();
+        token.EnqueueJson(TokenJson("tok-1"));
+        token.EnqueueJson(TokenJson("tok-2"));
+        api.FallbackJson = """{"items":[]}""";
+        sse.EnqueueStatus(HttpStatusCode.ServiceUnavailable);
+        sse.EnqueueHangingSse();
+
+        using var pac = CreatePac(token, api, sse);
+        using var watermark = CreateWatermark(pac, time);
+        watermark.Start();
+
+        await WaitAsync(() => sse.Calls.Count >= 1, TestContext.Current.CancellationToken);
+        await Task.Delay(40, TestContext.Current.CancellationToken);
+        Assert.Single(sse.Calls);
+
+        watermark.Reset();
+
+        await WaitAsync(() => sse.Calls.Count >= 2, TestContext.Current.CancellationToken);
+    }
+
     private static PacApiClient CreatePac(ScriptedHandler token, ScriptedHandler api, ScriptedHandler sse)
         => new(
             "http://127.0.0.1:5080",
@@ -356,11 +526,14 @@ public sealed class ApiChangeWatermarkTests
             api,
             sse);
 
-    private static ApiChangeWatermark CreateWatermark(PacApiClient pac, TimeProvider? time = null)
+    private static ApiChangeWatermark CreateWatermark(
+        PacApiClient pac,
+        TimeProvider? time = null,
+        TimeSpan? pollInterval = null)
         => new(
             pac,
             new NullLogger(),
-            pollInterval: TimeSpan.FromHours(1),
+            pollInterval: pollInterval ?? TimeSpan.FromHours(1),
             reconnectDelay: TimeSpan.FromMilliseconds(40),
             notifyCoalesceWindow: TimeSpan.FromMilliseconds(20),
             timeProvider: time);
@@ -404,7 +577,7 @@ public sealed class ApiChangeWatermarkTests
     private sealed class ScriptedHandler : HttpMessageHandler
     {
         private readonly object _gate = new();
-        private readonly Queue<Func<HttpRequestMessage, HttpResponseMessage>> _responses = new();
+        private readonly Queue<Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>> _responses = new();
 
         public string? FallbackJson { get; set; }
 
@@ -418,7 +591,19 @@ public sealed class ApiChangeWatermarkTests
         {
             lock (_gate)
             {
-                _responses.Enqueue(_ => JsonResponse(json));
+                _responses.Enqueue((_, _) => Task.FromResult(JsonResponse(json)));
+            }
+        }
+
+        public void EnqueueDelayedJson(string json, Task release)
+        {
+            lock (_gate)
+            {
+                _responses.Enqueue(async (_, _) =>
+                {
+                    await release.ConfigureAwait(false);
+                    return JsonResponse(json);
+                });
             }
         }
 
@@ -426,7 +611,15 @@ public sealed class ApiChangeWatermarkTests
         {
             lock (_gate)
             {
-                _responses.Enqueue(_ => throw ex);
+                _responses.Enqueue((_, _) => throw ex);
+            }
+        }
+
+        public void EnqueueStatus(HttpStatusCode status)
+        {
+            lock (_gate)
+            {
+                _responses.Enqueue((_, _) => Task.FromResult(new HttpResponseMessage(status)));
             }
         }
 
@@ -434,12 +627,12 @@ public sealed class ApiChangeWatermarkTests
         {
             lock (_gate)
             {
-                _responses.Enqueue(_ =>
+                _responses.Enqueue((_, _) =>
                 {
                     var content = new SseContent(body);
                     content.Headers.ContentType =
                         new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
                 });
             }
         }
@@ -448,12 +641,12 @@ public sealed class ApiChangeWatermarkTests
         {
             lock (_gate)
             {
-                _responses.Enqueue(_ =>
+                _responses.Enqueue((_, _) =>
                 {
                     var content = new HangingSseContent();
                     content.Headers.ContentType =
                         new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
                 });
             }
         }
@@ -462,12 +655,12 @@ public sealed class ApiChangeWatermarkTests
         {
             lock (_gate)
             {
-                _responses.Enqueue(_ =>
+                _responses.Enqueue((_, _) =>
                 {
                     var content = new PrefixHangSseContent(prefix);
                     content.Headers.ContentType =
                         new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
                 });
             }
         }
@@ -477,6 +670,7 @@ public sealed class ApiChangeWatermarkTests
             CancellationToken cancellationToken)
         {
             var uri = request.RequestUri ?? new Uri("http://invalid/");
+            Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? next = null;
             lock (_gate)
             {
                 Calls.Add(uri);
@@ -487,8 +681,13 @@ public sealed class ApiChangeWatermarkTests
 
                 if (_responses.Count > 0)
                 {
-                    return Task.FromResult(_responses.Dequeue()(request));
+                    next = _responses.Dequeue();
                 }
+            }
+
+            if (next is not null)
+            {
+                return next(request, cancellationToken);
             }
 
             if (FallbackFactory is not null)
@@ -539,8 +738,14 @@ public sealed class ApiChangeWatermarkTests
 
     private sealed class HangingSseContent : HttpContent
     {
+        protected override Task<Stream> CreateContentReadStreamAsync()
+            => Task.FromResult<Stream>(new PrefixHangStream([]));
+
+        protected override Task<Stream> CreateContentReadStreamAsync(CancellationToken cancellationToken)
+            => CreateContentReadStreamAsync();
+
         protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context)
-            => Task.Delay(Timeout.InfiniteTimeSpan);
+            => SerializeToStreamAsync(stream, context, CancellationToken.None);
 
         protected override Task SerializeToStreamAsync(
             Stream stream,

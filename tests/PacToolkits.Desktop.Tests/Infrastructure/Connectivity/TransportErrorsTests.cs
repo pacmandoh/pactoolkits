@@ -151,7 +151,7 @@ public sealed class TransportErrorsTests
             new InvalidOperationException("duplicate key value violates unique constraint")));
 
     [Fact]
-    public void Mixed_aggregate_pac_api_and_socket_still_signals_db()
+    public void Mixed_aggregate_pac_api_and_socket_prefers_remote_not_db()
     {
         var api = new PacApiException(new PacApiProblem(
             Status: 503,
@@ -163,11 +163,27 @@ public sealed class TransportErrorsTests
         var ex = new AggregateException(api, new SocketException((int)SocketError.ConnectionRefused));
 
         Assert.True(TransportErrors.IsTransport(ex));
+        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
+    }
+
+    [Fact]
+    public void Mixed_aggregate_pac_api_and_npgsql_keeps_signals_db()
+    {
+        var api = new PacApiException(new PacApiProblem(
+            Status: 503,
+            Code: "service_unavailable",
+            Title: "down",
+            Detail: null,
+            TraceId: "t",
+            RetryAfter: null));
+        var ex = new AggregateException(api, new Npgsql.FakeNpgsqlException("pg down", null));
+
+        Assert.True(TransportErrors.IsTransport(ex));
         Assert.True(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]
-    public void Mixed_aggregate_http_and_socket_still_signals_db()
+    public void Mixed_aggregate_http_and_socket_prefers_remote_not_db()
     {
         var http = new HttpRequestException(
             "upstream",
@@ -177,7 +193,7 @@ public sealed class TransportErrorsTests
             new SocketException((int)SocketError.ConnectionRefused));
 
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
+        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]

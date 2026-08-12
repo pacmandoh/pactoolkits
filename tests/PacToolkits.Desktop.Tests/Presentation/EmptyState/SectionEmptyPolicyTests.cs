@@ -20,12 +20,21 @@ public sealed class SectionEmptyPolicyTests
 
     [Theory]
     [InlineData(PageDataAvailability.Loading)]
-    [InlineData(PageDataAvailability.NotLoaded)]
-    [InlineData(PageDataAvailability.AwaitingDatabase)]
-    [InlineData(PageDataAvailability.AwaitingService)]
     public void Show_hides_empty_state_during_first_fetch(PageDataAvailability availability)
     {
         Assert.False(SectionEmptyPolicy.Show(
+            isContentEmpty: true,
+            availability,
+            hasLoadedOnce: false));
+    }
+
+    [Theory]
+    [InlineData(PageDataAvailability.NotLoaded)]
+    [InlineData(PageDataAvailability.AwaitingDatabase)]
+    [InlineData(PageDataAvailability.AwaitingService)]
+    public void Show_empty_state_while_waiting_for_connection(PageDataAvailability availability)
+    {
+        Assert.True(SectionEmptyPolicy.Show(
             isContentEmpty: true,
             availability,
             hasLoadedOnce: false));

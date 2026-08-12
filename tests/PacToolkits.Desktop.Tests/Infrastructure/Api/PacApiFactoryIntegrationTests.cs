@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Net;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Diagnostics;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 
 namespace PacToolkits.Desktop.Tests;
 
@@ -40,17 +40,9 @@ public sealed class PacApiFactoryIntegrationTests
         ActivitySource.AddActivityListener(listener);
 
         var services = new ServiceCollection();
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["PacApi:BaseUrl"] = "http://127.0.0.1:9",
-                ["PacApi:ApiKey"] = "test-key",
-            })
-            .Build();
-
-        services.AddSingleton<IConfiguration>(config);
+        services.AddSingleton<IAppConfigStore>(new StubPacApiConfigStore());
         services.AddSingleton<IAppLogger, NullLogger>();
-        services.AddPacApiClient(config);
+        services.AddPacApiClient();
 
         services.AddHttpClient(PacApiClient.TokenClientName)
             .ConfigurePrimaryHttpMessageHandler(() => new FixedHandler(
@@ -140,5 +132,33 @@ public sealed class PacApiFactoryIntegrationTests
 
         public Task<string> ExportRecentAsync(TimeSpan window, CancellationToken ct = default)
             => Task.FromResult(string.Empty);
+    }
+
+    private sealed class StubPacApiConfigStore : IAppConfigStore
+    {
+        public string ConfigPath => string.Empty;
+
+        public AppConfigRoot Load() => new()
+        {
+            PacApi = new PacApiOptions
+            {
+                BaseUrl = "http://127.0.0.1:9",
+                ApiKey = "test-key",
+            },
+        };
+
+        public void Save(AppConfigRoot config)
+        {
+        }
+
+        public Task SaveAsync(AppConfigRoot config, CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public void Update(Action<AppConfigRoot> mutator)
+        {
+        }
+
+        public Task UpdateAsync(Action<AppConfigRoot> mutator, CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 }
