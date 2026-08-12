@@ -84,11 +84,11 @@
 - `db.schema.incompatible` (Warn) — Database schema incompatible
 - `db.schema.incompatible.startup` (Error) — Database schema incompatible during startup
 - `db.schema.ok` (Info) — Database schema version compatible
-- `db.schema.external_update_required.startup` (Warn) — Database schema below app minimum; external update required before business access
-- `db.schema.recovery_poll.fail` (Warn) — Schema recovery polling failed
+- `db.schema.external_update_required.startup` (Warn) — Database schema below app minimum; external update required before Settings local access
 - `db.schema.status.refresh.fail` (Warn) — Failed to refresh DB schema status for Settings page
-- `db.startup_check.fail` (Error/Warn) — Database connection test failed on startup; shell banner will show status
+- `db.startup_check.fail` (Error/Warn) — Database connection test failed on startup
 - `db.startup_check.start` (Info) — Checking database connectivity on startup
+- `db.monitor.fail` (Warn) — Local DB monitor reported failure
 - `dispose.safe_execute_fail` (Warn) — Dispose cleanup action failed
 - `drug_index.watermark.refresh_fail` (Warn) — Drug index watermark refresh failed
 - `main.init` (Info) — Main window initialized
@@ -405,7 +405,6 @@
 - `reconcile.detached.fail` (Error) — Detached task failed
 - `reload.detached.fail` (Error) — Detached task failed
 - `reload.quiet.detached.fail` (Error) — Detached task failed
-- `schema.recovery.detached.fail` (Error) — Detached task failed
 - `schema.refresh.detached.fail` (Error) — Detached task failed
 - `selection.change.detached.fail` (Error) — Detached task failed
 - `settings.agents.host_run.detached.fail` (Error) — Detached task failed
