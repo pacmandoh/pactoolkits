@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
@@ -13,7 +14,7 @@ public static class WorkspacePageRefresh
         => page is not ISettingsPage
            && page is ITopBarActions { RefreshCommand: not null };
 
-    public static async Task<bool> TryRefreshAsync(AppPageBase page)
+    public static async Task<bool> TryRefreshAsync(AppPageBase page, bool silent = true)
     {
         if (page is not ITopBarActions top || top.RefreshCommand is not { } cmd)
         {
@@ -25,6 +26,7 @@ public static class WorkspacePageRefresh
             return false;
         }
 
+        using IDisposable? silentScope = silent ? page.BeginSilentReload() : null;
         if (cmd is IAsyncRelayCommand asyncCmd)
         {
             await asyncCmd.ExecuteAsync(null).ConfigureAwait(true);

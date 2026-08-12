@@ -54,11 +54,11 @@
 
       <Button
         Classes="WindowControlsButton"
-        Command="{Binding TryReconnectDbCommand}"
-        ToolTip.Tip="{Binding DbItemText}">
+        Command="{Binding TryProbeApiCommand}"
+        ToolTip.Tip="{Binding ApiItemText}">
         <Button.ContextFlyout>
           <MenuFlyout Placement="BottomEdgeAlignedLeft">
-            <MenuItem Command="{Binding OpenDatabaseSettingsCommand}" Header="配置" />
+            <MenuItem Command="{Binding OpenSettingsCommand}" Header="配置" />
           </MenuFlyout>
         </Button.ContextFlyout>
         <controls:RuntimeStateIcon
@@ -66,7 +66,7 @@
           Height="{DynamicResource IconSizeDefault}"
           ActiveIcon="Link"
           InactiveIcon="Unlink"
-          State="{Binding DbVisualState}" />
+          State="{Binding ApiVisualState}" />
       </Button>
 
       <Button

@@ -12,19 +12,33 @@ public partial class MainWindowViewModel
 {
     private async Task CheckConfigOnStartupAsync()
     {
-        if (File.Exists(_configPath))
+        if (!File.Exists(_configPath))
         {
+            var openSettings = await _dialogs.Confirm(
+                    "未找到配置文件",
+                    "未检测到本地配置文件，请前往 [设置] 完成连接配置后再使用")
+                .ConfigureAwait(false);
+
+            if (openSettings)
+            {
+                await RunOnUiAsync(() => OpenConnectivitySettings());
+            }
+
             return;
         }
 
-        var openSettings = await _dialogs.Confirm(
-                "未找到配置文件",
-                $"未检测到本地配置文件，请前往 [设置] 完成数据库连接配置后再使用")
-            .ConfigureAwait(false);
-
-        if (openSettings)
+        // 未配置：Confirm 引导设置；横幅另由 ConnectivityBanner 展示
+        if (!_apiAvailability.IsConfigured)
         {
-            await RunOnUiAsync(OpenSettings);
+            var openSettings = await _dialogs.Confirm(
+                    "未配置 PacApi 服务",
+                    "请前往 [设置] 完成 PacApi 服务地址与密钥配置后再使用")
+                .ConfigureAwait(false);
+
+            if (openSettings)
+            {
+                await RunOnUiAsync(() => OpenConnectivitySettings());
+            }
         }
     }
 
@@ -189,14 +203,5 @@ public partial class MainWindowViewModel
         => OnDbConfigApplied();
 
     private void OnDbConfigApplied()
-    {
-        _dbMonitor.Signal();
-
-        RaiseDbStateChanged();
-
-        if (_dbMonitor.IsConnected)
-        {
-            ScheduleAutoRefresh();
-        }
-    }
+        => _dbMonitor.Signal();
 }

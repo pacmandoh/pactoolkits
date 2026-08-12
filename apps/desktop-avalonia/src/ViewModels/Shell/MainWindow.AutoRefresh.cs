@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 using PacToolkits.Desktop.Avalonia.Services.Workspace.Refresh;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -36,8 +37,9 @@ public partial class MainWindowViewModel
         PostOnUi(() => ObserveDetached(RunWorkspaceRefreshAsync(), "workspace.refresh.detached.fail"));
     }
 
+    // 业务刷新只跟连接 Up（Down / Blocked 都不刷）
     private bool CanWorkspaceRefresh()
-        => !IsDbProbeRunning && _startupState.IsDbInitCompleted;
+        => ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured);
 
     private async Task RunWorkspaceRefreshAsync()
     {
@@ -56,7 +58,7 @@ public partial class MainWindowViewModel
         }
     }
 
-    private void TryRefreshDirtyActivePage()
+    private void TryRefreshDirtyActivePage(bool silent = true)
     {
         var active = ActivePage;
         if (active is null)
@@ -64,7 +66,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        _dirtyRefresh.TryRefreshIfDirty(active, () => ReferenceEquals(ActivePage, active));
+        _dirtyRefresh.TryRefreshIfDirty(active, () => ReferenceEquals(ActivePage, active), silent);
     }
 
     private static bool CanRefreshPage(AppPageBase page)

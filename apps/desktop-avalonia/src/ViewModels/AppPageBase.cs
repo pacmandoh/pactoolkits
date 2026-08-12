@@ -12,6 +12,7 @@ using PacToolkits.Application.Diagnostics;
 using PacToolkits.Desktop.Avalonia.Behaviors;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
 using PacToolkits.Desktop.Avalonia.Diagnostics;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Connectivity;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Runtime;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
@@ -89,8 +90,30 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     private bool _hasLoadedOnce;
     private bool _isBusy;
     private bool _reloadFromSignal;
+    private ApiAvailabilitySnapshot? _apiSnap;
+    private IApiAvailabilityService? _cachedApiAvailability;
 
+    /// <summary>工作区脏刷、服务续排、库信号等自动重载</summary>
     protected bool IsSignalReload => _reloadFromSignal;
+
+    /// <summary>自动重载：不盖 Busy</summary>
+    public IDisposable BeginSilentReload()
+    {
+        var previous = _reloadFromSignal;
+        _reloadFromSignal = true;
+        return new FlagRestore(() => _reloadFromSignal = previous);
+    }
+
+    private sealed class FlagRestore(Action restore) : IDisposable
+    {
+        private Action? _restore = restore;
+
+        public void Dispose()
+        {
+            var action = Interlocked.Exchange(ref _restore, null);
+            action?.Invoke();
+        }
+    }
 
     protected bool IsPageReloadActive => _reload.IsActive;
 
@@ -100,11 +123,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
 
-    public bool CanPageFromDb => RequiresLocalDbForReload
-        ? IsDbConnected && !IsDbAccessBlocked(out _)
-        : _pageDataAvailability is PageDataAvailability.Ready
-            or PageDataAvailability.Stale
-            or PageDataAvailability.Loading;
+    public bool CanPage => IsPageConnected && !IsPageBlocked(out _);
 
     public string PageStaleHint => SectionEmptyCopy.GetStaleHint(UseServiceStaleCopy);
 
@@ -112,33 +131,36 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     {
         PageDataAvailability.AccessBlocked => true,
         PageDataAvailability.LoadFailed => true,
-        PageDataAvailability.AwaitingDatabase => !_hasLoadedOnce,
-        PageDataAvailability.AwaitingService => !_hasLoadedOnce,
-        PageDataAvailability.NotLoaded => !_hasLoadedOnce,
         _ => false
     };
 
     public string PageUnavailableTitle => _pageDataAvailability switch
     {
-        PageDataAvailability.AccessBlocked => string.IsNullOrWhiteSpace(_accessBlockedReason)
-            ? "数据库不可用"
-            : _accessBlockedReason!,
+        PageDataAvailability.AccessBlocked => RequiresLocalDbForReload
+            ? (string.IsNullOrWhiteSpace(_accessBlockedReason) ? "数据库不可用" : _accessBlockedReason!)
+            : (ConnectionView.From(CurrentApiSnap, IsApiConfigured).Title is { Length: > 0 } title
+                ? title
+                : "PacApi 服务不可用"),
         PageDataAvailability.LoadFailed => "加载失败",
-        PageDataAvailability.AwaitingDatabase => "等待数据库连接",
-        PageDataAvailability.AwaitingService => "等待服务可用",
-        PageDataAvailability.NotLoaded => RequiresLocalDbForReload ? "等待数据库连接" : "等待服务可用",
+        PageDataAvailability.AwaitingDatabase => "数据库未连接",
+        PageDataAvailability.AwaitingService => "PacApi 服务暂不可用",
+        PageDataAvailability.NotLoaded => RequiresLocalDbForReload ? "数据库未连接" : "PacApi 服务暂不可用",
         _ => string.Empty
     };
 
     public string? PageUnavailableHint => _pageDataAvailability switch
     {
-        PageDataAvailability.AccessBlocked => "请前往设置检查数据库版本，必要时由服务器端部署工具更新",
-        PageDataAvailability.LoadFailed => _loadFailedMessage ?? "请稍后重试，或使用顶部菜单刷新",
+        PageDataAvailability.AccessBlocked => RequiresLocalDbForReload
+            ? "请前往设置检查数据库版本，必要时由服务器端部署工具更新"
+            : (string.IsNullOrWhiteSpace(_accessBlockedReason)
+                ? "恢复后将自动加载"
+                : _accessBlockedReason),
+        PageDataAvailability.LoadFailed => _loadFailedMessage ?? "请稍后重试",
         PageDataAvailability.AwaitingDatabase => "连接恢复后将自动加载",
-        PageDataAvailability.AwaitingService => "服务恢复后将自动重试",
+        PageDataAvailability.AwaitingService => "恢复后将自动加载",
         PageDataAvailability.NotLoaded => RequiresLocalDbForReload
             ? "连接恢复后将自动加载"
-            : "服务恢复后将自动重试",
+            : "恢复后将自动加载",
         _ => null
     };
 
@@ -186,8 +208,34 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     protected bool IsDbConnected => _cachedDbMonitor?.IsConnected == true;
 
+    private bool IsPageConnected => RequiresLocalDbForReload ? IsDbConnected : IsApiReady;
+
+    private bool IsApiConfigured => GetApiAvailability()?.IsConfigured ?? true;
+
+    private bool IsPageBlocked(out string? reason)
+    {
+        if (RequiresLocalDbForReload)
+        {
+            return IsDbAccessBlocked(out reason);
+        }
+
+        if (!ConnectionView.IsBlocked(CurrentApiSnap, IsApiConfigured))
+        {
+            reason = null;
+            return false;
+        }
+
+        var view = ConnectionView.From(CurrentApiSnap, IsApiConfigured);
+        reason = string.IsNullOrWhiteSpace(view.Message) ? view.Title : view.Message;
+        return true;
+    }
+
     protected bool ShowSectionEmpty(bool isContentEmpty)
         => SectionEmptyPolicy.Show(isContentEmpty, _pageDataAvailability, _hasLoadedOnce);
+
+    /// <summary>网格尚未挂上且正在可拉数的首次进入：用 section pending，等待连接时不要转圈</summary>
+    protected bool IsMountPending(bool mounted)
+        => !mounted && CanPage && !HasLoadedOnce;
 
     protected AppPageBase()
     {
@@ -289,7 +337,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         }, DispatcherPriority.Background);
     }
 
-    private bool CanRefresh() => IsEnabled;
+    private bool CanRefresh() => IsEnabled && CanPage;
 
     protected void LogWarn(string eventName, string message, Exception? ex = null, object? context = null)
         => AppLog.Warn(GetType().Name, eventName, message, ex, context);
@@ -423,7 +471,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             {
                 try
                 {
-                    // 重连后稍等再查连接池，避免刚恢复就打到未就绪连接
+                    // 重连后稍等再查连接池，避免刚恢复就碰到未就绪连接
                     await Task.Delay(ReconnectSettleDelay, GetTime(), ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
@@ -434,8 +482,14 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
                 }
             }
         }
+        else if (!IsPageConnected || IsPageBlocked(out _))
+        {
+            SyncPageAvailability();
+            LogReloadSkipped("service_unavailable");
+            return;
+        }
 
-        var suppressReloadBusy = SuppressReloadBusy();
+        var suppressReloadBusy = _reloadFromSignal;
         if (!suppressReloadBusy)
         {
             SetPageAvailability(PageDataAvailability.Loading);
@@ -500,16 +554,10 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     private void RestoreAfterCancel()
     {
-        if (RequiresLocalDbForReload && IsDbAccessBlocked(out var reason))
-        {
-            ClearServiceRetryDeadline();
-            SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
-            return;
-        }
-
-        // 服务降级优先：Loading 被取消时按是否已加载回到 AwaitingService 或 Stale，勿先按库断改态
-        if (_pageDataAvailability is PageDataAvailability.AwaitingService
-            || HasArmedServiceRetry())
+        // 本机页服务等待优先：Loading 被取消时回到 AwaitingService / Stale，勿先按库断改态
+        if (RequiresLocalDbForReload
+            && (_pageDataAvailability is PageDataAvailability.AwaitingService
+                || HasArmedServiceRetry()))
         {
             if (_pageDataAvailability is PageDataAvailability.Loading)
             {
@@ -519,37 +567,31 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        if (RequiresLocalDbForReload && !IsDbConnected)
-        {
-            ClearServiceRetryDeadline();
-            SetPageAvailability(GetDisconnectedAvailability());
-            return;
-        }
-
-        ClearServiceRetryDeadline();
-        SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
+        RestoreFromConnection();
     }
 
     private void RestoreAfterFail(Exception? ex = null)
     {
-        if (RequiresLocalDbForReload && IsDbAccessBlocked(out var reason))
+        if (IsPageBlocked(out var reason))
         {
             ClearServiceRetryDeadline();
             SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
             return;
         }
 
-        // 远端传输失败进服务等待；本机页只有 PacApi 等非库故障才进。先记截止再改可用性，Stale 文案才跟服务降级
-        if (!RequiresLocalDbForReload
-                ? ex is not null && IsTransportError(ex)
-                : IsRemoteTransport(ex))
+        // 本机页始终可自排；PacApi 页仅在探测仍 Up 时自排（Down 交给 Shell becameUp）
+        if (IsRemoteTransport(ex))
         {
-            ArmServiceRetry(ex);
+            if (RequiresLocalDbForReload || IsPageConnected)
+            {
+                ArmServiceRetry(ex);
+            }
+
             SetPageAvailability(GetServiceUnavailableAvailability());
             return;
         }
 
-        // Signal 只排队探测，Connected 可能还没翻；本机 Pg 故障直接按异常进库断态
+        // Signal 只排队探测，Up 可能还没翻；本机 Pg 故障直接按异常进库断态
         if (RequiresLocalDbForReload
             && ex is not null
             && TransportErrors.SignalsDbDisconnect(ex))
@@ -559,10 +601,22 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        if (RequiresLocalDbForReload && !IsDbConnected)
+        RestoreFromConnection();
+    }
+
+    private void RestoreFromConnection()
+    {
+        if (IsPageBlocked(out var reason))
         {
             ClearServiceRetryDeadline();
-            SetPageAvailability(GetDisconnectedAvailability());
+            SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
+            return;
+        }
+
+        if (!IsPageConnected)
+        {
+            ClearServiceRetryDeadline();
+            SetPageAvailability(GetWaitAvailability());
             return;
         }
 
@@ -581,11 +635,10 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     private PageDataAvailability GetServiceUnavailableAvailability()
         => PageReconnectPolicy.ServiceUnavailableAvailability(_hasLoadedOnce, SupportsStaleWhileReconnect);
 
-    private bool SuppressReloadBusy()
-        => PageReconnectPolicy.SuppressReloadBusy(
-            _hasLoadedOnce,
-            SupportsStaleWhileReconnect,
-            _reloadFromSignal);
+    private PageDataAvailability GetWaitAvailability()
+        => RequiresLocalDbForReload
+            ? GetDisconnectedAvailability()
+            : GetServiceUnavailableAvailability();
 
     private async Task<bool> WaitStartupReadyAsync(CancellationToken ct)
     {
@@ -624,6 +677,10 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     private void ApplyPageAvailability(PageDataAvailability availability, string? detail = null)
     {
+        var previous = _pageDataAvailability;
+        var previousBlocked = _accessBlockedReason;
+        var previousFailed = _loadFailedMessage;
+
         if (availability == PageDataAvailability.AccessBlocked)
         {
             _accessBlockedReason = detail;
@@ -640,21 +697,21 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             _loadFailedMessage = null;
         }
 
-        if (_pageDataAvailability == availability
+        if (previous == availability
             && availability == PageDataAvailability.AccessBlocked
-            && string.Equals(_accessBlockedReason, detail, StringComparison.Ordinal))
+            && string.Equals(previousBlocked, detail, StringComparison.Ordinal))
         {
             return;
         }
 
-        if (_pageDataAvailability == availability
+        if (previous == availability
             && availability == PageDataAvailability.LoadFailed
-            && string.Equals(_loadFailedMessage, detail, StringComparison.Ordinal))
+            && string.Equals(previousFailed, detail, StringComparison.Ordinal))
         {
             return;
         }
 
-        if (_pageDataAvailability == availability
+        if (previous == availability
             && availability is not PageDataAvailability.AccessBlocked
             and not PageDataAvailability.LoadFailed)
         {
@@ -662,9 +719,14 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         }
 
         _pageDataAvailability = availability;
-        if (ShowPageUnavailable || availability == PageDataAvailability.Stale)
+        if (availability is PageDataAvailability.Stale
+            or PageDataAvailability.AwaitingDatabase
+            or PageDataAvailability.AwaitingService
+            or PageDataAvailability.AccessBlocked
+            or PageDataAvailability.LoadFailed
+            or PageDataAvailability.NotLoaded)
         {
-            // 陈旧数据或不可用状态优先于加载状态，避免同时显示相互冲突的反馈
+            // 等待 / 陈旧 / 阻断 / 失败时 Busy 必须为假；Ready/Loading 由拉数路径自己管
             IsBusy = false;
         }
 
@@ -674,6 +736,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         }
 
         RefreshPageAvailability();
+        _refreshCommand.NotifyCanExecuteChanged();
     }
 
     protected bool IsLookupCatalogSuspended()
@@ -695,33 +758,34 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         OnPropertyChanged(nameof(PageUnavailableIcon));
         OnPropertyChanged(nameof(PageStaleHint));
         OnPropertyChanged(nameof(IsShowingStaleData));
-        OnPropertyChanged(nameof(CanPageFromDb));
+        OnPropertyChanged(nameof(CanPage));
         OnPropertyChanged(nameof(SectionEmptyIcon));
         OnPropertyChanged(nameof(IsSectionPending));
         OnPageAvailabilityChanged();
     }
 
     /// <summary>
-    /// 只按访问限制与 DB monitor 同步页面可用性，不拉业务数据
+    /// 按访问限制与连接同步页面可用性，不拉业务数据
+    /// PacApi 页用 ConnectionView 判定通 / 不通 / AccessBlocked
     /// </summary>
     public void SyncPageAvailability()
     {
-        // 远端页只跟服务重试与重载，不跟本机库连断
-        if (!RequiresLocalDbForReload)
-        {
-            return;
-        }
-
-        if (IsDbAccessBlocked(out var reason))
+        if (IsPageBlocked(out var reason))
         {
             ClearServiceRetryDeadline();
+            if (!RequiresLocalDbForReload)
+            {
+                CancelPendingReload();
+            }
+
             SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
             return;
         }
 
-        // 服务等待或已挂服务截止的 Stale，不要被库连断翻掉
-        if (_pageDataAvailability is PageDataAvailability.AwaitingService
-            || (_pageDataAvailability is PageDataAvailability.Stale && HasArmedServiceRetry()))
+        // 本机页的服务等待不要被库连断翻掉
+        if (RequiresLocalDbForReload
+            && (_pageDataAvailability is PageDataAvailability.AwaitingService
+                || (_pageDataAvailability is PageDataAvailability.Stale && HasArmedServiceRetry())))
         {
             if (IsDbConnected)
             {
@@ -731,19 +795,39 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        if (!IsDbConnected)
+        if (!IsPageConnected)
         {
-            SetPageAvailability(GetDisconnectedAvailability());
+            ClearServiceRetryDeadline();
+            if (!RequiresLocalDbForReload)
+            {
+                // HTTP 不会像本机 Pg 那样立刻因断连失败，先取消 in-flight
+                CancelPendingReload();
+            }
+
+            SetPageAvailability(GetWaitAvailability());
             return;
         }
 
-        // 库恢复后清掉库断带来的 Stale 与 AwaitingDatabase
         if (_pageDataAvailability is PageDataAvailability.Stale
             or PageDataAvailability.AwaitingDatabase
-            or PageDataAvailability.NotLoaded)
+            or PageDataAvailability.AwaitingService
+            or PageDataAvailability.NotLoaded
+            or PageDataAvailability.AccessBlocked)
         {
             SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
         }
+    }
+
+    /// <summary>PacApi 页写入探测快照后走 <see cref="SyncPageAvailability"/></summary>
+    public void SyncConnection(ApiAvailabilitySnapshot snap)
+    {
+        if (RequiresLocalDbForReload)
+        {
+            return;
+        }
+
+        _apiSnap = snap;
+        SyncPageAvailability();
     }
 
     private async Task RunWithTransportRetryAsync(
@@ -1023,14 +1107,18 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     /// <summary>
-    /// 本机 Pg 故障交给 Shell banner；远端页无独立 API banner，瞬时错误才由页面 toast
+    /// 连接失败不 toast（横幅 / 探测图标负责）；用户操作仅在服务可用且非传输错误时提示
     /// </summary>
     protected bool CanToastError(Exception ex)
     {
-        if (!RequiresLocalDbForReload)
+        if (IsTransportError(ex))
         {
-            // 纯远端页不访问本机 Pg；裸 Socket 也按服务错误 toast
-            return true;
+            if (RequiresLocalDbForReload)
+            {
+                MarkDbDisconnectedOnTransportError(ex);
+            }
+
+            return false;
         }
 
         if (IsDbAccessBlockedException(ex))
@@ -1038,19 +1126,48 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return false;
         }
 
-        if (TransportErrors.IsTransport(ex))
+        if (!RequiresLocalDbForReload)
         {
-            MarkDbDisconnectedOnTransportError(ex);
-            return false;
+            return IsApiReady;
         }
 
         if (GetTime().GetUtcNow() < _reconnectToastSuppressUntil)
         {
-            // 主窗口统一报告重新连接结果，页面在冷却期内保持静默
             return false;
         }
 
         return IsDbConnected;
+    }
+
+    private ApiAvailabilitySnapshot CurrentApiSnap
+        => _apiSnap ?? GetApiAvailability()?.Current ?? new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Connecting,
+            Detail: null,
+            CheckedAt: DateTimeOffset.MinValue,
+            FirstCheckCompleted: false);
+
+    protected bool IsApiReady => ConnectionView.IsReady(CurrentApiSnap, IsApiConfigured);
+
+    private IApiAvailabilityService? GetApiAvailability()
+    {
+        if (_cachedApiAvailability is not null)
+        {
+            return _cachedApiAvailability;
+        }
+
+        try
+        {
+            if (global::Avalonia.Application.Current is App app)
+            {
+                _cachedApiAvailability = app.Services.GetService(typeof(IApiAvailabilityService)) as IApiAvailabilityService;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            LogWarn("reload.get_api_availability.fail", "Failed to resolve API availability from DI", ex);
+        }
+
+        return _cachedApiAvailability;
     }
 
     private TimeProvider GetTime()
@@ -1220,19 +1337,19 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
+        // PacApi 页仅续排已 Arm 的退避；Down 未 Arm 的等 Shell
+        if (!RequiresLocalDbForReload && !HasArmedServiceRetry())
+        {
+            return;
+        }
+
         if (_pageDataAvailability is PageDataAvailability.AwaitingService)
         {
             ArmServiceRetry(ex: null);
             return;
         }
 
-        if (_pageDataAvailability is not PageDataAvailability.Stale)
-        {
-            return;
-        }
-
-        // 远端 Stale 一律续排；本机页只续排已挂服务截止的（库断 Stale 等 reconnect）
-        if (!RequiresLocalDbForReload || HasArmedServiceRetry())
+        if (_pageDataAvailability is PageDataAvailability.Stale && HasArmedServiceRetry())
         {
             ArmServiceRetry(ex: null);
         }

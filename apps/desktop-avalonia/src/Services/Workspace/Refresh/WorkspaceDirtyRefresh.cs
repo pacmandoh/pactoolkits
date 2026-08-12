@@ -38,7 +38,7 @@ public sealed class WorkspaceDirtyRefresh
             pages,
             active,
             WorkspacePageRefresh.CanRefreshPage,
-            WorkspacePageRefresh.TryRefreshAsync);
+            page => WorkspacePageRefresh.TryRefreshAsync(page, silent: true));
 
     internal async Task RunAsync(
         IEnumerable<AppPageBase> pages,
@@ -69,7 +69,7 @@ public sealed class WorkspaceDirtyRefresh
         }
     }
 
-    public void TryRefreshIfDirty(AppPageBase page, Func<bool>? stillActive = null)
+    public void TryRefreshIfDirty(AppPageBase page, Func<bool>? stillActive = null, bool silent = true)
     {
         if (_canWorkspaceRefresh?.Invoke() != true)
         {
@@ -81,10 +81,10 @@ public sealed class WorkspaceDirtyRefresh
             return;
         }
 
-        _schedule?.Invoke(() => RunRefreshAsync(page, stillActive));
+        _schedule?.Invoke(() => RunRefreshAsync(page, stillActive, silent));
     }
 
-    private async Task RunRefreshAsync(AppPageBase page, Func<bool>? stillActive)
+    private async Task RunRefreshAsync(AppPageBase page, Func<bool>? stillActive, bool silent)
     {
         try
         {
@@ -93,7 +93,7 @@ public sealed class WorkspaceDirtyRefresh
                 return;
             }
 
-            if (await WorkspacePageRefresh.TryRefreshAsync(page).ConfigureAwait(true))
+            if (await WorkspacePageRefresh.TryRefreshAsync(page, silent).ConfigureAwait(true))
             {
                 _dirty.Clear(page);
             }

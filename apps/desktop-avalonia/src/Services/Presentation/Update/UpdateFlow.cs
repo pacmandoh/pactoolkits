@@ -127,7 +127,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
                     $"Update check timed out after {(int)UpdateCheckTimeout.TotalSeconds}s");
                 if (!silent)
                 {
-                    _toasts.Warn("应用更新", $"检查超时（{(int)UpdateCheckTimeout.TotalSeconds} 秒），请检查更新源连通性后重试");
+                    _toasts.Warn("应用更新", $"检查超时（{(int)UpdateCheckTimeout.TotalSeconds} 秒），请检查更新源连接后重试");
                 }
             }
             return null;

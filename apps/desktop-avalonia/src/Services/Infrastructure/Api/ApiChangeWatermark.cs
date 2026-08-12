@@ -56,6 +56,12 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
     private int _dispatchLoopStarts;
     private int _pollLoopStarts;
     private int _streamLoopStarts;
+    // Reset 抬代数；跨代 watermark 响应不得写回基线
+    private int _epoch;
+
+    // 只取消当前 SSE 读循环；服务生命周期仍跟 _cts
+    private readonly object _sseSessionGate = new();
+    private CancellationTokenSource? _sseSession;
 
     public event Action<string>? TopicChanged;
 
@@ -110,15 +116,77 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
         lock (_startGate)
         {
-            if (_started)
+            EnsureLoopsStarted_NoLock();
+        }
+    }
+
+    /// <summary>配置变更后重绑 SSE 与本地水位</summary>
+    public void Reset()
+    {
+        Interlocked.Increment(ref _epoch);
+        CancelSseSession();
+
+        lock (_gate)
+        {
+            _versions.Clear();
+            _silentBootstrap.Clear();
+        }
+
+        ResetSseBackoff();
+
+        lock (_startGate)
+        {
+            if (!_api.IsConfigured)
             {
+                _logger.Info(
+                    "ChangeStream",
+                    "reset.unconfigured",
+                    "Change stream idle after PacApi clear");
                 return;
             }
 
-            _started = true;
-            _dispatchLoop = Task.Run(() => DispatchLoopAsync(_cts.Token));
-            _pollLoop = Task.Run(() => PollLoopAsync(_cts.Token));
-            _streamLoop = Task.Run(() => StreamLoopAsync(_cts.Token));
+            EnsureLoopsStarted_NoLock();
+        }
+
+        EnqueuePulse(emitOnBootstrap: true);
+    }
+
+    private void EnsureLoopsStarted_NoLock()
+    {
+        if (_started)
+        {
+            return;
+        }
+
+        _started = true;
+        _dispatchLoop = Task.Run(() => DispatchLoopAsync(_cts.Token));
+        _pollLoop = Task.Run(() => PollLoopAsync(_cts.Token));
+        _streamLoop = Task.Run(() => StreamLoopAsync(_cts.Token));
+    }
+
+    private void CancelSseSession()
+    {
+        CancellationTokenSource? session;
+        lock (_sseSessionGate)
+        {
+            session = _sseSession;
+        }
+
+        if (session is null)
+        {
+            return;
+        }
+
+        try
+        {
+            session.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("ChangeStream", "reset.sse_cancel_fail", "Failed to cancel SSE session", ex);
         }
     }
 
@@ -150,6 +218,20 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
         Interlocked.Increment(ref _pollLoopStarts);
         while (!ct.IsCancellationRequested)
         {
+            if (!_api.IsConfigured)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), _time, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                continue;
+            }
+
             // 与 ready 一样只唤醒；Dispatch 串行刷表，避免与 change 竞态吞通知
             EnqueuePulse(emitOnBootstrap: false);
 
@@ -169,11 +251,31 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
         Interlocked.Increment(ref _streamLoopStarts);
         while (!ct.IsCancellationRequested)
         {
+            if (!_api.IsConfigured)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), _time, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                continue;
+            }
+
+            using var session = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            lock (_sseSessionGate)
+            {
+                _sseSession = session;
+            }
+
             try
             {
                 using var response = await _api.SendSseAsync(
                     () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/changes/stream")),
-                    ct).ConfigureAwait(false);
+                    session.Token).ConfigureAwait(false);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -181,24 +283,24 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
                             response,
                             _time,
                             _logger,
-                            ct)
+                            session.Token)
                         .ConfigureAwait(false);
                     _logger.Warn(
                         "ChangeStream",
                         "sse.http_fail",
                         $"SSE HTTP {problem.Status}");
-                    await DelaySseReconnectAsync(problem.RetryAfter, ct).ConfigureAwait(false);
+                    await DelaySseReconnectAsync(problem.RetryAfter, session.Token).ConfigureAwait(false);
                     continue;
                 }
 
-                await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+                await using var stream = await response.Content.ReadAsStreamAsync(session.Token).ConfigureAwait(false);
                 using var reader = new StreamReader(stream, Encoding.UTF8);
                 _logger.Info("ChangeStream", "sse.up", "Change SSE connected");
 
                 string? eventName = null;
-                while (!ct.IsCancellationRequested)
+                while (!session.Token.IsCancellationRequested)
                 {
-                    var line = await reader.ReadLineAsync(ct).ConfigureAwait(false);
+                    var line = await reader.ReadLineAsync(session.Token).ConfigureAwait(false);
                     if (line is null)
                     {
                         break;
@@ -237,23 +339,47 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
                     }
                 }
 
+                // Reset 取消会话后立刻重连，不走指数退避
+                if (session.Token.IsCancellationRequested && !ct.IsCancellationRequested)
+                {
+                    continue;
+                }
+
                 // 流正常结束也算一次失败重连，沿用指数退避
-                await DelaySseReconnectAsync(retryAfter: null, ct).ConfigureAwait(false);
+                await DelaySseReconnectAsync(retryAfter: null, session.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
             }
             catch (OperationCanceledException)
             {
-                break;
+                continue;
             }
             catch (Exception ex)
             {
                 _logger.Warn("ChangeStream", "sse.retry", "SSE disconnected; reconnecting", ex);
                 try
                 {
-                    await DelaySseReconnectAsync(retryAfter: null, ct).ConfigureAwait(false);
+                    await DelaySseReconnectAsync(retryAfter: null, session.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    break;
                 }
                 catch (OperationCanceledException)
                 {
-                    break;
+                    continue;
+                }
+            }
+            finally
+            {
+                lock (_sseSessionGate)
+                {
+                    if (ReferenceEquals(_sseSession, session))
+                    {
+                        _sseSession = null;
+                    }
                 }
             }
         }
@@ -377,6 +503,12 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
 
     private async Task RefreshFromWatermarkAsync(bool emitOnBootstrap, CancellationToken ct)
     {
+        if (!_api.IsConfigured)
+        {
+            return;
+        }
+
+        var epoch = Volatile.Read(ref _epoch);
         using var activity = PacActivities.Desktop.StartActivity("pacapi.watermark.refresh");
         var rows = await FetchWatermarksAsync(ct).ConfigureAwait(false);
         foreach (var row in rows)
@@ -384,6 +516,11 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
             var shouldEmit = false;
             lock (_gate)
             {
+                if (Volatile.Read(ref _epoch) != epoch)
+                {
+                    return;
+                }
+
                 if (_versions.TryGetValue(row.Topic, out var prev))
                 {
                     if (row.Version > prev)

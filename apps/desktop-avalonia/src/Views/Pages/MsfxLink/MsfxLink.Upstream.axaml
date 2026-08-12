@@ -13,7 +13,7 @@
     MinHeight="0"
     Classes="DashboardLayout"
     RowDefinitions="Auto,*">
-    <ContentControl Classes="FilterBarChrome">
+    <ContentControl Classes="FilterBarChrome" IsEnabled="{Binding CanPage}">
       <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,Auto,Auto,*,Auto">
         <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
           <TextBlock
@@ -194,9 +194,11 @@
             RowDefinitions="*,Auto">
             <shad:BusyArea IsBusy="{Binding IsUpoutBusy}">
               <controls:EmptyStatePanel
-                EmptyHint="请调整查询条件并执行查询"
-                EmptyText="暂无上游出库单"
-                IsEmpty="{Binding IsUpoutEmpty}">
+                EmptyHint="{Binding UpoutEmptyHint}"
+                EmptyText="{Binding UpoutEmptyText}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsEmpty="{Binding IsUpoutEmpty}"
+                IsPending="{Binding IsSectionPending}">
                 <DataGrid
                   x:Name="UpoutGrid"
                   behaviors:DataGridCellSelect.Enabled="True"
@@ -317,7 +319,7 @@
               ClearTarget="{Binding #UpoutGrid}"
               FirstPageCommand="{Binding FirstUpoutPageCommand}"
               IsContentEmpty="{Binding IsUpoutEmpty}"
-              IsEnabled="{Binding CanPageFromDb}"
+              IsEnabled="{Binding CanPage}"
               LastPageCommand="{Binding LastUpoutPageCommand}"
               NextPageCommand="{Binding NextUpoutPageCommand}"
               PageSizeOptions="{Binding UpoutPageSizeOptions}"
@@ -335,9 +337,11 @@
             RowDefinitions="*,Auto">
             <shad:BusyArea IsBusy="{Binding IsSubcodeBusy}">
               <controls:EmptyStatePanel
-                EmptyHint="请输入单据编码并执行查询"
-                EmptyText="暂无子码结果"
-                IsEmpty="{Binding IsSubCodeEmpty}">
+                EmptyHint="{Binding SubCodeEmptyHint}"
+                EmptyText="{Binding SubCodeEmptyText}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsEmpty="{Binding IsSubCodeEmpty}"
+                IsPending="{Binding IsSectionPending}">
                 <DataGrid
                   x:Name="SubcodeGrid"
                   behaviors:DataGridCellSelect.Enabled="True"
@@ -423,7 +427,7 @@
               ClearTarget="{Binding #SubcodeGrid}"
               FirstPageCommand="{Binding FirstSubcodePageCommand}"
               IsContentEmpty="{Binding IsSubCodeEmpty}"
-              IsEnabled="{Binding CanPageFromDb}"
+              IsEnabled="{Binding CanPage}"
               LastPageCommand="{Binding LastSubcodePageCommand}"
               NextPageCommand="{Binding NextSubcodePageCommand}"
               PageSizeOptions="{Binding SubcodePageSizeOptions}"

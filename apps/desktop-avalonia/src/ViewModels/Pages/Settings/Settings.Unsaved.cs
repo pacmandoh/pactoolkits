@@ -16,7 +16,7 @@ public partial class Settings
 {
     private enum Tab
     {
-        Database = 0,
+        Connection = 0,
         ClientAliases = 1,
         TraceCodeRule = 2,
         UiBehavior = 3,
@@ -29,7 +29,7 @@ public partial class Settings
 
     private static readonly string[] TabTitles =
     [
-        "PostgreSQL 设置",
+        "连接设置",
         "客户端别名映射",
         "追溯码校验规则",
         "界面行为",
@@ -64,8 +64,8 @@ public partial class Settings
     public void OpenAgentsTab()
         => RequestOpenTab((int)Tab.Agents);
 
-    public void OpenDatabaseTab()
-        => RequestOpenTab((int)Tab.Database);
+    public void OpenConnectionTab()
+        => RequestOpenTab((int)Tab.Connection);
 
     public void OpenModuleSettingsTab(string moduleId)
     {
@@ -234,7 +234,7 @@ public partial class Settings
     private async Task<bool> SaveTabAsync(Tab tab)
         => tab switch
         {
-            Tab.Database => await ApplyDbConfigAsync(),
+            Tab.Connection => await ApplyConnectionTabAsync(),
             Tab.ClientAliases => await ApplyClientAliasesAsync(),
             Tab.TraceCodeRule => await ApplyTraceCodeRuleAsync(),
             Tab.Updates => await ApplyUpdateOptionsAsync(),
@@ -250,8 +250,9 @@ public partial class Settings
     {
         switch (tab)
         {
-            case Tab.Database:
+            case Tab.Connection:
                 RestoreDatabaseFields(_settings.AppliedDb);
+                SyncPacApi();
                 break;
             case Tab.ClientAliases:
                 _clientAliasEditBaseline = null;
@@ -303,9 +304,9 @@ public partial class Settings
     private void RefreshUnsaved()
     {
         var nextMask = 0;
-        if (IsDatabaseDirty())
+        if (IsDatabaseDirty() || IsPacApiDirty())
         {
-            nextMask |= 1 << (int)Tab.Database;
+            nextMask |= 1 << (int)Tab.Connection;
         }
 
         if (IsClientAliasesDirty())
@@ -577,6 +578,8 @@ public partial class Settings
     partial void OnDatabaseChanged(string value) => RefreshUnsaved();
     partial void OnUsernameChanged(string value) => RefreshUnsaved();
     partial void OnPasswordChanged(string value) => RefreshUnsaved();
+    partial void OnPacApiUrlChanged(string value) => RefreshUnsaved();
+    partial void OnPacApiKeyChanged(string value) => RefreshUnsaved();
     partial void OnTraceCodeRequiredLengthChanged(int value) => RefreshUnsaved();
     partial void OnTraceCodePatternChanged(string value) => RefreshUnsaved();
     partial void OnUpdateChannelChanged(string value)

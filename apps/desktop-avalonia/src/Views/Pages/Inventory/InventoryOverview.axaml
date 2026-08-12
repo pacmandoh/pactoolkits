@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverview"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -37,7 +37,10 @@
               ClipToBounds="True"
               RowDefinitions="Auto,Auto"
               RowSpacing="0">
-              <ContentControl Grid.Row="0" Classes="FilterBarChrome">
+              <ContentControl
+                Grid.Row="0"
+                Classes="FilterBarChrome"
+                IsEnabled="{Binding CanPage}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterBarGroupSpacing}">
                   <Grid
                     Grid.Row="0"
@@ -196,6 +199,7 @@
               <ContentControl
                 Grid.Row="1"
                 Classes="FilterBarChrome"
+                IsEnabled="{Binding CanPage}"
                 IsVisible="{Binding ShowReassignPreview}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterBarGroupSpacing}">
                   <StackPanel Grid.Row="0" Spacing="4">
@@ -309,7 +313,7 @@
             shad:TextBoxAssist.Clearable="True"
             AcceptsReturn="False"
             Classes="SearchBox Clearable"
-            IsEnabled="{Binding !IsUiBusy}"
+            IsEnabled="{Binding CanUseStockSearch}"
             PlaceholderText="搜索：药品名 / 规格 / 追溯码"
             Text="{Binding Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
             TextWrapping="NoWrap">
@@ -596,7 +600,7 @@
             FirstPageCommand="{Binding FirstPageCommand}"
             IsActive="{Binding IsPagedMode}"
             IsContentEmpty="{Binding IsStockEmpty}"
-            IsEnabled="{Binding CanPageFromDb}"
+            IsEnabled="{Binding CanPage}"
             LastPageCommand="{Binding LastPageCommand}"
             NextPageCommand="{Binding NextPageCommand}"
             PageSizeOptions="{Binding PageSizeOptions}"

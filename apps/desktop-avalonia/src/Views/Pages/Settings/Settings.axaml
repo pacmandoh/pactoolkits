@@ -33,7 +33,7 @@
       VerticalAlignment="Stretch"
       Classes="ContentHost">
 
-      <!--  PostgreSQL  -->
+      <!--  连接设置：PacApi + PostgreSQL  -->
       <Grid
         x:Name="TabDbPage"
         Classes="TabPage"
@@ -41,7 +41,7 @@
         <ScrollViewer>
           <StackPanel>
             <Border Classes="H1">
-              <TextBlock Classes="H1Text" Text="PostgreSQL 设置" />
+              <TextBlock Classes="H1Text" Text="连接设置" />
             </Border>
 
             <Border Classes="H2">
@@ -51,7 +51,71 @@
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
-                  <TextBlock Classes="Large H2Text" Text="连接信息" />
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="Large H2Text"
+                    Text="PacApi 服务" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="H2Actions">
+                  <Button
+                    shad:ButtonAssist.ShowProgress="{Binding IsPacApiBusy}"
+                    Classes="Outline"
+                    Command="{Binding TestPacApiCommand}"
+                    Content="测试连接"
+                    IsEnabled="{Binding !IsPacApiBusy}" />
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SavePacApiConfigCommand}"
+                    Content="保存并应用"
+                    IsEnabled="{Binding !IsPacApiBusy}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="服务地址" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="服务地址，例如 http://127.0.0.1:5080" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  PlaceholderText="例如：http://127.0.0.1:5080"
+                  Text="{Binding PacApiUrl}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="访问密钥" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="服务 ApiKey 凭证" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="PasswordReveal"
+                  PasswordChar="•"
+                  PlaceholderText="请输入访问密钥"
+                  Text="{Binding PacApiKey}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel Classes="H2Title">
+                  <controls:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
+                  <TextBlock Classes="Large H2Text" Text="PostgreSQL" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button

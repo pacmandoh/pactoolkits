@@ -122,6 +122,22 @@ public partial class Settings : AppPageBase, ISettingsPage
     [RelayCommand]
     private Task SaveAsync() => ApplyDbConfigAsync();
 
+    private async Task<bool> ApplyConnectionTabAsync()
+    {
+        var ok = true;
+        if (IsPacApiDirty())
+        {
+            ok = await ApplyPacApiConfigAsync() && ok;
+        }
+
+        if (IsDatabaseDirty())
+        {
+            ok = await ApplyDbConfigAsync() && ok;
+        }
+
+        return ok;
+    }
+
     private async Task<bool> ApplyDbConfigAsync()
     {
         if (SkipTrigger())

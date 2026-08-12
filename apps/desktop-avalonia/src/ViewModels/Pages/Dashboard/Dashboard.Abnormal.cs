@@ -76,6 +76,11 @@ public sealed partial class Dashboard : AppPageBase
 
     private async Task ReloadAbnormalPageOnlyAsync(int pageIndex)
     {
+        if (!CanPage)
+        {
+            return;
+        }
+
         try
         {
             await RunLocalBusyAsync(

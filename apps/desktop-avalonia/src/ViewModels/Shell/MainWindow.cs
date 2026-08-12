@@ -15,6 +15,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
 using PacToolkits.Desktop.Avalonia.Diagnostics;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Navigation;
@@ -33,7 +34,9 @@ using ShadUI;
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 /// <summary>
-/// 协调主窗口导航、页面生命周期、数据库连接反馈、配置重载和更新轮询
+/// 协调主窗口导航、页面生命周期、Shell 连接反馈、配置重载和更新轮询
+///
+/// 业务门禁与横幅只跟 PacApi 可用性
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
@@ -66,7 +69,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IDbConfigNotifier _dbConfigNotifier;
     private readonly IDbConnectionTester _dbConnectionTester;
     private readonly IDbConnectionMonitorService _dbMonitor;
-    private readonly IDbAccessGuard _accessGuard;
+    private readonly IApiAvailabilityService _apiAvailability;
     private readonly ILookupCatalogService _lookup;
     private readonly ISettingsService _settings;
     private readonly IChangeWatermarkService _changeWatermark;
@@ -87,18 +90,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly string _configFile;
     private FileSystemWatcher? _configWatcher;
     private volatile bool _isApplyingConfig;
-    private DateTimeOffset _lastDbErrorToastAt = DateTimeOffset.MinValue;
-    private DateTimeOffset _lastDbOkToastAt = DateTimeOffset.MinValue;
-    private string? _lastDbFailReason;
     private string? _lastSeenConfigJson;
-    private bool _dbEverDisconnected;
-    private bool _isDbConnectivityKnown;
-    private bool _wasAccessGuardBlocked;
-    private CancellationTokenSource? _schemaRecoveryCts;
 
     private readonly TimeSpan _autoRefreshDebounce = TimeSpan.FromMilliseconds(180);
     private CancellationTokenSource? _autoRefreshCts;
-    private CancellationTokenSource? _dbBootstrapCts;
     private CancellationTokenSource? _updatePollCts;
     private CancellationTokenSource? _pageLifecycleCts;
     private int _pageLifecycleGeneration;
@@ -224,12 +219,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(SidebarToggleToolTip));
     }
     [ObservableProperty] private string? _activePageRoute;
-    [ObservableProperty] private bool _isDbProbeRunning;
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _hasUpdateAvailable;
     [ObservableProperty] private string _currentProductVersion = "unknown";
     [ObservableProperty] private string _latestProductVersion = "unknown";
-    public bool IsDbConnected => _dbMonitor.IsConnected;
 
     public string ActivePageText => ActivePage?.DisplayName ?? "就绪";
 
@@ -303,64 +296,28 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(VersionBarText));
     }
 
-    private void MarkDbConnectivityKnown()
-    {
-        if (_isDbConnectivityKnown)
-        {
-            return;
-        }
-
-        _isDbConnectivityKnown = true;
-    }
-
-    private bool _lastNotifiedDbConnected;
-    private bool _lastNotifiedDbProbe;
-    private bool _hasNotifiedDbState;
-
-    private void RaiseDbStateChanged()
-    {
-        var connected = IsDbConnected;
-        var probe = IsDbProbeRunning;
-        var connectedChanged = !_hasNotifiedDbState || connected != _lastNotifiedDbConnected;
-        // 仅对 chrome 绑定 dedupe：相同 tip 字段反复 Notify 会闪，但 known / banner 仍必须刷新
-        if (!_hasNotifiedDbState
-            || connectedChanged
-            || probe != _lastNotifiedDbProbe)
-        {
-            _hasNotifiedDbState = true;
-            _lastNotifiedDbConnected = connected;
-            _lastNotifiedDbProbe = probe;
-            OnPropertyChanged(nameof(IsDbConnected));
-            OnPropertyChanged(nameof(DbVisualState));
-            OnPropertyChanged(nameof(DbItemText));
-            OnPropertyChanged(nameof(IsDbStatusConnected));
-            OnPropertyChanged(nameof(IsDbStatusDisconnected));
-        }
-
-        RaiseConnectivityChanged();
-    }
-
     private void RaiseStatusItemsChanged()
     {
-        OnPropertyChanged(nameof(ShowAccessGuardItem));
-        OnPropertyChanged(nameof(AccessGuardItemText));
+        RaiseApiChromeChanged();
+        RaiseTopBarCanExecuteBindings();
         OnPropertyChanged(nameof(IsSettingsPageActive));
         OnPropertyChanged(nameof(ActivePageText));
         OnPropertyChanged(nameof(VersionText));
         OnPropertyChanged(nameof(VersionBarText));
     }
 
+    private ConnectionKind _lastConnection = ConnectionKind.Unknown;
+    private bool _sessionHadServiceDown;
+    private DateTimeOffset _lastServiceOkToastAt = DateTimeOffset.MinValue;
+
     private void RaiseConnectivityChanged()
     {
-        var wasBlocked = _wasAccessGuardBlocked;
-        var banner = ConnectivityBanner.Create(
-            IsDbConnected,
-            _isDbConnectivityKnown,
-            _accessGuard);
-        var isBlocked = _accessGuard.IsBlocked;
-        _wasAccessGuardBlocked = isBlocked;
+        var api = _apiAvailability.Current;
+        var configured = _apiAvailability.IsConfigured;
+        var view = ConnectionView.From(api, configured);
+        var banner = ConnectivityBanner.Create(api, isConfigured: configured);
 
-        if (isBlocked)
+        if (view.Kind == ConnectionKind.Blocked)
         {
             _lookup.InvalidateDrugCatalog();
         }
@@ -380,66 +337,58 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ConnectivityBannerIsError));
         OnPropertyChanged(nameof(ConnectivityBannerIsWarning));
         OnPropertyChanged(nameof(ConnectivityBannerIsInfo));
-        SyncAllPagesAvailability();
 
-        if (wasBlocked && !isBlocked)
-        {
-            ScheduleAutoRefresh();
-        }
+        SyncServicePagesAvailability(api);
 
-        ManageSchemaRecoveryPolling(isBlocked && IsDbConnected && !IsDbProbeRunning);
         RaiseStatusItemsChanged();
     }
 
-    private void ManageSchemaRecoveryPolling(bool shouldPoll)
+    private void OnApiAvailabilityChanged()
     {
-        if (!shouldPoll)
+        PostOnUi(() =>
         {
-            _schemaRecoveryCts?.Cancel();
-            _schemaRecoveryCts?.Dispose();
-            _schemaRecoveryCts = null;
-            return;
-        }
-
-        if (_schemaRecoveryCts is not null)
-        {
-            return;
-        }
-
-        _schemaRecoveryCts = new CancellationTokenSource();
-        ObserveDetached(RunSchemaRecoveryPollingAsync(_schemaRecoveryCts.Token), "schema.recovery.detached.fail");
-    }
-
-    private async Task RunSchemaRecoveryPollingAsync(CancellationToken ct)
-    {
-        try
-        {
-            while (!ct.IsCancellationRequested)
+            var view = ConnectionView.From(_apiAvailability.Current, _apiAvailability.IsConfigured);
+            var becameUp = view.Kind == ConnectionKind.Up && _lastConnection != ConnectionKind.Up;
+            if (view.Kind is ConnectionKind.Down or ConnectionKind.Blocked)
             {
-                await Task.Delay(TimeSpan.FromSeconds(20), ct).ConfigureAwait(false);
-
-                if (ct.IsCancellationRequested || !_accessGuard.IsBlocked || !IsDbConnected)
-                {
-                    return;
-                }
-
-                await RefreshSchemaStatusAsync("guard_recovery_poll").ConfigureAwait(false);
+                _sessionHadServiceDown = true;
             }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn("MainWindowVM", "db.schema.recovery_poll.fail", "Schema recovery polling failed", ex);
-        }
+
+            _lastConnection = view.Kind;
+
+            RaiseConnectivityChanged();
+            if (becameUp)
+            {
+                ScheduleAutoRefresh();
+                TryShowServiceReconnectedToast();
+            }
+        });
     }
 
-    private void SyncAllPagesAvailability()
+    /// <summary>曾断开后再恢复才 Info toast，并做短防抖</summary>
+    private void TryShowServiceReconnectedToast()
+    {
+        if (!_sessionHadServiceDown)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.Now;
+        if (now - _lastServiceOkToastAt < TimeSpan.FromSeconds(15))
+        {
+            return;
+        }
+
+        _sessionHadServiceDown = false;
+        _lastServiceOkToastAt = now;
+        _toasts.Info("PacApi 服务已恢复", "连接已恢复");
+    }
+
+    private void SyncServicePagesAvailability(ApiAvailabilitySnapshot api)
     {
         foreach (var page in WorkspacePages)
         {
-            page.SyncPageAvailability();
+            page.SyncConnection(api);
         }
     }
 
@@ -474,7 +423,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool ShowTopImport => TopImport is not null;
     public bool ShowTopExport => TopExport is not null;
 
-    public bool CanTopRefresh => TopRefresh?.CanExecute(null) == true;
+    public bool CanTopRefresh => CanWorkspaceRefresh() && TopRefresh?.CanExecute(null) == true;
     public bool CanTopImport => TopImport?.CanExecute(null) == true;
     public bool CanTopExport => TopExport?.CanExecute(null) == true;
 
@@ -488,7 +437,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (!CanWorkspaceRefresh())
         {
-            _toasts.Info("刷新", "数据库检查进行中，请稍候");
             return;
         }
 
@@ -538,7 +486,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ToastManager toastManager,
         DialogManager dialogManager,
         IDbConnectionMonitorService dbMonitor,
-        IDbAccessGuard accessGuard,
+        IApiAvailabilityService apiAvailability,
         ILookupCatalogService lookup,
         ISettingsService settings,
         IChangeWatermarkService changeWatermark,
@@ -561,7 +509,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbConfigNotifier = dbConfigNotifier ?? throw new ArgumentNullException(nameof(dbConfigNotifier));
         _dbConnectionTester = dbConnectionTester ?? throw new ArgumentNullException(nameof(dbConnectionTester));
         _dbMonitor = dbMonitor ?? throw new ArgumentNullException(nameof(dbMonitor));
-        _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));
+        _apiAvailability = apiAvailability ?? throw new ArgumentNullException(nameof(apiAvailability));
         _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
@@ -619,14 +567,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         RebuildFilteredSidebarPages();
         CurrentTheme = ResolveThemeMode(global::Avalonia.Application.Current?.RequestedThemeVariant);
 
-        _dbMonitor.ConnectionFailed += ShowDbConnectionFailed;
-        _dbMonitor.Disconnected += ShowDbDisconnected;
-        _dbMonitor.Reconnected += ShowDbReconnectedInfo;
+        // 本机 monitor 只给 Settings 测库；连断不进业务横幅，重连时刷新 Settings schema 展示
         _dbMonitor.Reconnected += OnDbReconnectedRefreshSchema;
+        _dbMonitor.ConnectionFailed += OnDbMonitorFailed;
         _changeWatermark.TopicChanged += OnTopicChanged;
+        _apiAvailability.Changed += OnApiAvailabilityChanged;
 
-        _dbMonitor.Reconnected += ScheduleAutoRefresh;
-        _dbMonitor.Disconnected += ScheduleAutoRefresh;
         _updates.Changed += OnUpdateChanged;
         _updateFlow.StateChanged += OnUpdateFlowStateChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
@@ -640,7 +586,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         ObserveDetached(CheckConfigOnStartupAsync(), "startup.config.detached.fail");
         StartConfigWatcher();
-        _wasAccessGuardBlocked = _accessGuard.IsBlocked;
+        _lastConnection = ConnectionView.From(_apiAvailability.Current, _apiAvailability.IsConfigured).Kind;
         RaiseConnectivityChanged();
         ObserveDetached(InitializeAfterStartupChecksAsync(), "startup.init.detached.fail");
         _logger.Info("MainWindowVM", "main.init", "Main window initialized");
@@ -655,17 +601,17 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 _dbMonitor.Start();
             }
 
+            // 周期探测自己做首检；未配置时不发 HTTP
+            _apiAvailability.Start();
+
             await CheckDbOnStartupAsync().ConfigureAwait(false);
             await RefreshSchemaStatusAsync("startup_postcheck").ConfigureAwait(false);
             MarkDirtyByType<MsfxLink>();
 
-            if (File.Exists(_configPath))
+            if (_apiAvailability.IsConfigured)
             {
                 _changeWatermark.Start();
-                StartDbStateBootstrap();
             }
-
-            _startupState.MarkDbInitCompleted();
 
             await StartAgentsOnStartupAsync().ConfigureAwait(false);
             await AlignUpdateChannelOnStartupAsync().ConfigureAwait(false);
@@ -675,6 +621,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         finally
         {
             _startupState.MarkDbInitCompleted();
+            ScheduleAutoRefresh();
         }
     }
 
@@ -704,37 +651,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         };
 
         _themeWatcher.SwitchTheme(CurrentTheme);
-    }
-
-    private void StartDbStateBootstrap()
-    {
-        PostOnUi(RaiseDbStateChanged);
-        _dbBootstrapCts?.Cancel();
-        _dbBootstrapCts?.Dispose();
-        _dbBootstrapCts = new CancellationTokenSource();
-        ObserveDetached(RunDbStateBootstrapAsync(_dbBootstrapCts.Token), "db.bootstrap.detached.fail");
-    }
-
-    private async Task RunDbStateBootstrapAsync(CancellationToken ct)
-    {
-        for (var i = 0; i < 12; i++)
-        {
-            try
-            {
-                await Task.Delay(200, ct).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-
-            PostOnUi(RaiseDbStateChanged);
-
-            if (_dbMonitor.IsConnected || ct.IsCancellationRequested)
-            {
-                return;
-            }
-        }
     }
 
     private void WireDashboard(AppPageBase? page)
@@ -968,7 +884,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         RaiseStatusItemsChanged();
         RaiseNavigationHistoryChanged();
 
-        TryRefreshDirtyActivePage();
+        TryRefreshDirtyActivePage(silent: false);
     }
 
     partial void OnActivePageRouteChanged(string? value)
@@ -1287,13 +1203,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         var ok = test.Ok;
         if (!ok)
         {
-            _logger.Warn("MainWindowVM", "db.startup_check.fail", "Database connection test failed on startup; shell banner will show status");
+            _logger.Warn("MainWindowVM", "db.startup_check.fail", "Database connection test failed on startup");
             return false;
         }
 
         try
         {
-            await RunOnUiAsync(() => IsDbProbeRunning = true);
             var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
             if (!state.Compatible)
             {
@@ -1312,7 +1227,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 if (state.SchemaOk && string.Equals(state.Compatibility, "BelowMinimum", StringComparison.Ordinal))
                 {
                     _logger.Warn("MainWindowVM", "db.schema.external_update_required.startup",
-                        "Database schema below app minimum; external update required before business access",
+                        "Database schema below app minimum; external update required before Settings local access",
                         null,
                         logContext);
                 }
@@ -1343,10 +1258,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
 
             return false;
-        }
-        finally
-        {
-            await RunOnUiAsync(() => IsDbProbeRunning = false);
         }
     }
 
@@ -1449,69 +1360,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             logScope: "MainWindowVM").ConfigureAwait(false);
     }
 
-    private void ShowDbConnectionFailed(string reason)
-    {
-        MarkDbConnectivityKnown();
-        _lookup.InvalidateDrugCatalog();
-        _dbEverDisconnected = true;
-
-        PostOnUi(RaiseDbStateChanged);
-
-        var now = DateTimeOffset.Now;
-
-        if (now - _lastDbErrorToastAt < TimeSpan.FromSeconds(60)
-            && string.Equals(_lastDbFailReason, reason, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        _lastDbErrorToastAt = now;
-        _lastDbFailReason = reason;
-
-        PostOnUi(() =>
-        {
-            _toasts.Error("数据连接失败", $"{reason}，请前往 [设置] 重新配置并测试连接");
-
-        });
-    }
-
-    private void ShowDbDisconnected()
-    {
-        MarkDbConnectivityKnown();
-        _lookup.InvalidateDrugCatalog();
-        _dbEverDisconnected = true;
-        _lastDbFailReason = null;
-
-        PostOnUi(RaiseDbStateChanged);
-
-        ScheduleAutoRefresh();
-    }
-
-    private void ShowDbReconnectedInfo()
-    {
-        MarkDbConnectivityKnown();
-        PostOnUi(RaiseDbStateChanged);
-
-        if (!_dbEverDisconnected)
-        {
-            return;
-        }
-
-        var now = DateTimeOffset.Now;
-
-        if (now - _lastDbOkToastAt < TimeSpan.FromSeconds(15))
-        {
-            return;
-        }
-
-        _lastDbOkToastAt = now;
-        _lastDbFailReason = null;
-
-        PostOnUi(() =>
-        {
-            _toasts.Info("数据库连接恢复", "数据库连接已成功恢复");
-        });
-    }
+    private void OnDbMonitorFailed(string reason)
+        => _logger.Warn("MainWindowVM", "db.monitor.fail", "Local DB monitor reported failure", null, new { reason });
 
     private void OnDbReconnectedRefreshSchema()
         => ObserveDetached(RefreshSchemaStatusAsync("db_reconnected"), "schema.refresh.detached.fail");
@@ -1533,10 +1383,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 source
             });
-        }
-        finally
-        {
-            PostOnUi(RaiseConnectivityChanged);
         }
     }
 
@@ -1572,16 +1418,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _disposed = true;
 
-        ManageSchemaRecoveryPolling(shouldPoll: false);
-
         SafeExecute(() => _dbConfigNotifier.Applied -= OnDbConfigAppliedEvent);
         SafeExecute(() => _nav.NavigationRequested -= OnNavigationRequested);
-        SafeExecute(() => _dbMonitor.ConnectionFailed -= ShowDbConnectionFailed);
-        SafeExecute(() => _dbMonitor.Disconnected -= ShowDbDisconnected);
-        SafeExecute(() => _dbMonitor.Reconnected -= ShowDbReconnectedInfo);
+        SafeExecute(() => _dbMonitor.ConnectionFailed -= OnDbMonitorFailed);
         SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedRefreshSchema);
-        SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
-        SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
+        SafeExecute(() => _apiAvailability.Changed -= OnApiAvailabilityChanged);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnTopicChanged);
         SafeExecute(DetachChromeHooks);
         SafeExecute(() => _updates.Changed -= OnUpdateChanged);
@@ -1612,9 +1453,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _autoRefreshCts?.Cancel();
             _autoRefreshCts?.Dispose();
             _autoRefreshCts = null;
-            _dbBootstrapCts?.Cancel();
-            _dbBootstrapCts?.Dispose();
-            _dbBootstrapCts = null;
             _updatePollCts?.Cancel();
             _updatePollCts?.Dispose();
             _updatePollCts = null;

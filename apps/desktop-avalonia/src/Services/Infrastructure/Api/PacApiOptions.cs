@@ -3,11 +3,9 @@ using Microsoft.Extensions.Options;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>Desktop 访问 PacToolkits.Api 的地址与密钥；部署注入，不要写进普通 AppConfig</summary>
+/// <summary>Desktop 访问 PacToolkits.Api 的地址与密钥；设置页写入 AppConfigStore，保存后热应用</summary>
 public sealed class PacApiOptions
 {
-    public const string SectionName = "PacApi";
-
     public string BaseUrl { get; set; } = string.Empty;
 
     public string ApiKey { get; set; } = string.Empty;
@@ -30,19 +28,19 @@ public sealed class PacApiOptions
 
         if (!hasUrl || !hasKey)
         {
-            return ValidateOptionsResult.Fail("PacApi:BaseUrl and PacApi:ApiKey must both be set, or both empty");
+            return ValidateOptionsResult.Fail("须同时填写服务地址与访问密钥，或全部留空");
         }
 
         var baseUrl = options.BaseUrl.Trim();
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            return ValidateOptionsResult.Fail("PacApi:BaseUrl must be an absolute http(s) URI");
+            return ValidateOptionsResult.Fail("服务地址须为绝对 http(s) URI");
         }
 
         if (!IsLoopback(uri) && uri.Scheme != Uri.UriSchemeHttps)
         {
-            return ValidateOptionsResult.Fail("PacApi:BaseUrl must use HTTPS for non-loopback hosts");
+            return ValidateOptionsResult.Fail("非本机地址须使用 HTTPS");
         }
 
         // Resolve 按根路径拼接；query/fragment/userinfo 会进意外地址
@@ -50,15 +48,13 @@ public sealed class PacApiOptions
             || !string.IsNullOrEmpty(uri.Fragment)
             || !string.IsNullOrEmpty(uri.UserInfo))
         {
-            return ValidateOptionsResult.Fail(
-                "PacApi:BaseUrl must not include query, fragment, or userinfo");
+            return ValidateOptionsResult.Fail("服务地址不得包含 query、fragment 或 userinfo");
         }
 
         var header = (options.HeaderName ?? string.Empty).Trim();
         if (!IsHttpFieldName(header))
         {
-            return ValidateOptionsResult.Fail(
-                "PacApi:HeaderName must be a valid HTTP header field-name (RFC 9110 token)");
+            return ValidateOptionsResult.Fail("请求头名称无效");
         }
 
         return ValidateOptionsResult.Success;

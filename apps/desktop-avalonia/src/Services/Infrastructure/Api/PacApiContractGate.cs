@@ -2,7 +2,6 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Serialization;
 using PacToolkits.Core;
@@ -15,6 +14,9 @@ public interface IPacApiContractGate
 {
     /// <summary>未配置则跳过；已配置则拉 /v1/system/info 对照清单区间</summary>
     Task EnsureCompatibleAsync(CancellationToken ct = default);
+
+    /// <summary>设置热应用后作废上次协议检查结果</summary>
+    void Reset();
 }
 
 /// <summary>
@@ -25,8 +27,6 @@ public interface IPacApiContractGate
 public sealed class PacApiContractGate : IPacApiContractGate
 {
     private readonly PacApiClient _api;
-    // 与 PacApiClient 一样用启动快照；改配置后需重启
-    private readonly PacApiOptions _options;
     private readonly IReleaseVersionService _versions;
     private readonly IAppLogger _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -38,20 +38,20 @@ public sealed class PacApiContractGate : IPacApiContractGate
 
     public PacApiContractGate(
         PacApiClient api,
-        IOptions<PacApiOptions> options,
         IReleaseVersionService versions,
         IAppLogger logger)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
-        ArgumentNullException.ThrowIfNull(options);
-        _options = options.Value ?? new PacApiOptions();
         _versions = versions ?? throw new ArgumentNullException(nameof(versions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    public void Reset()
+        => Volatile.Write(ref _outcome, null);
+
     public async Task EnsureCompatibleAsync(CancellationToken ct = default)
     {
-        if (!_options.IsConfigured)
+        if (!_api.IsConfigured)
         {
             return;
         }
@@ -102,12 +102,14 @@ public sealed class PacApiContractGate : IPacApiContractGate
             || string.Equals(min, "unknown", StringComparison.OrdinalIgnoreCase)
             || string.Equals(max, "unknown", StringComparison.OrdinalIgnoreCase))
         {
-            var missing = "PacApi contract range missing from Desktop ReleaseManifest (minApiContract/maxApiContract)";
-            _logger.Error("PacApi", "contract.range_missing", missing);
-            return missing;
+            _logger.Error(
+                "PacApi",
+                "contract.range_missing",
+                "PacApi contract range missing from Desktop ReleaseManifest (minApiContract/maxApiContract)");
+            return "客户端缺少 PacApi 服务协议版本范围，请更新客户端";
         }
 
-        var info = await _api.GetJsonAsync(
+        var info = await _api.GetAvailabilityJsonAsync(
                 () =>
                 {
                     var req = new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/system/info"));
@@ -117,21 +119,34 @@ public sealed class PacApiContractGate : IPacApiContractGate
                 PacJsonContext.Default.PacApiSystemInfo,
                 ct)
             .ConfigureAwait(false)
-            ?? throw new InvalidOperationException("empty /v1/system/info response");
+            ?? throw new InvalidOperationException("PacApi 服务返回空协议信息");
 
-        var match = SemVerRange.Classify(info.ContractVersion, min, max, allowPrerelease: false);
+        return ClassifyBlockReason(info.ContractVersion, min, max, _logger);
+    }
+
+    /// <summary>协议区间对照；兼容返回 null，否则返回阻断文案</summary>
+    internal static string? ClassifyBlockReason(
+        string? contractVersion,
+        string min,
+        string max,
+        IAppLogger? logger = null)
+    {
+        var match = SemVerRange.Classify(contractVersion, min, max, allowPrerelease: false);
         if (match.IsCompatible)
         {
-            _logger.Info(
+            logger?.Info(
                 "PacApi",
                 "contract.ok",
-                $"API contract {info.ContractVersion} within [{min}, {max}]");
+                $"API contract {contractVersion} within [{min}, {max}]");
             return null;
         }
 
         var incompatible =
-            $"API contract {info.ContractVersion} incompatible with Desktop range [{min}, {max}] ({match.Status})";
-        _logger.Error("PacApi", "contract.incompatible", incompatible);
+            $"与 PacApi 服务协议版本不兼容（服务端 {contractVersion}，客户端要求 {min}–{max}）";
+        logger?.Error(
+            "PacApi",
+            "contract.incompatible",
+            $"API contract {contractVersion} incompatible with Desktop range [{min}, {max}] ({match.Status})");
         return incompatible;
     }
 }

@@ -226,7 +226,7 @@ public sealed partial class InventoryOverview : AppPageBase
     private bool CanOperateUi() => !IsUiBusy;
 
     private bool CanLocalRefresh()
-        => CanOperateUi() && !IsStockEditEnabled;
+        => CanOperateUi() && !IsStockEditEnabled && CanPage;
 
     private bool CanUnlock()
         => CanOperateUi()
@@ -1473,7 +1473,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
         RefreshPagingState();
         RefreshOpsUnlock();
-        SetModeBusy(value, true);
+        // 不通时勿先亮 Busy：Reload 会跳过/等待，onFinished 可能被后续重载顶掉，Busy 会卡住
         ObserveDetached(ReloadAsync(), "reload.detached.fail");
     }
 

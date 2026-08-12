@@ -20,13 +20,15 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 /// <summary>
 /// API HTTP：换票与带 Bearer 的请求
 ///
-/// 换票、普通 API、SSE 分三个 HttpClient；后两者经 Jwt 附加 Bearer
+/// 换票、业务 API、可用性探测、SSE 分命名 HttpClient；后三者经 Jwt 附加 Bearer
+/// 可用性探测不经业务 GET Resilience，避免熔断挡住 Shell
 /// 不写明文 Key 到日志；baseUrl 与 apiKey 由配置或构造注入
 /// </summary>
 public sealed class PacApiClient : IDisposable
 {
     public const string TokenClientName = "pac-token";
     public const string ApiClientName = "pac-api";
+    public const string AvailabilityClientName = "pac-api-availability";
     public const string SseClientName = "pac-sse";
 
     // 含多次 GET 重试；单次约 10s，外层总超时须大于重试合计
@@ -40,15 +42,21 @@ public sealed class PacApiClient : IDisposable
     // 查 /v1/system/info 时跳过 contract 检查，否则 Handler 会再次进 Gate
     internal static readonly HttpRequestOptionsKey<bool> SkipContractGateKey = new("pac.skipContractGate");
 
-    private readonly string _baseUrl;
-    private readonly string _apiKey;
-    private readonly string _headerName;
+    /// <summary>可用性探测 HttpClient 超时（单次 attempt）</summary>
+    internal static readonly TimeSpan AvailabilityAttemptTimeout = TimeSpan.FromSeconds(2);
+
+    private readonly object _configGate = new();
+    private int _configEpoch;
+    private string _baseUrl;
+    private string _apiKey;
+    private string _headerName;
     private readonly IAppLogger _logger;
     private readonly TimeProvider _time;
     private readonly bool _ownsHttp;
 
     private readonly HttpClient _tokenHttp;
     private readonly HttpClient _apiHttp;
+    private readonly HttpClient _availabilityHttp;
     private readonly HttpClient _sseHttp;
 
     private readonly SemaphoreSlim _tokenGate = new(1, 1);
@@ -81,6 +89,7 @@ public sealed class PacApiClient : IDisposable
         _ownsHttp = false;
         _tokenHttp = httpClientFactory.CreateClient(TokenClientName);
         _apiHttp = httpClientFactory.CreateClient(ApiClientName);
+        _availabilityHttp = httpClientFactory.CreateClient(AvailabilityClientName);
         _sseHttp = httpClientFactory.CreateClient(SseClientName);
     }
 
@@ -122,6 +131,8 @@ public sealed class PacApiClient : IDisposable
         {
             Timeout = ApiTimeout,
         };
+        // 单测无 Resilience；探测与业务共用同一管道即可
+        _availabilityHttp = _apiHttp;
         _sseHttp = new HttpClient(new NestedJwtHandler(this) { InnerHandler = sseInner })
         {
             Timeout = Timeout.InfiniteTimeSpan,
@@ -129,7 +140,60 @@ public sealed class PacApiClient : IDisposable
     }
 
     public bool IsConfigured
-        => !string.IsNullOrWhiteSpace(_baseUrl) && !string.IsNullOrWhiteSpace(_apiKey);
+    {
+        get
+        {
+            lock (_configGate)
+            {
+                return !string.IsNullOrWhiteSpace(_baseUrl) && !string.IsNullOrWhiteSpace(_apiKey);
+            }
+        }
+    }
+
+    /// <summary>当前生效的地址与密钥（含启动注入与设置热应用）</summary>
+    public PacApiOptions CaptureOptions()
+    {
+        lock (_configGate)
+        {
+            return new PacApiOptions
+            {
+                BaseUrl = _baseUrl,
+                ApiKey = _apiKey,
+                HeaderName = _headerName,
+            };
+        }
+    }
+
+    /// <summary>热应用代数；设置保存后递增，供可用性探测作废「密钥失败退避」</summary>
+    public int ConfigEpoch => Volatile.Read(ref _configEpoch);
+
+    /// <summary>热应用设置页保存的地址与密钥；清空两边即视为未配置。已缓存 JWT 一并作废</summary>
+    public void Apply(PacApiOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var validated = PacApiOptions.Validate(options);
+        if (validated.Failed)
+        {
+            throw new InvalidOperationException(
+                string.Join("; ", validated.Failures ?? ["PacApi options invalid"]));
+        }
+
+        var baseUrl = (options.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
+        var apiKey = (options.ApiKey ?? string.Empty).Trim();
+        var headerName = string.IsNullOrWhiteSpace(options.HeaderName)
+            ? "X-Api-Key"
+            : options.HeaderName.Trim();
+
+        lock (_configGate)
+        {
+            _baseUrl = baseUrl;
+            _apiKey = apiKey;
+            _headerName = headerName;
+        }
+
+        Volatile.Write(ref _token, null);
+        _ = Interlocked.Increment(ref _configEpoch);
+    }
 
     internal string? CurrentAccessToken => Volatile.Read(ref _token)?.AccessToken;
 
@@ -144,6 +208,12 @@ public sealed class PacApiClient : IDisposable
         CancellationToken ct)
         => SendOnAsync(_apiHttp, createRequest, ct);
 
+    /// <summary>可用性探测：走无 Resilience 客户端，避免业务熔断挡住 Shell 探测</summary>
+    public Task<HttpResponseMessage> SendAvailabilityAsync(
+        Func<HttpRequestMessage> createRequest,
+        CancellationToken ct)
+        => SendOnAsync(_availabilityHttp, createRequest, ct);
+
     /// <summary>SSE：HttpClient 无限 Timeout，结束连接靠 <paramref name="ct"/></summary>
     public Task<HttpResponseMessage> SendSseAsync(
         Func<HttpRequestMessage> createRequest,
@@ -151,14 +221,29 @@ public sealed class PacApiClient : IDisposable
         => SendOnAsync(_sseHttp, createRequest, ct);
 
     public Uri Resolve(string relativePath)
-        => new($"{_baseUrl}/{relativePath.TrimStart('/')}");
+    {
+        string baseUrl;
+        lock (_configGate)
+        {
+            baseUrl = _baseUrl;
+        }
+
+        return new($"{baseUrl}/{relativePath.TrimStart('/')}");
+    }
 
     /// <summary>发送并反序列化 JSON；出站失败包成 <see cref="PacApiException"/></summary>
     public Task<T?> GetJsonAsync<T>(
         Func<HttpRequestMessage> createRequest,
         JsonTypeInfo<T> typeInfo,
         CancellationToken ct)
-        => SendJsonAsync(HttpMethod.Get, createRequest, typeInfo, ct, commandId: null);
+        => SendJsonAsync(_apiHttp, HttpMethod.Get, createRequest, typeInfo, ct, commandId: null);
+
+    /// <summary>可用性探测用 JSON GET；走 <see cref="SendAvailabilityAsync"/></summary>
+    public Task<T?> GetAvailabilityJsonAsync<T>(
+        Func<HttpRequestMessage> createRequest,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken ct)
+        => SendJsonAsync(_availabilityHttp, HttpMethod.Get, createRequest, typeInfo, ct, commandId: null);
 
     /// <summary>POST JSON；附带 <see cref="PacApiHeaders.CommandId"/></summary>
     public Task<T?> PostJsonAsync<T>(
@@ -166,7 +251,7 @@ public sealed class PacApiClient : IDisposable
         JsonTypeInfo<T> typeInfo,
         CancellationToken ct,
         Guid? commandId = null)
-        => SendJsonAsync(HttpMethod.Post, createRequest, typeInfo, ct, commandId ?? Guid.NewGuid());
+        => SendJsonAsync(_apiHttp, HttpMethod.Post, createRequest, typeInfo, ct, commandId ?? Guid.NewGuid());
 
     /// <summary>PUT JSON；附带 CommandId</summary>
     public Task<T?> PutJsonAsync<T>(
@@ -174,7 +259,7 @@ public sealed class PacApiClient : IDisposable
         JsonTypeInfo<T> typeInfo,
         CancellationToken ct,
         Guid? commandId = null)
-        => SendJsonAsync(HttpMethod.Put, createRequest, typeInfo, ct, commandId ?? Guid.NewGuid());
+        => SendJsonAsync(_apiHttp, HttpMethod.Put, createRequest, typeInfo, ct, commandId ?? Guid.NewGuid());
 
     /// <summary>DELETE；附带 CommandId</summary>
     public Task DeleteAsync(
@@ -365,6 +450,12 @@ public sealed class PacApiClient : IDisposable
         {
             _tokenHttp.Dispose();
             _apiHttp.Dispose();
+            // 单测里与 _apiHttp 同实例，勿二次 Dispose
+            if (!ReferenceEquals(_availabilityHttp, _apiHttp))
+            {
+                _availabilityHttp.Dispose();
+            }
+
             _sseHttp.Dispose();
         }
 
@@ -372,19 +463,22 @@ public sealed class PacApiClient : IDisposable
     }
 
     private async Task<T?> SendJsonAsync<T>(
+        HttpClient http,
         HttpMethod method,
         Func<HttpRequestMessage> createRequest,
         JsonTypeInfo<T> typeInfo,
         CancellationToken ct,
         Guid? commandId)
     {
+        ArgumentNullException.ThrowIfNull(http);
         ArgumentNullException.ThrowIfNull(method);
         ArgumentNullException.ThrowIfNull(createRequest);
         ArgumentNullException.ThrowIfNull(typeInfo);
 
         try
         {
-            using var response = await SendAsync(
+            using var response = await SendOnAsync(
+                    http,
                     () => BuildRequest(method, createRequest, commandId),
                     ct)
                 .ConfigureAwait(false);
@@ -647,9 +741,17 @@ public sealed class PacApiClient : IDisposable
                 throw new InvalidOperationException("Pac API baseUrl/apiKey is not configured");
             }
 
+            string headerName;
+            string apiKey;
+            lock (_configGate)
+            {
+                headerName = _headerName;
+                apiKey = _apiKey;
+            }
+
             using var activity = PacActivities.Desktop.StartActivity("pacapi.token");
             using var request = new HttpRequestMessage(HttpMethod.Post, Resolve("/v1/auth/token"));
-            request.Headers.TryAddWithoutValidation(_headerName, _apiKey);
+            request.Headers.TryAddWithoutValidation(headerName, apiKey);
 
             try
             {

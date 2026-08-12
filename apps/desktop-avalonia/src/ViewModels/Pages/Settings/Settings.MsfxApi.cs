@@ -68,6 +68,11 @@ public partial class Settings : AppPageBase, ISettingsPage
 
     private async Task RefreshMsfxCursorCoreAsync(CancellationToken ct)
     {
+        if (!_pacApi.IsConfigured)
+        {
+            return;
+        }
+
         await RunOnUiAsync(() => IsMsfxCursorBusy = true);
         try
         {

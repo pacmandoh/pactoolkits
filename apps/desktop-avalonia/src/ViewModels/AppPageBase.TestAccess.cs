@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Runtime;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
@@ -12,7 +13,8 @@ public abstract partial class AppPageBase
         IDbConnectionMonitorService? dbMonitor = null,
         IDbAccessGuard? accessGuard = null,
         IAppStartupStateService? startupState = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IApiAvailabilityService? apiAvailability = null)
     {
         if (dbMonitor is not null)
         {
@@ -37,6 +39,12 @@ public abstract partial class AppPageBase
         {
             _cachedTime = timeProvider;
         }
+
+        if (apiAvailability is not null)
+        {
+            _cachedApiAvailability = apiAvailability;
+            _apiSnap = apiAvailability.Current;
+        }
     }
 
     internal void TestSetServiceRetryDelay(TimeSpan delay)
@@ -58,6 +66,10 @@ public abstract partial class AppPageBase
 
     internal Task TestOnPageActivatedAsync()
         => OnPageActivatedAsync();
+
+    internal bool TestCanToastError(Exception ex) => CanToastError(ex);
+
+    internal IDisposable TestBeginSilentReload() => BeginSilentReload();
 
     internal bool TestIsLookupCatalogSuspended()
         => IsLookupCatalogSuspended();

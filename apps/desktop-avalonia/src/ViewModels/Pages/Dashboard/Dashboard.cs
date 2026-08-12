@@ -497,6 +497,12 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsTxnPanelEmpty));
         OnPropertyChanged(nameof(TxnPanelEmptyText));
         OnPropertyChanged(nameof(TxnPanelEmptyHint));
+        if (ShowPageUnavailable || IsShowingStaleData)
+        {
+            IsTxnBusy = false;
+            IsEntryBusy = false;
+            IsAbnormalBusy = false;
+        }
     }
 
     public string TrendEmptyText => GetSectionEmptyTitle("期间无使用情况");
@@ -641,7 +647,7 @@ public sealed partial class Dashboard : AppPageBase
 
     private void RequestReload()
     {
-        if (IsReloadSuppressed)
+        if (IsReloadSuppressed || !CanPage)
         {
             return;
         }
@@ -1080,7 +1086,7 @@ public sealed partial class Dashboard : AppPageBase
                         IsAbnormalBusy = v;
                     }
                 },
-                showBusy: showAnyBusy,
+                showBusy: showAnyBusy && !IsSignalReload,
                 body: async () =>
             {
                 if (DrugOptions.Count == 0 || _dirtyRefresh.IsDirty(this))
@@ -1175,29 +1181,13 @@ public sealed partial class Dashboard : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.reload.fail", "Failed to reload dashboard", ex);
-            if (ct.IsCancellationRequested)
-            {
-                throw;
-            }
-
-            if (!CanToastError(ex))
-            {
-                throw;
-            }
-
-            PostOnUi(() => _toast.Error("概览加载失败", ex.Message));
             throw;
         }
     }
 
     private void FinishTabReloadFail(Exception ex, string toastTitle)
     {
-        if (CanToastError(ex))
-        {
-            PostOnUi(() => _toast.Error(toastTitle, ex.Message));
-        }
-
-        // 分页命令已通过后台任务观察器记录异常，此处仅更新失败状态
+        LogError("dashboard.tab.reload_fail", toastTitle, ex);
     }
 
     private bool ShowTxnBusy()
