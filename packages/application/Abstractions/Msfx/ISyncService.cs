@@ -53,6 +53,8 @@ public interface ISyncService
         string? reason,
         CancellationToken ct);
 
+    Task<MsfxMapApplyResult> ApplyMappingAsync(int limit, CancellationToken ct);
+
     Task<IReadOnlyList<MsfxMappingBatchGroupRow>> GetMappingBatchGroupsAsync(
         string? mapStatus,
         string? codeStatus,

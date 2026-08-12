@@ -18,6 +18,15 @@ public sealed record PacApiSystemInfo(
     string ContractVersion,
     DateTimeOffset Utc);
 
+/// <summary>GET /v1/system/status；database/schema 为服务端诊断字段</summary>
+public sealed record PacApiSystemStatus(
+    string Status,
+    DateTimeOffset Utc,
+    string Database,
+    string Schema,
+    string? SchemaVersion,
+    string? Reason);
+
 public sealed record StringListResponse(IReadOnlyList<string> Items);
 
 /// <summary>写命令可缓存的 ProblemDetails 正文</summary>
