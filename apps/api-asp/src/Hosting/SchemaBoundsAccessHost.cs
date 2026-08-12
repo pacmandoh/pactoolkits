@@ -6,12 +6,14 @@ namespace PacToolkits.Api.Hosting;
 /// 按周期用 <see cref="IApiHealth"/> 结果同步 SchemaBounds 与 <see cref="IDbAccessGuard"/>
 ///
 /// 首检通过前默认拦住业务库访问；库不可达或 schema 不合继续 503
+/// 阻断时 2s 再探，避免库已恢复而门禁还停在健康间隔
 /// </summary>
 public sealed class SchemaBoundsAccessHost : BackgroundService
 {
     public const string NotReadyReason = "schema_bounds:not_ready";
 
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan HealthyInterval = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan BlockedInterval = TimeSpan.FromSeconds(2);
 
     private readonly IApiHealth _health;
     private readonly IDbAccessGuard _guard;
@@ -43,7 +45,10 @@ public sealed class SchemaBoundsAccessHost : BackgroundService
         {
             try
             {
-                await Task.Delay(Interval, _time, stoppingToken).ConfigureAwait(false);
+                await Task.Delay(
+                    _guard.IsBlocked ? BlockedInterval : HealthyInterval,
+                    _time,
+                    stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

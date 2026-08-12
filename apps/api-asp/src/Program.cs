@@ -44,6 +44,7 @@ app.MapCatalog();
 app.MapDrugs();
 app.MapTraceCodes();
 app.MapInventory();
+app.MapMsfx();
 
 app.Run();
 

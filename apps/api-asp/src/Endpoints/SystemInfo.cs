@@ -35,7 +35,7 @@ public static class SystemInfoEndpoints
     private static async Task<IResult> GetStatus(IApiHealth health, TimeProvider time, CancellationToken ct)
     {
         var snap = await health.CheckAsync(ct).ConfigureAwait(false);
-        var body = new SystemStatusResponse(
+        var body = new PacApiSystemStatus(
             Status: snap.Ok ? "ok" : "unavailable",
             Utc: time.GetUtcNow(),
             Database: snap.Database,
@@ -64,11 +64,3 @@ public static class SystemInfoEndpoints
         };
     }
 }
-
-public sealed record SystemStatusResponse(
-    string Status,
-    DateTimeOffset Utc,
-    string Database,
-    string Schema,
-    string? SchemaVersion,
-    string? Reason);

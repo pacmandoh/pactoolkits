@@ -24,7 +24,9 @@ public interface IApiHealth
 /// </summary>
 public sealed class ApiHealth : IApiHealth
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(3);
+    // 成功快照短缓存，避免匿名 /health 被连续请求；失败不缓存，否则库恢复会被 TTL 挡住
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(1);
 
     private readonly IDbConfigService _db;
     private readonly IDbSchemaGate _schemaGate;
@@ -68,8 +70,15 @@ public sealed class ApiHealth : IApiHealth
             var snap = await ProbeAsync(ct).ConfigureAwait(false);
             lock (_cacheGate)
             {
-                _cache = snap;
-                _cacheUtc = _time.GetUtcNow();
+                if (snap.Ok)
+                {
+                    _cache = snap;
+                    _cacheUtc = _time.GetUtcNow();
+                }
+                else
+                {
+                    _cache = null;
+                }
             }
 
             return snap;
@@ -96,7 +105,18 @@ public sealed class ApiHealth : IApiHealth
 
     private async Task<ApiHealthSnapshot> ProbeAsync(CancellationToken ct)
     {
-        var reachable = await _db.TestConnectionAsync(_db.Current, ct).ConfigureAwait(false);
+        // 诊断探库要快失败；勿用连接池 ConnectTimeoutSeconds（默认 6s）把 /status 拖死
+        using var ping = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        ping.CancelAfter(ProbeTimeout);
+        bool reachable;
+        try
+        {
+            reachable = await _db.TestConnectionAsync(_db.Current, ping.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            reachable = false;
+        }
         if (!reachable)
         {
             return new ApiHealthSnapshot(Ok: false, Database: "unavailable", Schema: "skipped", SchemaVersion: null);
@@ -106,6 +126,16 @@ public sealed class ApiHealth : IApiHealth
         var match = _schemaGate.Match(read, _bounds.MinDbSchema, _bounds.MaxDbSchema);
         if (!match.IsCompatible)
         {
+            // 读版本失败（Unknown）多半是库抖了一下，不要报成 Database=ok + schema unavailable
+            if (match.Status == DbSchemaCompatibility.Unknown)
+            {
+                return new ApiHealthSnapshot(
+                    Ok: false,
+                    Database: "unavailable",
+                    Schema: "skipped",
+                    SchemaVersion: null);
+            }
+
             var schemaState = match.Status switch
             {
                 DbSchemaCompatibility.MetadataMissing => "metadata_missing",
