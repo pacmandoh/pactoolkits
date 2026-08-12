@@ -48,6 +48,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     /// <summary>非空时替换 <see cref="IInventoryOverviewService"/></summary>
     public IInventoryOverviewService? Inventory { get; init; }
 
+    /// <summary>非空时替换 <see cref="ISyncService"/></summary>
+    public ISyncService? Sync { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("dev");
@@ -91,6 +94,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             if (Inventory is not null)
             {
                 services.Replace(ServiceDescriptor.Singleton<IInventoryOverviewService>(Inventory));
+            }
+
+            if (Sync is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<ISyncService>(Sync));
             }
         });
     }

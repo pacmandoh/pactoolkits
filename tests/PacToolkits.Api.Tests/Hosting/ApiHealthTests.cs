@@ -21,6 +21,18 @@ public sealed class ApiHealthTests
     }
 
     [Fact]
+    public async Task CheckAsync_does_not_cache_failed_probe()
+    {
+        var db = new CountingDbConfig { Reachable = false };
+        var health = CreateHealth(db);
+
+        _ = await health.CheckAsync(TestContext.Current.CancellationToken);
+        _ = await health.CheckAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, db.ProbeCount);
+    }
+
+    [Fact]
     public async Task CheckAsync_single_flight_under_concurrency()
     {
         var db = new CountingDbConfig { Delay = TimeSpan.FromMilliseconds(150) };
@@ -64,6 +76,8 @@ public sealed class ApiHealthTests
             remove { }
         }
 
+        public bool Reachable { get; init; } = true;
+
         public async Task<bool> TestConnectionAsync(PgOptions opt, CancellationToken ct)
         {
             Interlocked.Increment(ref _probes);
@@ -72,7 +86,7 @@ public sealed class ApiHealthTests
                 await Task.Delay(Delay, ct).ConfigureAwait(false);
             }
 
-            return true;
+            return Reachable;
         }
 
         public Task ApplyAsync(PgOptions opt, CancellationToken ct = default)

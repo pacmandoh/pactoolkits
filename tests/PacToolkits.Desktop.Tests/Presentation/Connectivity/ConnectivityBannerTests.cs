@@ -1,4 +1,4 @@
-using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 
 namespace PacToolkits.Desktop.Tests;
@@ -6,58 +6,34 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class ConnectivityBannerTests
 {
     [Fact]
-    public void Create_hides_banner_when_connected_and_unblocked()
+    public void Create_hides_banner_when_ready()
     {
-        var guard = new StubAccessGuard(isBlocked: false);
+        var banner = ConnectivityBanner.Create(Snap(ApiAvailabilityState.Ready));
 
-        var banner = ConnectivityBanner.Create(
-            isDbConnected: true,
-            isConnectivityKnown: true,
-            accessGuard: guard);
+        Assert.False(banner.IsVisible);
+        Assert.Equal(ConnectivitySeverity.None, banner.Severity);
+        Assert.False(banner.ShowOpenSettings);
+    }
+
+    [Fact]
+    public void Create_hides_banner_when_first_check_incomplete()
+    {
+        var banner = ConnectivityBanner.Create(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Connecting,
+            Detail: null,
+            CheckedAt: DateTimeOffset.UtcNow,
+            FirstCheckCompleted: false));
 
         Assert.False(banner.IsVisible);
         Assert.Equal(ConnectivitySeverity.None, banner.Severity);
     }
 
     [Fact]
-    public void Create_hides_banner_when_disconnected_but_connectivity_unknown()
+    public void Create_warns_with_settings_when_not_configured()
     {
-        var guard = new StubAccessGuard(isBlocked: false);
-
         var banner = ConnectivityBanner.Create(
-            isDbConnected: false,
-            isConnectivityKnown: false,
-            accessGuard: guard);
-
-        Assert.False(banner.IsVisible);
-        Assert.Equal(ConnectivitySeverity.None, banner.Severity);
-    }
-
-    [Fact]
-    public void Create_shows_error_banner_when_access_blocked()
-    {
-        var guard = new StubAccessGuard(isBlocked: true, blockReason: "数据库版本 1.2.22 低于最低支持版本 1.2.23");
-
-        var banner = ConnectivityBanner.Create(
-            isDbConnected: true,
-            isConnectivityKnown: true,
-            accessGuard: guard);
-
-        Assert.True(banner.IsVisible);
-        Assert.Equal(ConnectivitySeverity.Error, banner.Severity);
-        Assert.True(banner.ShowOpenSettings);
-        Assert.Contains("1.2.22", banner.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Create_shows_warning_banner_when_disconnected_and_known()
-    {
-        var guard = new StubAccessGuard(isBlocked: false);
-
-        var banner = ConnectivityBanner.Create(
-            isDbConnected: false,
-            isConnectivityKnown: true,
-            accessGuard: guard);
+            Snap(ApiAvailabilityState.Unavailable, "ignored"),
+            isConfigured: false);
 
         Assert.True(banner.IsVisible);
         Assert.Equal(ConnectivitySeverity.Warning, banner.Severity);
@@ -65,26 +41,25 @@ public sealed class ConnectivityBannerTests
     }
 
     [Fact]
-    public void Create_prefers_access_blocked_over_disconnected()
+    public void Create_maps_blocked_and_down_to_error_without_settings()
     {
-        var guard = new StubAccessGuard(isBlocked: true, blockReason: "blocked");
+        Assert.Equal(
+            ConnectivitySeverity.Error,
+            ConnectivityBanner.Create(Snap(ApiAvailabilityState.ContractBlocked, "协议不兼容")).Severity);
+        Assert.Equal(
+            ConnectivitySeverity.Error,
+            ConnectivityBanner.Create(Snap(ApiAvailabilityState.SchemaBlocked, "结构不兼容")).Severity);
+        Assert.Equal(
+            ConnectivitySeverity.Error,
+            ConnectivityBanner.Create(Snap(ApiAvailabilityState.Unavailable, "不通")).Severity);
+        Assert.Equal(
+            ConnectivitySeverity.Error,
+            ConnectivityBanner.Create(Snap(ApiAvailabilityState.ServerDatabaseBlocked, "库不通")).Severity);
 
-        var banner = ConnectivityBanner.Create(
-            isDbConnected: false,
-            isConnectivityKnown: true,
-            accessGuard: guard);
-
-        Assert.Equal(ConnectivitySeverity.Error, banner.Severity);
-        Assert.Equal("数据库不可用", banner.Title);
+        Assert.False(ConnectivityBanner.Create(Snap(ApiAvailabilityState.ContractBlocked, "x")).ShowOpenSettings);
+        Assert.False(ConnectivityBanner.Create(Snap(ApiAvailabilityState.Unavailable, "x")).ShowOpenSettings);
     }
 
-    private sealed class StubAccessGuard(bool isBlocked, string? blockReason = null) : IDbAccessGuard
-    {
-        public bool IsBlocked { get; } = isBlocked;
-        public string? BlockReason { get; } = blockReason;
-
-        public void Block(string reason) => throw new NotSupportedException();
-        public void Clear() => throw new NotSupportedException();
-        public void ThrowIfBlocked() => throw new NotSupportedException();
-    }
+    private static ApiAvailabilitySnapshot Snap(ApiAvailabilityState state, string? detail = null)
+        => new(state, detail, DateTimeOffset.UtcNow, FirstCheckCompleted: true);
 }

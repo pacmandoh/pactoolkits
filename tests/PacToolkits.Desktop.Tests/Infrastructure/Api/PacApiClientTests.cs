@@ -183,7 +183,7 @@ public sealed class PacApiClientTests
         using var client = CreateClient(token, api, sse);
         var ct = TestContext.Current.CancellationToken;
 
-        // 先拿到 tok-1，再并发打满三路 401，避免冷启动与换票交错
+        // 先拿到 tok-1，再并发触发三路 401，避免冷启动与换票交错
         api.WarmupRemaining = 1;
         using (var warm = await client.SendAsync(
                    () => new HttpRequestMessage(HttpMethod.Get, client.Resolve("/v1/ping")),

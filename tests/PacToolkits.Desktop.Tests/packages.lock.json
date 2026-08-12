@@ -817,9 +817,11 @@
       "pactoolkits.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.Configuration": "[10.0.9, )",
-          "Microsoft.Extensions.DependencyInjection": "[10.0.9, )",
-          "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.9, )",
+          "Microsoft.Extensions.Configuration": "[10.0.10, )",
+          "Microsoft.Extensions.DependencyInjection": "[10.0.10, )",
+          "Microsoft.Extensions.Http": "[10.0.10, )",
+          "Microsoft.Extensions.Http.Resilience": "[10.8.0, )",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.10, )",
           "Npgsql": "[10.0.3, )",
           "PacToolkits.Application": "[1.0.0, )",
           "PacToolkits.Core": "[1.0.0, )"

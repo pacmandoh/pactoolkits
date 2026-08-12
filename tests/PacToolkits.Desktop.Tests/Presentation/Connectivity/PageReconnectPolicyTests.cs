@@ -54,23 +54,4 @@ public sealed class PageReconnectPolicyTests
 
         Assert.Equal(PageDataAvailability.Stale, availability);
     }
-
-    [Theory]
-    [InlineData(true, true, true, true)]
-    [InlineData(true, true, false, false)]
-    [InlineData(true, false, true, false)]
-    [InlineData(false, true, true, false)]
-    public void SuppressReloadBusy_only_for_auto_refresh_on_stale_read_only_pages(
-        bool hasLoadedOnce,
-        bool supportsStaleWhileReconnect,
-        bool reloadFromDbSignal,
-        bool expected)
-    {
-        var actual = PageReconnectPolicy.SuppressReloadBusy(
-            hasLoadedOnce,
-            supportsStaleWhileReconnect,
-            reloadFromDbSignal);
-
-        Assert.Equal(expected, actual);
-    }
 }

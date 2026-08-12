@@ -14,7 +14,9 @@ public sealed class DashboardFilterInitTests
         var page = new Dashboard(dashboard, lookup);
         var guard = new FakeAccessGuard();
         guard.Block("schema incompatible");
-        page.TestInjectDbServices(accessGuard: guard);
+        page.TestInjectDbServices(
+            accessGuard: guard,
+            apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
 
         // 本机 DB 门禁不得挡住筛选目录加载
         Assert.True(guard.IsBlocked);
