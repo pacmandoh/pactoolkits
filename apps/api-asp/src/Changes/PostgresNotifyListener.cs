@@ -10,7 +10,7 @@ namespace PacToolkits.Api.Changes;
 /// <summary>
 /// API 进程侧 LISTEN <c>pactoolkits_change</c>，分发到 <see cref="ChangeBus"/>
 ///
-/// 现在 Desktop 仍可对本库各自 LISTEN；Pg 允许多会话同时听同一 channel
+/// Desktop 经 SSE 与 watermarks 收变更，不对本库 LISTEN
 /// NOTIFY 只作唤醒：按 topic 记 pending，突发合并或丢弃；version 以 watermark 为准
 /// </summary>
 public sealed class PostgresNotifyListener : BackgroundService

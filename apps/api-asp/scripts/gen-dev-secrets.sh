@@ -19,14 +19,16 @@ usage() {
 Usage:
   gen-dev-secrets.sh [--export] [--force]
 
-  写入（或复用）apps/api-asp/.env.asp：
-    PAC_API_KEY              明文（仅本地 curl；API 进程不读）
-    Auth__Clients__dev__*    Key 散列；Enabled / Scopes 若已有则保留
+  Write (or reuse) apps/api-asp/.env.asp:
+    PAC_API_KEY              plaintext (local curl only; the API process does not read this)
+    PAC_UNLOCK_PASSWORD      unlock password plaintext (local only; the API process does not read this)
+    Auth__Clients__dev__*    key hash; keep existing Enabled / Scopes
+    Auth__UnlockPasswordHash unlock password hash
     Auth__Jwt__SigningKey
     Postgres__Host/Port/Database/Username/Password
-    其它已有键（SchemaBounds__* / Changes__* 等）原样带回
-  --export  仅打印可 eval 的 export 行
-  --force   强制重新生成 Auth 密钥（Postgres / Enabled / Scopes / 其它手改仍保留）
+    other existing keys (SchemaBounds__* / Changes__* / …) are copied through
+  --export  print eval-able export lines only
+  --force   regenerate Auth secrets (Postgres / Enabled / Scopes / other edits are kept)
 USAGE
 }
 
@@ -136,7 +138,7 @@ collect_passthrough_lines() {
     [[ "${line}" != *=* ]] && continue
     local key="${line%%=*}"
     case "${key}" in
-      PAC_API_KEY|Auth__Jwt__SigningKey|ASPNETCORE_ENVIRONMENT|ASPNETCORE_URLS) continue ;;
+      PAC_API_KEY|PAC_UNLOCK_PASSWORD|Auth__UnlockPasswordHash|Auth__Jwt__SigningKey|ASPNETCORE_ENVIRONMENT|ASPNETCORE_URLS) continue ;;
       Postgres__Host|Postgres__Port|Postgres__Database|Postgres__Username|Postgres__Password) continue ;;
       "${prefix}ApiKeyHash"|"${prefix}Enabled") continue ;;
       "${prefix}Scopes__"*) continue ;;
@@ -159,6 +161,8 @@ write_env_file() {
 # PAC_API_KEY is plaintext for local curl; API reads only ApiKeyHash
 # Enabled / Scopes / ApiKeyHash 手改、SchemaBounds、Changes 在下次 gen/wire 时保留（--force 只换 PAC_API_KEY 与 SigningKey）
 PAC_API_KEY=${PAC_API_KEY}
+PAC_UNLOCK_PASSWORD=${PAC_UNLOCK_PASSWORD}
+Auth__UnlockPasswordHash=${Auth__UnlockPasswordHash}
 Auth__Clients__${CLIENT_ID}__ApiKeyHash=${Auth_Client_ApiKeyHash}
 Auth__Clients__${CLIENT_ID}__Enabled=${Auth_Client_Enabled}
 ${scopes_block}
@@ -202,6 +206,15 @@ else
   Auth_Client_ApiKeyHash="$(sha256_hex "${PAC_API_KEY}")"
 fi
 
+PAC_UNLOCK_PASSWORD="$(env_file_get PAC_UNLOCK_PASSWORD)"
+Auth__UnlockPasswordHash="$(env_file_get Auth__UnlockPasswordHash)"
+if [[ -z "${Auth__UnlockPasswordHash}" ]]; then
+  if [[ -z "${PAC_UNLOCK_PASSWORD}" ]]; then
+    PAC_UNLOCK_PASSWORD="$(rand_secret)"
+  fi
+  Auth__UnlockPasswordHash="$(sha256_hex "${PAC_UNLOCK_PASSWORD}")"
+fi
+
 # 缺散列时与明文对齐（首次或缺字段）
 if [[ -z "${Auth_Client_ApiKeyHash:-}" ]]; then
   Auth_Client_ApiKeyHash="$(sha256_hex "${PAC_API_KEY}")"
@@ -213,6 +226,8 @@ write_env_file
 export_block() {
   cat <<EOF
 export PAC_API_KEY='${PAC_API_KEY}'
+export PAC_UNLOCK_PASSWORD='${PAC_UNLOCK_PASSWORD}'
+export Auth__UnlockPasswordHash='${Auth__UnlockPasswordHash}'
 export Auth__Clients__${CLIENT_ID}__ApiKeyHash='${Auth_Client_ApiKeyHash}'
 export Auth__Clients__${CLIENT_ID}__Enabled='${Auth_Client_Enabled}'
 EOF
@@ -239,7 +254,8 @@ fi
 cat <<EOF
 # 写入 .env.asp（${ENV_FILE}）
 # 客户端 X-Api-Key: ${PAC_API_KEY}
-# Jwt SigningKey 仅服务端；API 只读 ApiKeyHash
+# 敏感操作口令: ${PAC_UNLOCK_PASSWORD}
+# Jwt SigningKey 仅服务端；API 只读 ApiKeyHash / UnlockPasswordHash
 # Client Enabled=${Auth_Client_Enabled}（手改 .env.asp 后重跑 wire-local 会保留）
 # Postgres: ${Postgres__Username}@${Postgres__Host}:${Postgres__Port}/${Postgres__Database}
 # （Password 空则 /health 会 503；在 .env.asp 填 Postgres__Password 后重跑 wire-local）

@@ -5,6 +5,7 @@ namespace PacToolkits.Api.Auth;
 ///
 /// 受保护路由验 JWT；明文 API Key 仅用于 POST /v1/auth/token
 /// Clients 键为稳定 client id；服务端只存 ApiKeyHash；SigningKey 变更后须重启进程
+/// UnlockPasswordHash 为敏感操作口令 SHA-256 hex；明文不落库
 /// </summary>
 public sealed class AuthOptions
 {
@@ -14,13 +15,15 @@ public sealed class AuthOptions
 
     public string HeaderName { get; set; } = DefaultHeaderName;
 
+    public string UnlockPasswordHash { get; set; } = string.Empty;
+
     public Dictionary<string, ClientOptions> Clients { get; set; } =
         new(StringComparer.Ordinal);
 
     public JwtOptions Jwt { get; set; } = new();
 }
 
-/// <summary>具名客户端：ApiKeyHash（SHA-256 hex）、Enabled、Scopes</summary>
+/// <summary>按 id 配置的客户端：ApiKeyHash（SHA-256 hex）、Enabled、Scopes</summary>
 public sealed class ClientOptions
 {
     public string ApiKeyHash { get; set; } = string.Empty;

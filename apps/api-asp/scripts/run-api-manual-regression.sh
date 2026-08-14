@@ -21,10 +21,11 @@ usage() {
 Usage:
   run-api-manual-regression.sh [--skip-wire] [--skip-notify] [--base-url URL]
 
-  默认：wire-local（/health 须 200 / status=ok）后校验换票、ping、system/info、system/status、watermarks、SSE ready；
-        条件允许时再校验 app_touch_watermark 与 SSE change。
-  --skip-wire    假定 API 已在 BASE 上跑着（.env.asp 仍须有 PAC_API_KEY）
-  --skip-notify  跳过 psql 触发与 SSE change
+  Default: wire-local (health must be 200 / status=ok), then check token
+           exchange, ping, system/info, system/status, watermarks, and SSE ready;
+           also check app_touch_watermark and SSE change when psql is available.
+  --skip-wire    assume the API is already running at BASE (.env.asp still needs PAC_API_KEY)
+  --skip-notify  skip the psql trigger and SSE change check
 USAGE
 }
 
@@ -38,7 +39,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -f "${ENV_FILE}" ]] || die "missing ${ENV_FILE}（先 gen-dev-secrets / wire-local）"
+[[ -f "${ENV_FILE}" ]] || die "missing ${ENV_FILE} (run gen-dev-secrets / wire-local first)"
 [[ -x "${WIRE}" ]] || chmod +x "${WIRE}"
 
 if [[ "${SKIP_WIRE}" != "true" ]]; then
@@ -119,7 +120,7 @@ if [[ "${code}" == "200" ]] && jq -e '
 ' /tmp/pac-api-reg-body.json >/dev/null 2>&1; then
   ok "system/info contract"
 else
-  fail "system/info code=${code} body=$(cat /tmp/pac-api-reg-body.json 2>/dev/null || true) (若 403 检查 client scopes 含 system.status)"
+  fail "system/info code=${code} body=$(cat /tmp/pac-api-reg-body.json 2>/dev/null || true) (if 403, check client scopes include system.status)"
 fi
 
 log "=== 5b system/status ==="
@@ -153,11 +154,11 @@ fi
 if grep -q 'event: heartbeat' "${SSE_FILE}"; then
   ok "SSE heartbeat"
 else
-  log "WARN SSE no heartbeat in 18s window（慢机可忽略一次）"
+  log "WARN SSE no heartbeat in 18s window (ok to ignore once on a slow machine)"
 fi
 
 if [[ "${SKIP_NOTIFY}" != "true" ]] && command -v psql >/dev/null 2>&1 && [[ -n "${PGPASSWORD}" ]]; then
-  log "=== 8 NOTIFY 与 SSE change ==="
+  log "=== 8 NOTIFY and SSE change ==="
   V0="$(
     curl -sS "${BASE_URL}/v1/changes/watermarks" "${AUTH[@]}" \
       | jq -r '[.items[] | select(.topic=="inventory") | .version] | first // 0'
@@ -176,7 +177,7 @@ if [[ "${SKIP_NOTIFY}" != "true" ]] && command -v psql >/dev/null 2>&1 && [[ -n 
   if grep -q 'event: change' "${SSE_FILE}" && grep -q 'inventory' "${SSE_FILE}"; then
     ok "SSE change inventory"
   else
-    fail "SSE missed change after app_touch_watermark（查 LISTEN / 触发器 / 同库）"
+    fail "SSE missed change after app_touch_watermark (check LISTEN / trigger / same database)"
   fi
   V1="$(
     curl -sS "${BASE_URL}/v1/changes/watermarks" "${AUTH[@]}" \
@@ -188,7 +189,7 @@ if [[ "${SKIP_NOTIFY}" != "true" ]] && command -v psql >/dev/null 2>&1 && [[ -n 
     fail "watermark not bumped V0=${V0} V1=${V1}"
   fi
 else
-  log "skip NOTIFY（无 psql 或 Postgres__Password 空）"
+  log "skip NOTIFY (no psql, or Postgres__Password empty)"
 fi
 
 log "=== result fails=${FAILS} ==="

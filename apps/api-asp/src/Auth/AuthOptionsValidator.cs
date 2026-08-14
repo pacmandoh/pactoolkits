@@ -98,6 +98,12 @@ public sealed partial class AuthOptionsValidator : IValidateOptions<AuthOptions>
             failures.Add("Auth:Clients must include at least one enabled client in Production");
         }
 
+        var unlockHash = options.UnlockPasswordHash?.Trim() ?? string.Empty;
+        if (unlockHash.Length > 0 && !ApiKeyHasher.IsSha256Hex(unlockHash))
+        {
+            failures.Add("Auth:UnlockPasswordHash must be 64-char SHA-256 hex when set");
+        }
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

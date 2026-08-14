@@ -34,8 +34,12 @@ public static class MsfxEndpoints
         routes.MapGet("/v1/msfx/inject/{id:long}/split-codes", GetSplitCodes).RequireAuthorization(AuthPolicies.Read);
         routes.MapPost("/v1/msfx/inject/{id:long}/split-custom", SplitInjectCustom)
             .RequireAuthorization(AuthPolicies.Write);
+        routes.MapGet("/v1/msfx/mapping/status", GetMappingStatus).RequireAuthorization(AuthPolicies.Read);
         return routes;
     }
+
+    private static async Task<IResult> GetMappingStatus(ISyncService sync, CancellationToken ct)
+        => Results.Ok(await sync.GetMappingStatusSnapshotAsync(ct).ConfigureAwait(false));
 
     private static async Task<IResult> GetBoard(ISyncService sync, CancellationToken ct)
         => Results.Ok(await sync.GetAutoBoardSnapshotAsync(ct).ConfigureAwait(false));
