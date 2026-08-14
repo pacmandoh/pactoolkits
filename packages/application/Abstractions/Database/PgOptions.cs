@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// Postgres 连接与池/监控超时参数
+/// Postgres 连接与池超时参数
 /// </summary>
 public sealed class PgOptions
 {
@@ -14,8 +14,5 @@ public sealed class PgOptions
     public int ConnectTimeoutSeconds { get; set; } = 6;
     public int CommandTimeoutSeconds { get; set; } = 30;
     public int PoolSize { get; set; } = 20;
-    public int ReconnectIntervalSeconds { get; set; } = 2;
     public int KeepAliveSeconds { get; set; } = 5;
-    public int MonitorPingSeconds { get; set; } = 5;
-    public int MonitorPingTimeoutSeconds { get; set; } = 3;
 }

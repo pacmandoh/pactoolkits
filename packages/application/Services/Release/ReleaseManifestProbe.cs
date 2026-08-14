@@ -4,22 +4,17 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 探测发布通道 manifest 身份与本地 Schema 兼容范围
+/// 探测目标通道 release-manifest：Feed 可达、通道一致、读出 product.version
 /// </summary>
 public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
 {
     public const string HttpClientName = "pac-release-manifest";
 
-    private readonly IDbSchemaGate _schemaGate;
     private readonly IAppLogger _logger;
     private readonly HttpClient _http;
 
-    public ReleaseManifestProbeService(
-        IDbSchemaGate schemaGate,
-        IAppLogger logger,
-        HttpClient http)
+    public ReleaseManifestProbeService(IAppLogger logger, HttpClient http)
     {
-        _schemaGate = schemaGate ?? throw new ArgumentNullException(nameof(schemaGate));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _http = http ?? throw new ArgumentNullException(nameof(http));
     }
@@ -27,7 +22,6 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
     public async Task<ReleaseManifestProbe> ProbeAsync(
         string? baseFeedUrl,
         string targetChannel,
-        PgOptions pgOptions,
         CancellationToken ct = default)
     {
         if (!AppUpdatePolicy.TryNormalizeChannel(targetChannel, out var channel))
@@ -97,33 +91,13 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
                 $"更新源通道不匹配：请求 {channel}，清单为 {manifest.Channel}");
         }
 
-        var schema = await _schemaGate.ReadAsync(pgOptions, ct).ConfigureAwait(false);
-        var compatibility = _schemaGate.Match(schema, manifest.RequiredMinDbSchema, manifest.RequiredMaxDbSchema);
-        if (!compatibility.IsCompatible)
-        {
-            return new ReleaseManifestProbe(
-                false,
-                channel,
-                targetFeedUrl,
-                manifestUrl,
-                manifest.ProductVersion,
-                schema.Value,
-                manifest.RequiredMinDbSchema,
-                manifest.RequiredMaxDbSchema,
-                DbSchemaDesktop.GateBlock(compatibility));
-        }
-
         return new ReleaseManifestProbe(
             true,
             channel,
             targetFeedUrl,
             manifestUrl,
             manifest.ProductVersion,
-            schema.Value,
-            manifest.RequiredMinDbSchema,
-            manifest.RequiredMaxDbSchema,
-            $"目标 {channel} Feed 可用，数据库 {schema.Value} 位于支持范围 " +
-            $"{manifest.RequiredMinDbSchema} - {manifest.RequiredMaxDbSchema}");
+            $"目标 {channel} Feed 可用（{manifest.ProductVersion}）");
     }
 
     internal static string ResolveChannelManifestUrl(string? baseFeedUrl, string channel)
@@ -175,14 +149,7 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
         var root = document.RootElement;
         var productVersion = ReadRequiredString(root.GetProperty("product"), "version");
         var channel = ReadRequiredString(root.GetProperty("release"), "channel");
-        var components = root.GetProperty("components");
-        var desktop = ReleaseManifestDesktop.GetRequiredAvalonia(components);
-
-        return new ChannelManifest(
-            NormalizeManifestChannel(channel),
-            productVersion,
-            ReadRequiredString(desktop, "minDbSchema"),
-            ReadRequiredString(desktop, "maxDbSchema"));
+        return new ChannelManifest(NormalizeManifestChannel(channel), productVersion);
     }
 
     private static string NormalizeManifestChannel(string channel)
@@ -204,12 +171,7 @@ public sealed class ReleaseManifestProbeService : IReleaseManifestProbeService
     }
 
     private static ReleaseManifestProbe Failed(string channel, string feedUrl, string manifestUrl, string message)
-        => new(false, channel, feedUrl, manifestUrl, string.Empty,
-            null, "unknown", "unknown", message);
+        => new(false, channel, feedUrl, manifestUrl, string.Empty, message);
 
-    private sealed record ChannelManifest(
-        string Channel,
-        string ProductVersion,
-        string RequiredMinDbSchema,
-        string RequiredMaxDbSchema);
+    private sealed record ChannelManifest(string Channel, string ProductVersion);
 }

@@ -19,13 +19,14 @@ public sealed class DbSchemaGate : IDbSchemaGate
     public Task<DbSchemaVersionRead> ReadAsync(CancellationToken ct = default)
         => _schemaVersion.TryReadSchemaVersionAsync(ct);
 
-    public Task<DbSchemaVersionRead> ReadAsync(PgOptions options, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        return _schemaVersion.TryReadSchemaVersionAsync(options, ct);
-    }
-
     public DbSchemaCompatibilityResult Match(
+        DbSchemaVersionRead schema,
+        string min,
+        string max)
+        => Classify(schema, min, max);
+
+    /// <summary>已有读结果上的闭区间判定（含读失败 / 元数据缺失）</summary>
+    public static DbSchemaCompatibilityResult Classify(
         DbSchemaVersionRead schema,
         string min,
         string max)

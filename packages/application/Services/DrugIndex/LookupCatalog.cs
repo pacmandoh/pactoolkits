@@ -34,6 +34,18 @@ public sealed class LookupCatalogService : ILookupCatalogService
         _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));
     }
 
+    public async Task<IReadOnlyList<string>> GetClientIdsAsync(CancellationToken ct, bool forceRefresh = false)
+    {
+        _ = forceRefresh;
+        if (IsCatalogAccessBlocked())
+        {
+            return Array.Empty<string>();
+        }
+
+        var rows = await _dashboardRepo.GetClientNamesAsync(ct).ConfigureAwait(false);
+        return rows.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
+    }
+
     public async Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)
     {
         if (IsCatalogAccessBlocked())
