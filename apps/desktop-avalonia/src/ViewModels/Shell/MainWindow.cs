@@ -12,7 +12,6 @@ using global::Avalonia.Styling;
 using global::Avalonia.Threading;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
 using PacToolkits.Desktop.Avalonia.Diagnostics;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
@@ -21,7 +20,6 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Navigation;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Notifications;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Platform;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Runtime;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
@@ -34,9 +32,8 @@ using ShadUI;
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 /// <summary>
-/// 协调主窗口导航、页面生命周期、Shell 连接反馈、配置重载和更新轮询
-///
-/// 业务门禁与横幅只跟 PacApi 可用性
+/// 主窗口：导航、页面生命周期、Shell 连接、配置重载、更新轮询
+/// 业务门禁与横幅只跟 PacAPI 可用性
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
@@ -66,16 +63,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IDialogService _dialogs;
     private readonly IToastService _toasts;
     private readonly IAppConfigStore _appConfigStore;
-    private readonly IDbConfigNotifier _dbConfigNotifier;
-    private readonly IDbConnectionTester _dbConnectionTester;
-    private readonly IDbConnectionMonitorService _dbMonitor;
     private readonly IApiAvailabilityService _apiAvailability;
     private readonly ILookupCatalogService _lookup;
-    private readonly ISettingsService _settings;
     private readonly IChangeWatermarkService _changeWatermark;
     private readonly IAgentsManager _agentsManager;
     private readonly IReleaseVersionService _releaseVersion;
-    private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IUpdateFlowService _updateFlow;
@@ -89,7 +81,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly string _configDir;
     private readonly string _configFile;
     private FileSystemWatcher? _configWatcher;
-    private volatile bool _isApplyingConfig;
     private string? _lastSeenConfigJson;
 
     private readonly TimeSpan _autoRefreshDebounce = TimeSpan.FromMilliseconds(180);
@@ -177,7 +168,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         var version = _releaseVersion.Current;
-        await _dialogs.ShowAppInfo(new AppInfoArgs(version.ProductVersion, version.BuildDate));
+        await _dialogs.ShowAppInfo(new AppInfoArgs(
+            version.ProductVersion,
+            version.DesktopVersion,
+            version.AgentsVersion,
+            version.MinApiContract,
+            version.MaxApiContract,
+            version.BuildDate));
     }
 
     [RelayCommand]
@@ -381,7 +378,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _sessionHadServiceDown = false;
         _lastServiceOkToastAt = now;
-        _toasts.Info("PacApi 服务已恢复", "连接已恢复");
+        _toasts.Info("PacAPI 服务已恢复", "连接已恢复");
     }
 
     private void SyncServicePagesAvailability(ApiAvailabilitySnapshot api)
@@ -481,18 +478,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IToastService toasts,
         IDialogService dialogs,
         IAppConfigStore appConfigStore,
-        IDbConfigNotifier dbConfigNotifier,
-        IDbConnectionTester dbConnectionTester,
         ToastManager toastManager,
         DialogManager dialogManager,
-        IDbConnectionMonitorService dbMonitor,
         IApiAvailabilityService apiAvailability,
         ILookupCatalogService lookup,
-        ISettingsService settings,
         IChangeWatermarkService changeWatermark,
         IAgentsManager agentsManager,
         IReleaseVersionService releaseVersion,
-        IAppStartupStateService startupState,
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
         IUpdateFlowService updateFlow,
@@ -506,16 +498,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _toasts = toasts;
         _dialogs = dialogs;
         _appConfigStore = appConfigStore ?? throw new ArgumentNullException(nameof(appConfigStore));
-        _dbConfigNotifier = dbConfigNotifier ?? throw new ArgumentNullException(nameof(dbConfigNotifier));
-        _dbConnectionTester = dbConnectionTester ?? throw new ArgumentNullException(nameof(dbConnectionTester));
-        _dbMonitor = dbMonitor ?? throw new ArgumentNullException(nameof(dbMonitor));
         _apiAvailability = apiAvailability ?? throw new ArgumentNullException(nameof(apiAvailability));
         _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
-        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
         _agentsManager = agentsManager ?? throw new ArgumentNullException(nameof(agentsManager));
         _releaseVersion = releaseVersion ?? throw new ArgumentNullException(nameof(releaseVersion));
-        _startupState = startupState ?? throw new ArgumentNullException(nameof(startupState));
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
         _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
         _observedUpdateOptions = _updateSettings.Current;
@@ -539,8 +526,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 new { page = page.GetType().Name },
                 LogTrace.Current));
 
-
-        _dbConfigNotifier.Applied += OnDbConfigAppliedEvent;
 
         ToastManager = toastManager;
         DialogManager = dialogManager;
@@ -567,9 +552,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         RebuildFilteredSidebarPages();
         CurrentTheme = ResolveThemeMode(global::Avalonia.Application.Current?.RequestedThemeVariant);
 
-        // 本机 monitor 只给 Settings 测库；连断不进业务横幅，重连时刷新 Settings schema 展示
-        _dbMonitor.Reconnected += OnDbReconnectedRefreshSchema;
-        _dbMonitor.ConnectionFailed += OnDbMonitorFailed;
         _changeWatermark.TopicChanged += OnTopicChanged;
         _apiAvailability.Changed += OnApiAvailabilityChanged;
 
@@ -596,16 +578,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            if (File.Exists(_configPath))
-            {
-                _dbMonitor.Start();
-            }
-
             // 周期探测自己做首检；未配置时不发 HTTP
             _apiAvailability.Start();
 
-            await CheckDbOnStartupAsync().ConfigureAwait(false);
-            await RefreshSchemaStatusAsync("startup_postcheck").ConfigureAwait(false);
             MarkDirtyByType<MsfxLink>();
 
             if (_apiAvailability.IsConfigured)
@@ -620,7 +595,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            _startupState.MarkDbInitCompleted();
             ScheduleAutoRefresh();
         }
     }
@@ -861,11 +835,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         value?.SyncPageAvailability();
-
-        if (value is Settings settingsPage)
-        {
-            ObserveDetached(settingsPage.RefreshSchemaStatusAsync("open_settings"), "schema.refresh.detached.fail");
-        }
 
         if (value is not null
             && value.ShowInSidebar
@@ -1189,140 +1158,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         });
     }
 
-    private async Task<bool> CheckDbOnStartupAsync()
-    {
-        if (!File.Exists(_configPath))
-        {
-            return false;
-        }
-
-        _logger.Info("MainWindowVM", "db.startup_check.start", "Checking database connectivity on startup");
-        var test = await _dbConnectionTester
-            .TestAsync(_settings.AppliedDb, CancellationToken.None)
-            .ConfigureAwait(false);
-        var ok = test.Ok;
-        if (!ok)
-        {
-            _logger.Warn("MainWindowVM", "db.startup_check.fail", "Database connection test failed on startup");
-            return false;
-        }
-
-        try
-        {
-            var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
-            if (!state.Compatible)
-            {
-                _toasts.Error("数据库版本不兼容", state.Message);
-                var logContext = new
-                {
-                    desktopMin = state.DesktopMin,
-                    desktopMax = state.DesktopMax,
-                    target = state.Target,
-                    dbVersion = state.DbVersion,
-                    schemaOk = state.SchemaOk,
-                    compatibility = state.Compatibility,
-                    reason = state.Reason
-                };
-
-                if (state.SchemaOk && string.Equals(state.Compatibility, "BelowMinimum", StringComparison.Ordinal))
-                {
-                    _logger.Warn("MainWindowVM", "db.schema.external_update_required.startup",
-                        "Database schema below app minimum; external update required before Settings local access",
-                        null,
-                        logContext);
-                }
-                else
-                {
-                    _logger.Error("MainWindowVM", "db.schema.incompatible.startup",
-                        "Database schema incompatible during startup",
-                        null,
-                        logContext);
-                }
-
-                return false;
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("MainWindowVM", "db.startup_check.fail", "Database startup check failed", ex);
-            var openSettings = await _dialogs.Confirm(
-                    "数据库检查失败",
-                    $"数据库连接或结构检查失败：{ex.Message}\n请前往 [设置] 检查连接后重试")
-                .ConfigureAwait(false);
-
-            if (openSettings)
-            {
-                await RunOnUiAsync(OpenSettings);
-            }
-
-            return false;
-        }
-    }
-
-    private DbSchemaVersionContext BuildSchemaContext()
-    {
-        var version = _releaseVersion.Current;
-        return new DbSchemaVersionContext(
-            version.DesktopMinDbSchema,
-            version.DesktopMaxDbSchema,
-            version.DbSchemaVersion);
-    }
-
-    private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync()
-    {
-        var snapshot = await _settings
-            .GetSchemaStatusAsync(BuildSchemaContext(), CancellationToken.None)
-            .ConfigureAwait(false);
-
-        if (snapshot.Satisfied)
-        {
-            _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version compatible", new
-            {
-                schemaValue = snapshot.CurrentVersion,
-                target = snapshot.TargetVersion,
-                desktopMin = snapshot.RequiredMinVersion,
-                desktopMax = snapshot.RequiredMaxVersion
-            });
-        }
-        else
-        {
-            _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
-            {
-                target = snapshot.TargetVersion,
-                desktopMin = snapshot.RequiredMinVersion,
-                desktopMax = snapshot.RequiredMaxVersion,
-                schemaOk = snapshot.SchemaOk,
-                schemaValue = snapshot.CurrentVersion,
-                schemaReason = snapshot.Reason,
-                compatibility = snapshot.Compatibility.ToString()
-            });
-        }
-
-        return new DbSchemaStartupState(
-            Compatible: snapshot.Satisfied,
-            Message: snapshot.IncompatibleMessage ?? "数据库版本不兼容",
-            Target: snapshot.TargetVersion,
-            DesktopMin: snapshot.RequiredMinVersion,
-            DesktopMax: snapshot.RequiredMaxVersion,
-            SchemaOk: snapshot.SchemaOk,
-            DbVersion: snapshot.CurrentVersion,
-            Compatibility: snapshot.Compatibility.ToString(),
-            Reason: snapshot.Reason);
-    }
-
-    private sealed record DbSchemaStartupState(
-        bool Compatible,
-        string Message,
-        string Target,
-        string DesktopMin,
-        string DesktopMax,
-        bool SchemaOk,
-        string? DbVersion,
-        string Compatibility,
-        string? Reason);
-
     private async Task AlignUpdateChannelOnStartupAsync()
     {
         await _updates.AlignChannelAsync(
@@ -1360,32 +1195,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             logScope: "MainWindowVM").ConfigureAwait(false);
     }
 
-    private void OnDbMonitorFailed(string reason)
-        => _logger.Warn("MainWindowVM", "db.monitor.fail", "Local DB monitor reported failure", null, new { reason });
-
-    private void OnDbReconnectedRefreshSchema()
-        => ObserveDetached(RefreshSchemaStatusAsync("db_reconnected"), "schema.refresh.detached.fail");
-
-    private async Task RefreshSchemaStatusAsync(string source)
-    {
-        if (_settingsPage is not Settings settingsPage)
-        {
-            return;
-        }
-
-        try
-        {
-            await settingsPage.RefreshSchemaStatusAsync(source).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn("MainWindowVM", "db.schema.status.refresh.fail", "Failed to refresh DB schema status for Settings page", ex, new
-            {
-                source
-            });
-        }
-    }
-
     private void OnUpdateChanged()
     {
         PostOnUi(() =>
@@ -1418,10 +1227,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _disposed = true;
 
-        SafeExecute(() => _dbConfigNotifier.Applied -= OnDbConfigAppliedEvent);
         SafeExecute(() => _nav.NavigationRequested -= OnNavigationRequested);
-        SafeExecute(() => _dbMonitor.ConnectionFailed -= OnDbMonitorFailed);
-        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedRefreshSchema);
         SafeExecute(() => _apiAvailability.Changed -= OnApiAvailabilityChanged);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnTopicChanged);
         SafeExecute(DetachChromeHooks);

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using PacToolkits.Agents.Contracts.Agents;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
 /// 仅监视 Host 入口热更（模块热更在 Host）；双次稳定采样

@@ -11,7 +11,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>Shell 侧 PacApi 探测结果（仅已配置时才有意义）</summary>
+/// <summary>Shell 侧 PacAPI 探测结果（仅已配置时才有意义）</summary>
 public enum ApiAvailabilityState
 {
     Connecting,
@@ -37,6 +37,21 @@ public interface IApiAvailabilityService : IDisposable
     /// <summary>本机是否已配置 BaseUrl+ApiKey；未配置时不探测、不谈 API 状态</summary>
     bool IsConfigured { get; }
 
+    /// <summary>最近一次 info 的 apiVersion；Ready 稳态只探 status 时沿用</summary>
+    string? LastApiVersion { get; }
+
+    /// <summary>最近一次 info 的 contractVersion；Ready 稳态只探 status 时沿用</summary>
+    string? LastContractVersion { get; }
+
+    /// <summary>最近一次 status 的 database；未探到则为 null</summary>
+    string? LastDatabase { get; }
+
+    /// <summary>最近一次 status 的 schema；未探到则为 null</summary>
+    string? LastSchema { get; }
+
+    /// <summary>最近一次 status 的 schemaVersion；未探到则为 null</summary>
+    string? LastSchemaVersion { get; }
+
     event Action? Changed;
 
     void Start();
@@ -48,7 +63,7 @@ public interface IApiAvailabilityService : IDisposable
 }
 
 /// <summary>
-/// 聚合 PacApi 系统端点为 Shell 可用性快照
+/// 聚合 PacAPI 系统端点为 Shell 可用性快照
 ///
 /// 未配置时不发 HTTP、不更新探测态；协议区间与 PacApiContractGate 同口径
 /// </summary>
@@ -77,9 +92,9 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         CheckedAt: DateTimeOffset.MinValue,
         FirstCheckCompleted: false);
 
-    // 与 PacApiClient.ConfigEpoch 对齐；密钥被拒后挂起自动探测，等热更新后再探
+    // 与 PacApiClient.ConfigEpoch 对齐；密钥被拒后挂起自动探测，等保存配置后再探
     private int _authFailEpoch = -1;
-    // 换票 429：按 Retry-After（缺省 60s）暂停探测；配置热更新抬 ConfigEpoch 后解除
+    // 换票 429：按 Retry-After（缺省 60s）暂停探测；保存配置抬 ConfigEpoch 后解除
     private DateTimeOffset _rateLimitUntil = DateTimeOffset.MinValue;
     private int _rateLimitEpoch = -1;
 
@@ -99,6 +114,16 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
     }
 
     public bool IsConfigured => _api.IsConfigured;
+
+    public string? LastApiVersion { get; private set; }
+
+    public string? LastContractVersion { get; private set; }
+
+    public string? LastDatabase { get; private set; }
+
+    public string? LastSchema { get; private set; }
+
+    public string? LastSchemaVersion { get; private set; }
 
     public ApiAvailabilityService(
         PacApiClient api,
@@ -161,7 +186,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            // 预算耗尽：刚才还连着 PacApi 时不要标成进程不可达；schema/协议阻断保持原态
+            // 预算耗尽：刚才还连着 PacAPI 时不要标成进程不可达；schema/协议阻断保持原态
             var prev = Current;
             var state = TimeoutState(prev.State);
             Publish(new ApiAvailabilitySnapshot(
@@ -210,7 +235,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
                 }
                 else if (IsAuthFailHoldActive())
                 {
-                    // 密钥已拒：不发 HTTP；配置热更新抬 ConfigEpoch 后再探
+                    // 密钥已拒：不发 HTTP；保存配置抬 ConfigEpoch 后再探
                     if (_authFailEpoch != _api.ConfigEpoch)
                     {
                         _authFailEpoch = -1;
@@ -289,6 +314,8 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
                     .ConfigureAwait(false)
                     ?? throw new InvalidOperationException("empty /v1/system/info response");
 
+                LastApiVersion = info.ApiVersion;
+                LastContractVersion = info.ContractVersion;
                 var contractBlock = ClassifyContract(info.ContractVersion);
                 if (contractBlock is not null)
                 {
@@ -305,7 +332,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
             {
                 return new ApiAvailabilitySnapshot(
                     ApiAvailabilityState.Unavailable,
-                    Detail: "PacApi 服务返回空状态",
+                    Detail: "PacAPI 服务返回空状态",
                     CheckedAt: at,
                     FirstCheckCompleted: true);
             }
@@ -439,13 +466,13 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
 
             if (string.Equals(pac.Code, "transport", StringComparison.OrdinalIgnoreCase))
             {
-                return "无法连接 PacApi 服务，请检查地址与网络";
+                return "无法连接 PacAPI 服务，请检查地址与网络";
             }
 
             if (string.Equals(pac.Code, "timeout", StringComparison.OrdinalIgnoreCase)
                 || pac.Status is 408)
             {
-                return "连接 PacApi 服务超时，请检查地址与网络";
+                return "连接 PacAPI 服务超时，请检查地址与网络";
             }
         }
 
@@ -460,20 +487,20 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
     {
         if (!string.Equals(status.Database, "ok", StringComparison.OrdinalIgnoreCase))
         {
-            return "PacApi 服务已连接，但服务端数据库不可用";
+            return "PacAPI 服务已连接，但服务端数据库不可用";
         }
 
         return status.Schema switch
         {
             "incompatible" => "服务端数据库结构不兼容",
             "metadata_missing" => "服务端数据库缺少结构元数据",
-            "unavailable" => "PacApi 服务已连接，但暂时无法读取数据库结构",
-            "skipped" => "PacApi 服务已连接，但服务端数据库不可用",
-            _ => "PacApi 服务已连接，但服务端数据库不可用",
+            "unavailable" => "PacAPI 服务已连接，但暂时无法读取数据库结构",
+            "skipped" => "PacAPI 服务已连接，但服务端数据库不可用",
+            _ => "PacAPI 服务已连接，但服务端数据库不可用",
         };
     }
 
-    /// <summary>密钥无效：自动探测挂起直到配置热更新</summary>
+    /// <summary>密钥无效：自动探测挂起直到保存配置</summary>
     internal static bool IsCredentialRejected(Exception ex)
     {
         if (ex is not PacApiException pac)
@@ -543,10 +570,10 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         => prev switch
         {
             ApiAvailabilityState.ServerDatabaseBlocked
-                => "PacApi 服务已连接，但服务端数据库不可用",
+                => "PacAPI 服务已连接，但服务端数据库不可用",
             ApiAvailabilityState.SchemaBlocked => "服务端数据库结构不兼容",
-            ApiAvailabilityState.ContractBlocked => "与 PacApi 服务协议版本不兼容，业务功能已阻断",
-            _ => "PacApi 服务探测超时",
+            ApiAvailabilityState.ContractBlocked => "与 PacAPI 服务协议版本不兼容，业务功能已阻断",
+            _ => "PacAPI 服务探测超时",
         };
 
     private string? ClassifyContract(string? contractVersion)
@@ -559,7 +586,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
             || string.Equals(min, "unknown", StringComparison.OrdinalIgnoreCase)
             || string.Equals(max, "unknown", StringComparison.OrdinalIgnoreCase))
         {
-            return "客户端缺少 PacApi 服务协议版本范围，请更新客户端";
+            return "客户端缺少 PacAPI 服务协议版本范围，请更新客户端";
         }
 
         return PacApiContractGate.ClassifyBlockReason(contractVersion, min, max);
@@ -585,11 +612,19 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         }
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        return await JsonSerializer.DeserializeAsync(
+        var status = await JsonSerializer.DeserializeAsync(
                 stream,
                 PacJsonContext.Default.PacApiSystemStatus,
                 ct)
             .ConfigureAwait(false);
+        if (status is not null)
+        {
+            LastDatabase = status.Database;
+            LastSchema = status.Schema;
+            LastSchemaVersion = status.SchemaVersion;
+        }
+
+        return status;
     }
 
     /// <summary>未配置：回 idle，勿留下「服务不可用」假象；探测枚举对 UI 无意义</summary>

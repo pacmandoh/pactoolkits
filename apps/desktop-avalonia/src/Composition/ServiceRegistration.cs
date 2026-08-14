@@ -1,12 +1,12 @@
+using System.Net.Http;
 using System.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
+using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Navigation;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
@@ -14,8 +14,9 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Logging;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Navigation;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Notifications;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Platform;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Runtime;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
+using PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
+using PacToolkits.Desktop.Avalonia.Services.Integration.Msfx;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Tasks;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Unlock;
@@ -25,27 +26,17 @@ using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using PacToolkits.Desktop.Avalonia.Views.Dialogs;
-using PacToolkits.Infrastructure.Database;
-using PacToolkits.Infrastructure.Msfx;
 using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Composition;
 
-/// <summary>Desktop DI 组装入口：注册应用服务、基础设施实现和 UI 服务</summary>
+/// <summary>Desktop DI 组装入口：注册应用服务与 UI 服务</summary>
 public static class ServiceRegistration
 {
     public static IServiceCollection AddPacToolkitsUiServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddDesktopInfrastructure(config);
-        services.AddPacToolkitsInfrastructure(config);
-        services.AddPacToolkitsApplication();
-        services.Replace(ServiceDescriptor.Singleton<IDashboardService, ApiDashboard>());
-        services.Replace(ServiceDescriptor.Singleton<IChangeWatermarkService, ApiChangeWatermark>());
-        services.Replace(ServiceDescriptor.Singleton<ILookupCatalogService, ApiLookupCatalog>());
-        services.Replace(ServiceDescriptor.Singleton<IDrugIndexService, ApiDrugIndex>());
-        services.Replace(ServiceDescriptor.Singleton<IScanCodeService, ApiScanCode>());
-        services.Replace(ServiceDescriptor.Singleton<IInventoryOverviewService, ApiInventory>());
-        services.Replace(ServiceDescriptor.Singleton<ISyncService, ApiSync>());
+        services.AddDesktopApplication();
         services.AddUiShell();
         services.AddDesktopMsfxUpdate();
         services.AddDesktopWorkspace();
@@ -62,7 +53,6 @@ public static class ServiceRegistration
         services.AddSingleton<IConfiguration>(config);
         services.AddSingleton<AppConfigStore>();
         services.AddSingleton<IAppConfigStore>(sp => sp.GetRequiredService<AppConfigStore>());
-        services.AddSingleton<IDbOptionsStore>(sp => sp.GetRequiredService<AppConfigStore>());
         services.AddSingleton<IClientAliasStore, ClientAliasStore>();
         services.AddSingleton<ITraceCodeRuleStore, TraceCodeRuleStore>();
         services.AddSingleton<IUpdateSettingsStore, UpdateSettingsStore>();
@@ -75,9 +65,37 @@ public static class ServiceRegistration
         // 覆盖 AddPacApiClient 的 AllowAll；要读清单区间，须排在 PacApiClient 与 ReleaseVersion 之后
         services.AddSingleton<IPacApiContractGate, PacApiContractGate>();
         services.AddSingleton<IApiAvailabilityService, ApiAvailabilityService>();
-        services.AddSingleton<IAppStartupStateService, AppStartupStateService>();
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IDialogService, DialogService>();
+        return services;
+    }
+
+    private static IServiceCollection AddDesktopApplication(this IServiceCollection services)
+    {
+        services.AddSingleton<IDashboardService, ApiDashboard>();
+        services.AddSingleton<IChangeWatermarkService, ApiChangeWatermark>();
+        services.AddSingleton<ILookupCatalogService, ApiLookupCatalog>();
+        services.AddSingleton<IDrugIndexService, ApiDrugIndex>();
+        services.AddSingleton<IScanCodeService, ApiScanCode>();
+        services.AddSingleton<IInventoryOverviewService, ApiInventory>();
+        services.AddSingleton<ISyncService, ApiSync>();
+        services.AddSingleton<ApiMsfxRunLock>();
+        services.AddSingleton<IMsfxPullRepo, ApiMsfxPull>();
+        services.AddSingleton<IMsfxIngestRepo, ApiMsfxIngest>();
+        services.AddSingleton<IMsfxMappingRepo, ApiMsfxMapping>();
+        services.AddSingleton<IMsfxInjectRepo, ApiMsfxInject>();
+        services.AddSingleton<IMsfxAutoRunService, MsfxAutoRunService>();
+        services.AddSingleton<IAgentsAdmitService, AgentsAdmitService>();
+        services.AddSingleton<IAgentsBundleService, AgentsBundleService>();
+        services.AddSingleton<IClientAliasService, ClientAliasService>();
+        services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
+        services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
+        services.AddSingleton<SensitiveUnlockSession>();
+        services.AddSingleton<IReleaseManifestProbeService>(sp =>
+            new ReleaseManifestProbeService(
+                sp.GetRequiredService<IAppLogger>(),
+                sp.GetRequiredService<IHttpClientFactory>()
+                    .CreateClient(ReleaseManifestProbeService.HttpClientName)));
         return services;
     }
 
@@ -108,7 +126,6 @@ public static class ServiceRegistration
     {
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddMsfxApiClient();
-        // Application 已注册同名 client；此处再挂标准 Resilience（探测用 GET）
         // Timeout 交给 Resilience 总预算，避免 HttpClient 先截断重试
         services.AddHttpClient(ReleaseManifestProbeService.HttpClientName)
             .ConfigureHttpClient(static client => client.Timeout = Timeout.InfiniteTimeSpan)

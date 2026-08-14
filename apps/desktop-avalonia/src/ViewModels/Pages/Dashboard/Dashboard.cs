@@ -32,7 +32,6 @@ public sealed partial class Dashboard : AppPageBase
     public override string DisplayName => "概览";
     public override string Icon => "LayoutPanelLeft";
     public override int Index => 0;
-    protected override bool RequiresLocalDbForReload => false;
 
     private readonly IDashboardService _dashboard;
     private readonly ILookupCatalogService _lookup;

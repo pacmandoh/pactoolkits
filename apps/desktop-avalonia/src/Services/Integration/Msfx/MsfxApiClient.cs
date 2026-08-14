@@ -1,11 +1,17 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 
-namespace PacToolkits.Infrastructure.Msfx;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Msfx;
 
 /// <summary>
 /// 码上放心（MSFX）HTTP API 客户端

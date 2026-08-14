@@ -13,7 +13,7 @@ using PacToolkits.Application.Diagnostics;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Ui.Threading;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>Host 进程 OS 启停、二进制热更、Host 门禁</summary>
 public sealed partial class AgentsRuntime
@@ -126,6 +126,7 @@ public sealed partial class AgentsRuntime
                 WorkingDirectory = Path.GetDirectoryName(resolvedExePath) ?? Environment.CurrentDirectory,
                 UseShellExecute = false,
             };
+            ApplyAgentsApiEnvironment(startInfo);
 
             _projection.ClearModuleErrors();
             _desired.ClearAll();
@@ -174,13 +175,17 @@ public sealed partial class AgentsRuntime
                 }
 
                 var candidates = enabled
-                    .Select(m => new AgentsModuleDbBound(m.Id, m.MinDbSchema, m.MaxDbSchema))
+                    .Select(m => new AgentsModuleBound(m.Id, m.MinApiContract, m.MaxApiContract))
                     .ToList();
 
-                // 只写入通过门禁的 id；Host 不再次过滤 schema
-                // AdmitMany：多模块共享一次 schema 读
+                // 只写入通过门禁的 id；协议由 Desktop 门禁判定
+                // AdmitMany：多模块共享一次探测到的 contractVersion
                 var planned = new List<string>();
-                var admits = await _admit.AdmitManyAsync(candidates, IsDatabaseConnected, linked.Token)
+                var admits = await _admit.AdmitManyAsync(
+                        candidates,
+                        IsApiReady,
+                        _availability?.LastContractVersion,
+                        linked.Token)
                     .ConfigureAwait(false);
 
                 for (var i = 0; i < admits.Count; i++)
@@ -192,11 +197,6 @@ public sealed partial class AgentsRuntime
                     if (!admit.Ok)
                     {
                         NoteAdmitDeniedOnColdStart(admit, moduleId);
-                        continue;
-                    }
-
-                    if (!EnsurePgConfigOrError(moduleId, bound).Ok)
-                    {
                         continue;
                     }
 
@@ -259,9 +259,9 @@ public sealed partial class AgentsRuntime
                             return FailMountWithHostAlive(id, prior);
                         }
 
-                        if (ModuleRequiresDatabase(id) && !IsDatabaseConnected)
+                        if (ModuleRequiresApi(id) && !IsApiReady)
                         {
-                            return FailMountWithHostAlive(id, $"数据库未连接，无法启动 {id}");
+                            return FailMountWithHostAlive(id, $"PacAPI 未就绪，无法启动 {id}");
                         }
 
                         return FailMountWithHostAlive(id, $"Host 已启动，但 {id} 未挂载");
@@ -612,24 +612,10 @@ public sealed partial class AgentsRuntime
 
         var modules = _projection.Modules;
 
-        var enabledDbBound = modules
-            .Where(m => IsModuleEnabled(m.Id) && m.RequiresDatabase)
-            .ToList();
-
-        // 仅当存在启用且依赖库的模块时才校验 Postgres 字段；Host 本身不连库
-        if (enabledDbBound.Count > 0)
+        var host = ValidateLaunchConfig();
+        if (!host.Ok)
         {
-            var host = ValidatePostgresLaunchConfig();
-            if (!host.Ok)
-            {
-                return host;
-            }
-        }
-        else if (cfg.SchemaVersion != 2)
-        {
-            return new AgentsCommandResult(
-                false,
-                $"配置版本不受支持：{cfg.SchemaVersion}（仅支持 SchemaVersion=2）");
+            return host;
         }
 
         foreach (var module in modules)
@@ -649,17 +635,26 @@ public sealed partial class AgentsRuntime
         return new AgentsCommandResult(true, "ok");
     }
 
-    private AgentsCommandResult ValidatePostgresLaunchConfig()
+    private AgentsCommandResult ValidateLaunchConfig()
     {
         var cfg = _configStore.Load();
-        var pg = cfg.Postgres;
-        return AgentsConfigValidator.ValidateForLaunch(new AgentsConfigValidator.LaunchContext(
-            cfg.SchemaVersion,
-            pg.Host,
-            pg.Port,
-            pg.Database,
-            pg.Username,
-            pg.Password));
+        return AgentsConfigValidator.ValidateForLaunch(new AgentsConfigValidator.LaunchContext(cfg.SchemaVersion));
+    }
+
+    private void ApplyAgentsApiEnvironment(ProcessStartInfo startInfo)
+    {
+        var pac = _configStore.Load().PacApi;
+        if (string.IsNullOrWhiteSpace(pac.BaseUrl) || string.IsNullOrWhiteSpace(pac.AgentsApiKey))
+        {
+            return;
+        }
+
+        startInfo.Environment["PAC_API_BASE_URL"] = pac.BaseUrl.Trim().TrimEnd('/');
+        startInfo.Environment["PAC_API_KEY"] = pac.AgentsApiKey;
+        if (!string.IsNullOrWhiteSpace(pac.HeaderName))
+        {
+            startInfo.Environment["PAC_API_HEADER"] = pac.HeaderName.Trim();
+        }
     }
 
 

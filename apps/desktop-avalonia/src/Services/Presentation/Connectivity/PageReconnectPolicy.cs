@@ -7,12 +7,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 /// </summary>
 public static class PageReconnectPolicy
 {
-    public static PageDataAvailability DisconnectedAvailability(bool hasLoadedOnce, bool supportsStaleWhileReconnect)
-        => hasLoadedOnce && supportsStaleWhileReconnect
-            ? PageDataAvailability.Stale
-            : PageDataAvailability.AwaitingDatabase;
-
-    /// <summary>服务瞬时不可用：有缓存进 Stale，否则 AwaitingService</summary>
+    /// <summary>服务不可用：有缓存进 Stale，否则 AwaitingService</summary>
     public static PageDataAvailability ServiceUnavailableAvailability(
         bool hasLoadedOnce,
         bool supportsStaleWhileReconnect)

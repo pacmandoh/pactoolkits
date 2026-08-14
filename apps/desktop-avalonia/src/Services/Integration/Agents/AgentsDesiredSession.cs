@@ -5,19 +5,19 @@ using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
 /// Desktop 会话 desired：**仅**已过 Desktop 策略门禁、允许 Host 挂起的模块 id
 ///
-/// 连库 / schema / 配置在本侧滤完再写；Host 只 reconcile，不解释为何不能挂
+/// 协议与 PacAPI 就绪在本侧筛完再写；Host 只 reconcile，不解释为何不能挂
 /// desired 以管道为准；host.desired.json 为冷启动种子与诊断镜像
 /// </summary>
 internal sealed class AgentsDesiredSession
 {
     private readonly object _gate;
     private readonly HashSet<string> _mount = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _pausedForDatabase = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _paused = new(StringComparer.Ordinal);
 
     public AgentsDesiredSession(object gate)
     {
@@ -76,12 +76,12 @@ internal sealed class AgentsDesiredSession
         }
     }
 
-    public void PauseForDatabase(string moduleId)
+    public void Pause(string moduleId)
     {
         lock (_gate)
         {
             _mount.Remove(moduleId);
-            _pausedForDatabase.Add(moduleId);
+            _paused.Add(moduleId);
         }
     }
 
@@ -89,7 +89,7 @@ internal sealed class AgentsDesiredSession
     {
         lock (_gate)
         {
-            _pausedForDatabase.Add(moduleId);
+            _paused.Add(moduleId);
         }
     }
 
@@ -97,7 +97,7 @@ internal sealed class AgentsDesiredSession
     {
         lock (_gate)
         {
-            _pausedForDatabase.Remove(moduleId);
+            _paused.Remove(moduleId);
         }
     }
 
@@ -105,7 +105,7 @@ internal sealed class AgentsDesiredSession
     {
         lock (_gate)
         {
-            return _pausedForDatabase.ToList();
+            return _paused.ToList();
         }
     }
 
@@ -114,7 +114,7 @@ internal sealed class AgentsDesiredSession
         lock (_gate)
         {
             _mount.Clear();
-            _pausedForDatabase.Clear();
+            _paused.Clear();
         }
     }
 

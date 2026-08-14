@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
@@ -251,7 +250,6 @@ public partial class Settings
         switch (tab)
         {
             case Tab.Connection:
-                RestoreDatabaseFields(_settings.AppliedDb);
                 SyncPacApi();
                 break;
             case Tab.ClientAliases:
@@ -304,7 +302,7 @@ public partial class Settings
     private void RefreshUnsaved()
     {
         var nextMask = 0;
-        if (IsDatabaseDirty() || IsPacApiDirty())
+        if (IsPacApiDirty())
         {
             nextMask |= 1 << (int)Tab.Connection;
         }
@@ -352,16 +350,6 @@ public partial class Settings
         _unsavedMask = nextMask;
         UnsavedChanged?.Invoke();
         OnPropertyChanged(nameof(HasUnsavedChanges));
-    }
-
-    private bool IsDatabaseDirty()
-    {
-        var applied = _settings.AppliedDb;
-        return !string.Equals(Host, applied.Host, StringComparison.Ordinal)
-               || Port != applied.Port
-               || !string.Equals(Database, applied.Database, StringComparison.Ordinal)
-               || !string.Equals(Username, applied.Username, StringComparison.Ordinal)
-               || !string.Equals(Password, applied.Password, StringComparison.Ordinal);
     }
 
     private bool IsClientAliasesDirty()
@@ -451,16 +439,6 @@ public partial class Settings
         }
 
         return true;
-    }
-
-    private void RestoreDatabaseFields(PgOptions options)
-    {
-        Host = options.Host;
-        Port = options.Port;
-        Database = options.Database;
-        Username = options.Username;
-        Password = options.Password;
-        OnPropertyChanged(nameof(Port));
     }
 
     private void CaptureClientAliasEditBaseline()
@@ -573,13 +551,9 @@ public partial class Settings
         }
     }
 
-    partial void OnHostChanged(string value) => RefreshUnsaved();
-    partial void OnPortChanged(int value) => RefreshUnsaved();
-    partial void OnDatabaseChanged(string value) => RefreshUnsaved();
-    partial void OnUsernameChanged(string value) => RefreshUnsaved();
-    partial void OnPasswordChanged(string value) => RefreshUnsaved();
     partial void OnPacApiUrlChanged(string value) => RefreshUnsaved();
     partial void OnPacApiKeyChanged(string value) => RefreshUnsaved();
+    partial void OnPacApiAgentsKeyChanged(string value) => RefreshUnsaved();
     partial void OnTraceCodeRequiredLengthChanged(int value) => RefreshUnsaved();
     partial void OnTraceCodePatternChanged(string value) => RefreshUnsaved();
     partial void OnUpdateChannelChanged(string value)

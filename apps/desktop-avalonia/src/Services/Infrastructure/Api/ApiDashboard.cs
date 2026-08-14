@@ -10,7 +10,7 @@ using PacToolkits.Application.Serialization;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>经 PacApi 的 Dashboard</summary>
+/// <summary>Dashboard 走 HTTP</summary>
 public sealed class ApiDashboard : IDashboardService
 {
     private readonly PacApiClient _api;

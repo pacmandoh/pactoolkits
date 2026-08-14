@@ -4,7 +4,7 @@ using System.Text.Json;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Models;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
 /// Agents 配置项规范化与比较（无 I/O）

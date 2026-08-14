@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading;
@@ -20,7 +21,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 /// <summary>
 /// API HTTP：换票与带 Bearer 的请求
 ///
-/// 换票、业务 API、可用性探测、SSE 分命名 HttpClient；后三者经 Jwt 附加 Bearer
+/// 换票、业务、探测、SSE 各用一个 HttpClient；后三者经 Jwt 附加 Bearer
 /// 可用性探测不经业务 GET Resilience，避免熔断挡住 Shell
 /// 不写明文 Key 到日志；baseUrl 与 apiKey 由配置或构造注入
 /// </summary>
@@ -150,7 +151,7 @@ public sealed class PacApiClient : IDisposable
         }
     }
 
-    /// <summary>当前生效的地址与密钥（含启动注入与设置热应用）</summary>
+    /// <summary>当前生效的地址与密钥（含启动注入与设置页保存后的值）</summary>
     public PacApiOptions CaptureOptions()
     {
         lock (_configGate)
@@ -164,10 +165,10 @@ public sealed class PacApiClient : IDisposable
         }
     }
 
-    /// <summary>热应用代数；设置保存后递增，供可用性探测作废「密钥失败退避」</summary>
+    /// <summary>配置代数；设置保存后递增，供可用性探测作废「密钥失败退避」</summary>
     public int ConfigEpoch => Volatile.Read(ref _configEpoch);
 
-    /// <summary>热应用设置页保存的地址与密钥；清空两边即视为未配置。已缓存 JWT 一并作废</summary>
+    /// <summary>用设置页刚保存的地址与密钥；两边都空视为未配置。已缓存 JWT 一并作废</summary>
     public void Apply(PacApiOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -231,7 +232,7 @@ public sealed class PacApiClient : IDisposable
         return new($"{baseUrl}/{relativePath.TrimStart('/')}");
     }
 
-    /// <summary>发送并反序列化 JSON；出站失败包成 <see cref="PacApiException"/></summary>
+    /// <summary>发送并反序列化 JSON；请求失败包成 <see cref="PacApiException"/></summary>
     public Task<T?> GetJsonAsync<T>(
         Func<HttpRequestMessage> createRequest,
         JsonTypeInfo<T> typeInfo,
@@ -260,6 +261,28 @@ public sealed class PacApiClient : IDisposable
         CancellationToken ct,
         Guid? commandId = null)
         => SendJsonAsync(_apiHttp, HttpMethod.Put, createRequest, typeInfo, ct, commandId ?? Guid.NewGuid());
+
+    /// <summary>POST 无正文（204）；附带 CommandId</summary>
+    public Task PostAsync(
+        Func<HttpRequestMessage> createRequest,
+        CancellationToken ct,
+        Guid? commandId = null)
+        => SendWriteNoContentAsync(HttpMethod.Post, createRequest, ct, commandId ?? Guid.NewGuid());
+
+    /// <summary>校验敏感操作口令；204 通过，否则抛 <see cref="PacApiException"/></summary>
+    public Task VerifyUnlockAsync(string password, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+        var json = JsonSerializer.Serialize(
+            new UnlockVerifyRequest(password),
+            PacJsonContext.Default.UnlockVerifyRequest);
+        return PostAsync(
+            () => new HttpRequestMessage(HttpMethod.Post, Resolve("/v1/auth/unlock/verify"))
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json"),
+            },
+            ct);
+    }
 
     /// <summary>DELETE；附带 CommandId</summary>
     public Task DeleteAsync(
@@ -738,7 +761,7 @@ public sealed class PacApiClient : IDisposable
 
             if (!IsConfigured)
             {
-                throw new InvalidOperationException("Pac API baseUrl/apiKey is not configured");
+                throw new InvalidOperationException("PacAPI baseUrl/apiKey is not configured");
             }
 
             string headerName;

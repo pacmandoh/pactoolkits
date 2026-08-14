@@ -11,7 +11,7 @@ using Polly;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>注册 PacApi 命名 HttpClient；普通 API 只对 GET 做 Resilience</summary>
+/// <summary>注册 PacAPI 的 HttpClient（按名称区分）；普通请求只对 GET 做 Resilience</summary>
 internal static class PacApiRegistration
 {
     public static IServiceCollection AddPacApiClient(this IServiceCollection services)

@@ -14,9 +14,9 @@ using PacToolkits.Application.Serialization;
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
 /// <summary>
-/// 经 API 的变更水位：SSE 只负责唤醒；version 以 GET watermarks 为准
+/// 变更水位：SSE 只负责唤醒；version 以 GET watermarks 为准
 ///
-/// 不直连 Pg NOTIFY；SSE 断了只重连流，不要把整站判成断开
+/// SSE 断了只重连流，不要把整站判成断开
 /// ready 与 change 都补查 watermark；第一次见到的 topic 只有 change 才刷页
 /// Desktop DI 唯一的 <see cref="IChangeWatermarkService"/>
 /// </summary>
@@ -396,7 +396,7 @@ public sealed class ApiChangeWatermark : IChangeWatermarkService
         await Task.Delay(delay, _time, ct).ConfigureAwait(false);
     }
 
-    /// <summary>有 Retry-After 则夹紧使用；否则 base×2^n 加抖动，封顶 60s</summary>
+    /// <summary>有 Retry-After 则收紧使用；否则 base×2^n 加抖动，封顶 60s</summary>
     internal TimeSpan ResolveSseBackoff(TimeSpan? retryAfter)
     {
         if (retryAfter is { } after && after > TimeSpan.Zero)

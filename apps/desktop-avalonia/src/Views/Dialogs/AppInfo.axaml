@@ -45,6 +45,16 @@
     <TextBlock
       Margin="0,3,0,0"
       HorizontalAlignment="Center"
+      Classes="Caption Muted"
+      Text="{Binding ComponentsText}" />
+    <TextBlock
+      Margin="0,3,0,0"
+      HorizontalAlignment="Center"
+      Classes="Caption Muted"
+      Text="{Binding ContractText}" />
+    <TextBlock
+      Margin="0,3,0,0"
+      HorizontalAlignment="Center"
       Classes="Small Muted"
       Text="{Binding ReleaseText}" />
 
@@ -60,7 +70,7 @@
       <TextBlock
         HorizontalAlignment="Center"
         Classes="Caption Muted"
-        Text="PostgreSQL · Npgsql · AutoHotkey v2" />
+        Text="PacAPI (ASP.NET) · AutoHotkey v2" />
       <TextBlock
         HorizontalAlignment="Center"
         Classes="Caption Muted"

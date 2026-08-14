@@ -76,8 +76,6 @@ public sealed class ReleaseVersionService : IReleaseVersionService
             DbSchemaVersion: ReadString(database, "version"),
             BuildChannel: ReadString(release, "channel"),
             BuildDate: ReadString(release, "date"),
-            DesktopMinDbSchema: ReadString(desktop, "minDbSchema"),
-            DesktopMaxDbSchema: ReadString(desktop, "maxDbSchema"),
             MinApiContract: ReadString(desktop, "minApiContract"),
             MaxApiContract: ReadString(desktop, "maxApiContract"));
     }

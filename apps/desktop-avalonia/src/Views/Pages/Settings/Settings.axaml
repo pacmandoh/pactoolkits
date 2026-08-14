@@ -33,9 +33,9 @@
       VerticalAlignment="Stretch"
       Classes="ContentHost">
 
-      <!--  连接设置：PacApi + PostgreSQL  -->
+      <!--  连接设置：PacAPI  -->
       <Grid
-        x:Name="TabDbPage"
+        x:Name="TabConnectionPage"
         Classes="TabPage"
         IsVisible="True">
         <ScrollViewer>
@@ -54,7 +54,7 @@
                   <TextBlock
                     VerticalAlignment="Center"
                     Classes="Large H2Text"
-                    Text="PacApi 服务" />
+                    Text="PacAPI 服务" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
@@ -79,7 +79,7 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="服务地址" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="服务地址，例如 http://127.0.0.1:5080" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="例如 http://127.0.0.1:5080" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -96,7 +96,7 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="访问密钥" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="服务 ApiKey 凭证" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="PacAPI 服务 ApiKey 凭证" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -108,121 +108,27 @@
               </Grid>
             </Border>
 
-            <Border Classes="H2">
-              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel Classes="H2Title">
-                  <controls:AppIcon
-                    VerticalAlignment="Center"
-                    Classes="H2Hash"
-                    Kind="Hash" />
-                  <TextBlock Classes="Large H2Text" Text="PostgreSQL" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Classes="H2Actions">
-                  <Button
-                    Classes="Outline"
-                    Command="{Binding TestCommand}"
-                    Content="测试连接" />
-                  <Button
-                    Classes="Primary"
-                    Command="{Binding SaveCommand}"
-                    Content="保存并应用" />
-                </StackPanel>
-              </Grid>
-            </Border>
-
             <Border Classes="Field">
               <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="地址" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="数据库服务器主机名或 IP 地址" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  PlaceholderText="例如：127.0.0.1"
-                  Text="{Binding Host}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="端口" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="PostgreSQL 监听端口，默认 5432" />
-                </StackPanel>
-                <NumericUpDown
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  FormatString="0"
-                  Increment="1"
-                  Maximum="65535"
-                  Minimum="1"
-                  PlaceholderText="例如：5432"
-                  Value="{Binding Port}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="数据库名" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="要连接的数据库名称" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  PlaceholderText="例如：pactoolkits"
-                  Text="{Binding Database}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="用户名" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="数据库登录用户名" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  PlaceholderText="例如：postgres"
-                  Text="{Binding Username}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="密码" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="数据库登录密码" />
+                  <TextBlock Classes="FieldTitle" Text="Agents 密钥" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agents 使用的密钥，勿与上方访问密钥混用" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="PasswordReveal"
                   PasswordChar="•"
-                  PlaceholderText="请输入数据库密码"
-                  Text="{Binding Password}" />
+                  PlaceholderText="请输入 Agents 访问密钥"
+                  Text="{Binding PacApiAgentsKey}" />
               </Grid>
             </Border>
 
             <Border Classes="H2">
-              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+              <Grid Classes="H2Row">
                 <StackPanel Classes="H2Title">
                   <controls:AppIcon
                     VerticalAlignment="Center"
@@ -231,36 +137,34 @@
                   <TextBlock
                     VerticalAlignment="Center"
                     Classes="Large H2Text"
-                    Text="数据库架构" />
-                  <controls:UpdateStatusBadge
+                    Text="PacAPI 服务信息" />
+                  <controls:StatusPill
                     VerticalAlignment="Center"
-                    Label="{Binding DbSchemaBadgeLabel}"
-                    LatestVersion="{Binding DbSchemaTargetVersion}"
-                    Status="{Binding DbSchemaBadgeStatus}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Classes="H2Actions">
-                  <Button
-                    shad:ButtonAssist.ShowProgress="{Binding IsDbSchemaChecking}"
-                    Classes="Outline"
-                    Command="{Binding CheckDbSchemaStatusCommand}"
-                    Content="检查状态"
-                    IsEnabled="{Binding !IsDbSchemaChecking}" />
-                  <Button
-                    Classes="Outline"
-                    Command="{Binding CopyDbSchemaDiagnosticsCommand}"
-                    Content="复制诊断"
-                    IsEnabled="{Binding CanCopyDbSchemaDiagnostics}" />
+                    Classes="ToneInfo15"
+                    Icon="BadgeQuestionMark"
+                    IsVisible="{Binding IsPacApiInfoUnknown}"
+                    Text="{Binding PacApiInfoLabel}" />
+                  <controls:StatusPill
+                    VerticalAlignment="Center"
+                    Classes="ToneDone25"
+                    Icon="CircleCheck"
+                    IsVisible="{Binding IsPacApiInfoReady}"
+                    Text="{Binding PacApiInfoLabel}" />
+                  <controls:StatusPill
+                    VerticalAlignment="Center"
+                    Classes="ToneDanger15"
+                    Icon="CircleAlert"
+                    IsVisible="{Binding IsPacApiInfoFail}"
+                    Text="{Binding PacApiInfoLabel}" />
                 </StackPanel>
               </Grid>
             </Border>
 
             <Border Classes="Field">
-              <StackPanel Spacing="4">
-                <TextBlock
-                  Classes="Caption Muted FieldDesc"
-                  Text="{Binding DbSchemaManagementText}"
-                  TextWrapping="Wrap" />
-              </StackPanel>
+              <TextBlock
+                Classes="Caption Muted FieldDesc"
+                Text="最近一次探测结果"
+                TextWrapping="Wrap" />
             </Border>
 
             <Border Classes="H3">
@@ -269,7 +173,7 @@
                   VerticalAlignment="Center"
                   Classes="H3Hash"
                   Kind="Hash" />
-                <TextBlock Classes="Small H3Text" Text="结构信息" />
+                <TextBlock Classes="Small H3Text" Text="协议信息" />
               </StackPanel>
             </Border>
 
@@ -279,12 +183,82 @@
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Classes="FieldTitle"
-                  Text="目标版本" />
+                  Text="PacAPI 程序版本" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding DbSchemaTargetVersion}" />
+                  Text="{Binding PacApiVersion}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="协议版本" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding PacApiContract}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="客户端协议范围" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding PacApiContractRange}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H3">
+              <StackPanel Classes="H3Title">
+                <controls:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="数据库信息" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="数据库" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding PacApiDatabase}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="结构" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding PacApiSchema}" />
               </Grid>
             </Border>
 
@@ -299,37 +273,7 @@
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding DbSchemaCurrentVersion}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <TextBlock
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Classes="FieldTitle"
-                  Text="最低要求" />
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="FieldValue"
-                  Text="{Binding DbSchemaRequiredMinVersion}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <TextBlock
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Classes="FieldTitle"
-                  Text="最高支持" />
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="FieldValue"
-                  Text="{Binding DbSchemaRequiredMaxVersion}" />
+                  Text="{Binding PacApiSchemaVersion}" />
               </Grid>
             </Border>
 
@@ -354,7 +298,7 @@
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding DbSchemaLastCheckedAtText}" />
+                  Text="{Binding PacApiCheckedAt}" />
               </Grid>
             </Border>
 
@@ -364,12 +308,13 @@
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Classes="FieldTitle"
-                  Text="触发来源" />
+                  Text="状态说明" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding DbSchemaLastCheckSourceText}" />
+                  Text="{Binding PacApiDetail}"
+                  TextWrapping="Wrap" />
               </Grid>
             </Border>
 
@@ -416,7 +361,7 @@
             </Border>
 
             <controls:EmptyStatePanel
-              EmptyHint="连接数据库后可自动同步机器标识并维护别名"
+              EmptyHint="PacAPI 就绪后可同步机器标识并维护别名"
               EmptyText="暂无客户端别名"
               IsEmpty="{Binding IsClientAliasesEmpty}">
               <ItemsControl ItemsSource="{Binding ClientAliases}">
@@ -649,8 +594,6 @@
                     Classes="Caption Muted"
                     Text="{Binding UpdateTargetSource, StringFormat=来源：{0}}"
                     TextWrapping="Wrap" />
-                  <TextBlock Classes="Caption Muted" Text="{Binding UpdateTargetDatabase, StringFormat=数据库：{0}}" />
-                  <TextBlock Classes="Caption Muted" Text="{Binding UpdateTargetSchemaRange, StringFormat=Schema 范围：{0}}" />
                   <TextBlock
                     Classes="Caption Muted"
                     IsVisible="{Binding HasCheckedUpdate}"
@@ -813,7 +756,7 @@
             <Border Classes="Field">
               <TextBlock
                 Classes="Caption Muted"
-                Text="本页控制启用、最小级别、保留天数与单文件上限。模块日志不在此控制，请到「模块配置」。"
+                Text="本页控制启用、最小级别、保留天数与单文件上限。模块日志不在此控制，请到「模块配置」"
                 TextWrapping="Wrap" />
             </Border>
 
@@ -956,7 +899,7 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="网关地址" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="码上放心 API 网关 URL" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="码上放心开放平台网关" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -973,7 +916,7 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="AppKey" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="应用 AppKey 凭证" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="开放平台分配的 AppKey" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -990,7 +933,7 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="AppSecret" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="应用 AppSecret 凭证" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="开放平台分配的 AppSecret" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"

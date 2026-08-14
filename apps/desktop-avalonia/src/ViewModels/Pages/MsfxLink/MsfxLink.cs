@@ -36,7 +36,6 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
     private readonly ISyncService _syncService;
     private readonly ILookupCatalogService _lookup;
     private readonly IMsfxAutoRunService _autoRun;
-    private readonly IDbConnectionMonitorService _dbMonitor;
     private readonly IAppConfigStore _configStore;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
@@ -63,8 +62,6 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         1 => RefreshQueueTabCommand,
         _ => null
     };
-    // 看板与 Sync 走 PacApi；AutoRun 写本机库
-    protected override bool RequiresLocalDbForReload => false;
 
     [ObservableProperty] private int _selectedTabIndex;
     [ObservableProperty] private int _upstreamQueryMode;
@@ -327,7 +324,6 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         ISyncService syncService,
         ILookupCatalogService lookup,
         IMsfxAutoRunService autoRun,
-        IDbConnectionMonitorService dbMonitor,
         IAppConfigStore configStore,
         ISensitiveUnlockService unlockService,
         IToastService toast,
@@ -339,7 +335,6 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         _syncService = syncService;
         _lookup = lookup;
         _autoRun = autoRun;
-        _dbMonitor = dbMonitor;
         _configStore = configStore;
         _unlockService = unlockService;
         _toast = toast;
@@ -387,7 +382,7 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         };
     }
 
-    // 手动写库期间推迟 watermark 立刻刷新；dirty 仍标记，退出写入后再 TryRefreshIfDirty
+    // 手动写入期间推迟 watermark 立刻刷新；dirty 仍标记，退出写入后再 TryRefreshIfDirty
     public bool DeferRefreshTopic(string? topic)
         => WorkspaceTopicRefresh.DeferMsfx(topic) && IsManualMsfxWriteActive;
 

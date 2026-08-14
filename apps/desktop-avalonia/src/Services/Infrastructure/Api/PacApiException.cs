@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>Desktop 调 Pac API 失败（status、code、traceId、可选 currentVersion）</summary>
+/// <summary>Desktop 调 PacAPI 失败（status、code、traceId、可选 currentVersion）</summary>
 public class PacApiException : Exception
 {
     public PacApiException(PacApiProblem problem, Exception? inner = null)

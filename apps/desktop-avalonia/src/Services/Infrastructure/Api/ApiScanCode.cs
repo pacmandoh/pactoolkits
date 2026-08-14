@@ -11,7 +11,7 @@ using PacToolkits.Application.Serialization;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>经 PacApi 的扫码入库</summary>
+/// <summary>扫码入库走 HTTP</summary>
 public sealed class ApiScanCode : IScanCodeService
 {
     private readonly PacApiClient _api;

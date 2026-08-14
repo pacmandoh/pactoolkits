@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Connectivity;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Notifications;
 
@@ -11,23 +13,26 @@ namespace PacToolkits.Desktop.Avalonia.Services.Presentation.Unlock;
 /// <summary>
 /// 敏感操作解锁服务
 ///
-/// 协调解锁会话与视图状态通知，不定义权限策略
+/// 口令由 PacAPI 校验；本机只管会话（空闲超时、失败冷却、提示互斥）
 /// </summary>
 public sealed class SensitiveUnlockService : ISensitiveUnlockService
 {
+    private const string UnlockMismatch = "unlock_mismatch";
+    private const string UnlockNotConfigured = "unlock_not_configured";
+
     private readonly SensitiveUnlockSession _session;
-    private readonly IDbConfigService _dbConfig;
+    private readonly PacApiClient _api;
     private readonly IDialogService _dialog;
     private readonly IToastService _toast;
 
     public SensitiveUnlockService(
         SensitiveUnlockSession session,
-        IDbConfigService dbConfig,
+        PacApiClient api,
         IDialogService dialog,
         IToastService toast)
     {
         _session = session;
-        _dbConfig = dbConfig;
+        _api = api;
         _dialog = dialog;
         _toast = toast;
     }
@@ -79,13 +84,6 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             return false;
         }
 
-        var expectedPassword = NormalizeInput(_dbConfig.Current.Password);
-        if (string.IsNullOrWhiteSpace(expectedPassword))
-        {
-            _toast.Error(scene, "当前未配置数据库密码，无法执行该操作");
-            return false;
-        }
-
         var prompt = _session.BeginPrompt(access.ScopeKey, DateTimeOffset.UtcNow);
         if (prompt.StateChanged)
         {
@@ -118,7 +116,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             input = await _dialog.PromptUnlockPassword(
                 promptTitle,
                 suffix,
-                password => VerifyPassword(prompt.ScopeKey, password, expectedPassword)).ConfigureAwait(true);
+                password => VerifyPasswordAsync(prompt.ScopeKey, password, ct)).ConfigureAwait(true);
         }
         finally
         {
@@ -151,15 +149,55 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             ct);
     }
 
-    private string? VerifyPassword(string key, string password, string expectedPassword)
+    private async Task<string?> VerifyPasswordAsync(string key, string password, CancellationToken ct)
     {
-        var result = _session.Validate(key, password, expectedPassword, DateTimeOffset.UtcNow);
-        if (result.StateChanged && !result.IsSuccess)
+        var cooldown = _session.GetCooldownError(key, DateTimeOffset.UtcNow);
+        if (cooldown is not null)
         {
-            RaiseStateChanged(result.ScopeKey);
+            return cooldown;
         }
 
-        return result.Error;
+        try
+        {
+            await _api.VerifyUnlockAsync(password, ct).ConfigureAwait(true);
+        }
+        catch (PacApiException ex) when (IsCode(ex, UnlockMismatch))
+        {
+            var result = _session.RecordFailure(key, DateTimeOffset.UtcNow);
+            if (result.StateChanged)
+            {
+                RaiseStateChanged(result.ScopeKey);
+            }
+
+            return result.Error;
+        }
+        catch (PacApiException ex) when (IsCode(ex, UnlockNotConfigured))
+        {
+            return "未配置敏感操作密码";
+        }
+        catch (Exception ex) when (TransportErrors.IsTransport(ex))
+        {
+            return "无法连接 PacAPI，无法验证";
+        }
+        catch (PacApiException ex)
+        {
+            return string.IsNullOrWhiteSpace(ex.Problem.Title)
+                ? "验证失败"
+                : ex.Problem.Title;
+        }
+
+        var granted = _session.Grant(key, DateTimeOffset.UtcNow);
+        if (!granted.IsSuccess)
+        {
+            return granted.Error;
+        }
+
+        if (granted.StateChanged)
+        {
+            RaiseStateChanged(granted.ScopeKey);
+        }
+
+        return null;
     }
 
     private void RaiseStateChanged(string scopeKey)
@@ -183,9 +221,6 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
         }
     }
 
-    private static string? NormalizeInput(string? value)
-    {
-        var trimmed = (value ?? string.Empty).Trim();
-        return trimmed.Length == 0 ? null : trimmed;
-    }
+    private static bool IsCode(PacApiException ex, string code)
+        => string.Equals(ex.Code, code, StringComparison.OrdinalIgnoreCase);
 }
