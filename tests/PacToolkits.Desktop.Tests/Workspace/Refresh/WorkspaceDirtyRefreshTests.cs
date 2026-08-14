@@ -73,7 +73,7 @@ public sealed class WorkspaceDirtyRefreshTests
         public RefreshablePageStub(Func<CancellationToken, Task> reload)
         {
             _reload = reload;
-            TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+            TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
             _refresh = new AsyncRelayCommand(() => TestRunReloadCoreAsync());
         }
 

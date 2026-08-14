@@ -1,6 +1,6 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
-using PacToolkits.Infrastructure.Msfx;
+using PacToolkits.Desktop.Avalonia.Services.Integration.Msfx;
 using Polly;
 
 namespace PacToolkits.Desktop.Tests;

@@ -152,8 +152,6 @@ public sealed class PacApiContractGateTests
             DbSchemaVersion: "1.0.0",
             BuildChannel: "beta",
             BuildDate: "2026-01-01",
-            DesktopMinDbSchema: "1.0.0",
-            DesktopMaxDbSchema: "1.0.0",
             MinApiContract: min,
             MaxApiContract: max);
     }

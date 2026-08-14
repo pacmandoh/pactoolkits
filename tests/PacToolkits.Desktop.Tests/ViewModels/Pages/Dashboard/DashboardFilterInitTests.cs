@@ -7,19 +7,12 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class DashboardFilterInitTests
 {
     [Fact]
-    public async Task Initialize_loads_filter_catalog_when_local_db_access_blocked()
+    public async Task Initialize_loads_filter_catalog_when_api_ready()
     {
         var dashboard = new FakeDashboardService();
         var lookup = new FakeLookup(["drug-a", "drug-b"]);
         var page = new Dashboard(dashboard, lookup);
-        var guard = new FakeAccessGuard();
-        guard.Block("schema incompatible");
-        page.TestInjectDbServices(
-            accessGuard: guard,
-            apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
-
-        // 本机 DB 门禁不得挡住筛选目录加载
-        Assert.True(guard.IsBlocked);
+        page.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
 
         await page.TestInitializeAsync();
 
@@ -29,36 +22,12 @@ public sealed class DashboardFilterInitTests
         Assert.Equal(1, dashboard.SnapshotCalls);
     }
 
-    private sealed class FakeAccessGuard : IDbAccessGuard
-    {
-        public bool IsBlocked { get; private set; }
-
-        public string? BlockReason { get; private set; }
-
-        public void Block(string reason)
-        {
-            IsBlocked = true;
-            BlockReason = reason;
-        }
-
-        public void Clear()
-        {
-            IsBlocked = false;
-            BlockReason = null;
-        }
-
-        public void ThrowIfBlocked()
-        {
-            if (IsBlocked)
-            {
-                throw new InvalidOperationException(BlockReason ?? "blocked");
-            }
-        }
-    }
-
     private sealed class FakeLookup(IReadOnlyList<string> drugIds) : ILookupCatalogService
     {
         public int DrugIdsCalls { get; private set; }
+
+        public Task<IReadOnlyList<string>> GetClientIdsAsync(CancellationToken ct, bool forceRefresh = false)
+            => Task.FromResult<IReadOnlyList<string>>([]);
 
         public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)
         {

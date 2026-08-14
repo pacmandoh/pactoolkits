@@ -10,6 +10,7 @@ public sealed class CatalogEndpointsTests
     public static TheoryData<string> CatalogRoutes =>
     [
         "/v1/catalog/drug-ids",
+        "/v1/catalog/client-ids",
         "/v1/catalog/drugs/d1/specs",
         "/v1/catalog/drugs/d1/s1/quantity",
         "/v1/catalog/drugs/d1/deprecated",
@@ -59,6 +60,9 @@ public sealed class CatalogEndpointsTests
 
     private sealed class FakeLookup : ILookupCatalogService
     {
+        public Task<IReadOnlyList<string>> GetClientIdsAsync(CancellationToken ct, bool forceRefresh = false)
+            => Task.FromResult<IReadOnlyList<string>>(["m1"]);
+
         public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)
             => Task.FromResult<IReadOnlyList<string>>(["d1"]);
 

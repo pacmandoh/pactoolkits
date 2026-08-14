@@ -25,7 +25,6 @@ public sealed class AppConfigStoreTests
 
             var loaded = store.Load();
             Assert.Equal(2, loaded.SchemaVersion);
-            Assert.Equal("localhost", loaded.Postgres.Host);
         }
         finally
         {
@@ -178,7 +177,7 @@ public sealed class AppConfigStoreTests
                 },
             });
 
-            // 配置规范化不再扫盘发现/剔除：catalog 由 Host Snapshot 注入
+            // catalog 由 Host Snapshot 注入；规范化保留已有启用键
             Assert.True(normalized.Agents.Modules.ContainsKey("Gone"));
             Assert.True(normalized.Agents.Modules.TryGetValue("Alpha", out var alpha));
             Assert.False(alpha!.Enabled);

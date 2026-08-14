@@ -21,7 +21,7 @@ public sealed class PostgresIntegrationTests
     }
 
     [Fact]
-    public async Task Real_database_reads_schema_version_and_business_data()
+    public async Task Real_database_reads_compatible_schema()
     {
         RequireEnabled();
 
@@ -33,40 +33,10 @@ public sealed class PostgresIntegrationTests
         Assert.True(read.Ok, read.Reason);
         Assert.False(string.IsNullOrWhiteSpace(read.Value));
 
-        var guard = new DbAccessGuard();
-        var clients = new ClientIdReadRepo(logger, guard);
-        var machines = await clients.GetDistinctClientIdsAsync(options, CancellationToken.None);
-        Assert.NotNull(machines);
-    }
-
-    [Fact]
-    public async Task Settings_service_reports_compatible_schema_on_live_database()
-    {
-        RequireEnabled();
-
-        var options = LoadPgOptions();
-        var service = CreateLiveSettingsService(options);
-        var snapshot = await service.GetSchemaStatusAsync(
-            ManifestDbSchema.CompatibleContext(),
-            options,
-            CancellationToken.None);
-
-        Assert.True(snapshot.SchemaOk, snapshot.Reason);
-        Assert.Equal(DbSchemaCompatibility.Compatible, snapshot.Compatibility);
-        Assert.True(snapshot.Satisfied);
-    }
-
-    private static SettingsService CreateLiveSettingsService(PgOptions options)
-    {
-        var config = new FixedDbConfig(options);
-        var logger = new NullInfraLogger();
-        var guard = new DbAccessGuard();
-        return new SettingsService(
-            config,
-            new DbConnectionTester(logger),
-            new DbSchemaGate(new DbSchemaVersionService(config, logger)),
-            new ClientIdReadRepo(logger, guard),
-            guard);
+        var bounds = ManifestDbSchema.CompatibleBounds();
+        var match = new DbSchemaGate(schema).Match(read, bounds.Min, bounds.Max);
+        Assert.Equal(DbSchemaCompatibility.Compatible, match.Status);
+        Assert.True(match.IsCompatible);
     }
 
     private static PgOptions LoadPgOptions(string? database = null)
@@ -82,12 +52,8 @@ public sealed class PostgresIntegrationTests
     private sealed class FixedDbConfig(PgOptions current) : IDbConfigService
     {
         public PgOptions Current { get; } = current;
-        public string ConfigPath => "/tmp/pactoolkits-itest.config.json";
-#pragma warning disable CS0067
-        public event EventHandler? Applied;
-#pragma warning restore CS0067
+
         public Task<bool> TestConnectionAsync(PgOptions opt, CancellationToken ct) => Task.FromResult(true);
-        public Task ApplyAsync(PgOptions opt, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private sealed class NullInfraLogger : IAppLogger

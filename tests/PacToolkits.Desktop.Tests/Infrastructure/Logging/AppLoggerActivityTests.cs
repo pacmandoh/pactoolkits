@@ -91,8 +91,6 @@ public sealed class AppLoggerActivityTests
             DbSchemaVersion: "0.0.0",
             BuildChannel: "test",
             BuildDate: "2026-01-01",
-            DesktopMinDbSchema: "0.0.0",
-            DesktopMaxDbSchema: "9.9.9",
             MinApiContract: "1.0.0",
             MaxApiContract: "1.0.0");
     }

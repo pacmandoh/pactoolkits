@@ -33,7 +33,6 @@ public sealed class PacApiOutboundWrapTests
         Assert.Equal("transport", ex.Code);
         Assert.True(ex.IsTransient);
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
         Assert.IsType<HttpRequestException>(ex.InnerException);
     }
 
@@ -66,7 +65,6 @@ public sealed class PacApiOutboundWrapTests
 
         Assert.Equal("transport", ex.Code);
         Assert.True(ex.IsTransient);
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
         Assert.IsType<IOException>(ex.InnerException);
     }
 
@@ -95,7 +93,6 @@ public sealed class PacApiOutboundWrapTests
 
         Assert.Equal("transport", ex.Code);
         Assert.True(ex.IsTransient);
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
         // HttpClient 读正文时可能把 IOException 再包一层 HttpRequestException
         Assert.True(
             ex.InnerException is IOException or HttpRequestException,

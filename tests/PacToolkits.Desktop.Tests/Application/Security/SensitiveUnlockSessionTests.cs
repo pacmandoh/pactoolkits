@@ -8,12 +8,12 @@ public sealed class SensitiveUnlockSessionTests
     private static readonly TimeSpan CooldownDuration = TimeSpan.FromMinutes(1);
 
     [Fact]
-    public void Successful_validation_unlocks_and_access_extends_idle()
+    public void Successful_grant_unlocks_and_access_extends_idle()
     {
         var session = CreateSession();
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
 
-        var validation = session.Validate("inventory", " secret ", "secret", now);
+        var validation = session.Grant("inventory", now);
         var access = session.CheckAccess("inventory", now.AddMinutes(5));
 
         Assert.True(validation.IsSuccess);
@@ -26,8 +26,8 @@ public sealed class SensitiveUnlockSessionTests
     {
         var session = CreateSession();
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
-        session.Validate("inventory", "secret", "secret", now);
-        session.Validate("msfx", "secret", "secret", now);
+        session.Grant("inventory", now);
+        session.Grant("msfx", now);
 
         session.NoteActivity(now.AddMinutes(10));
 
@@ -40,7 +40,7 @@ public sealed class SensitiveUnlockSessionTests
     {
         var session = CreateSession();
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
-        session.Validate("inventory", "secret", "secret", now);
+        session.Grant("inventory", now);
         session.NoteActivity(now.AddMinutes(10));
 
         Assert.False(session.Refresh("inventory", now.AddMinutes(24)));
@@ -55,7 +55,7 @@ public sealed class SensitiveUnlockSessionTests
     {
         var session = CreateSession();
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
-        session.Validate("inventory", "secret", "secret", now);
+        session.Grant("inventory", now);
 
         session.NoteActivity(now + IdleTimeout);
 
@@ -73,7 +73,7 @@ public sealed class SensitiveUnlockSessionTests
         SensitiveUnlockSession.Validation result = default;
         for (var i = 0; i < 5; i++)
         {
-            result = session.Validate("inventory", "wrong", "secret", now);
+            result = session.RecordFailure("inventory", now);
         }
 
         var snapshot = session.GetSnapshot("inventory");
@@ -81,6 +81,7 @@ public sealed class SensitiveUnlockSessionTests
         Assert.Contains("已锁定 60 秒", result.Error, StringComparison.Ordinal);
         Assert.Equal(0, snapshot.FailedAttempts);
         Assert.Equal(now.AddMinutes(1), snapshot.CooldownUntilUtc);
+        Assert.Equal("验证冷却中，请在 60 秒后重试", session.GetCooldownError("inventory", now));
     }
 
     [Fact]
@@ -106,7 +107,7 @@ public sealed class SensitiveUnlockSessionTests
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
         Assert.False(session.CheckAccess("inventory", now).IsGranted);
 
-        session.Validate("inventory", "secret", "secret", now);
+        session.Grant("inventory", now);
         var prompt = session.BeginPrompt("inventory", now);
 
         Assert.Equal(SensitiveUnlockSession.PromptStatus.Granted, prompt.Status);
@@ -118,12 +119,29 @@ public sealed class SensitiveUnlockSessionTests
     {
         var session = CreateSession();
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
-        session.Validate("inventory", "secret", "secret", now);
+        session.Grant("inventory", now);
 
         var changed = session.Refresh("inventory", now + IdleTimeout);
 
         Assert.True(changed);
         Assert.False(session.GetSnapshot("inventory").IsUnlocked);
+    }
+
+    [Fact]
+    public void Grant_during_cooldown_is_rejected()
+    {
+        var session = CreateSession();
+        var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
+        for (var i = 0; i < 5; i++)
+        {
+            session.RecordFailure("inventory", now);
+        }
+
+        var granted = session.Grant("inventory", now);
+
+        Assert.False(granted.IsSuccess);
+        Assert.False(session.GetSnapshot("inventory").IsUnlocked);
+        Assert.Contains("验证冷却中", granted.Error, StringComparison.Ordinal);
     }
 
     private static SensitiveUnlockSession CreateSession()

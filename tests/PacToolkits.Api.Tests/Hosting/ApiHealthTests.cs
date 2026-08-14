@@ -68,14 +68,6 @@ public sealed class ApiHealthTests
 
         public PgOptions Current { get; } = new();
 
-        public string ConfigPath => string.Empty;
-
-        public event EventHandler? Applied
-        {
-            add { }
-            remove { }
-        }
-
         public bool Reachable { get; init; } = true;
 
         public async Task<bool> TestConnectionAsync(PgOptions opt, CancellationToken ct)
@@ -88,18 +80,12 @@ public sealed class ApiHealthTests
 
             return Reachable;
         }
-
-        public Task ApplyAsync(PgOptions opt, CancellationToken ct = default)
-            => Task.CompletedTask;
     }
 
     private sealed class CompatibleSchemaGate : IDbSchemaGate
     {
         public Task<DbSchemaVersionRead> ReadAsync(CancellationToken ct = default)
             => Task.FromResult(new DbSchemaVersionRead(Ok: true, Value: "1.2.25", Reason: null));
-
-        public Task<DbSchemaVersionRead> ReadAsync(PgOptions options, CancellationToken ct = default)
-            => ReadAsync(ct);
 
         public DbSchemaCompatibilityResult Match(DbSchemaVersionRead schema, string min, string max)
             => new(DbSchemaCompatibility.Compatible, "1.2.25", min, max, string.Empty);

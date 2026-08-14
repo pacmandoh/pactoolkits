@@ -74,7 +74,7 @@ public sealed class MainWindowDirtyRefreshTests
     private static TestReloadPage CreatePage(Func<CancellationToken, Task> reload)
     {
         var page = new TestReloadPage { ReloadAction = reload };
-        page.TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+        page.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
         return page;
     }
 

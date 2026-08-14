@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -131,6 +133,88 @@ public sealed class AuthEndpointsTests
         }
     }
 
+    [Fact]
+    public async Task Unlock_verify_returns_204_for_matching_password()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        await AuthorizeWriteAsync(client);
+
+        using var response = await PostUnlockAsync(client, ApiFactory.TestUnlockPassword);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unlock_verify_rejects_wrong_password()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        await AuthorizeWriteAsync(client);
+
+        using var response = await PostUnlockAsync(client, "wrong-password");
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal("unlock_mismatch", doc.RootElement.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Unlock_verify_rejects_missing_jwt()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await PostUnlockAsync(client, ApiFactory.TestUnlockPassword);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unlock_verify_rejects_read_only_jwt()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        var token = ApiFactory.ForgeAccessToken(scopes: [AuthPolicies.Read]);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await PostUnlockAsync(client, ApiFactory.TestUnlockPassword);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unlock_verify_rejects_when_hash_not_configured()
+    {
+        await using var factory = new NoUnlockHashFactory();
+        using var client = factory.CreateClient();
+        var token = ApiFactory.ForgeAccessToken();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await PostUnlockAsync(client, ApiFactory.TestUnlockPassword);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal("unlock_not_configured", doc.RootElement.GetProperty("code").GetString());
+    }
+
+    private static async Task AuthorizeWriteAsync(HttpClient client)
+    {
+        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private static Task<HttpResponseMessage> PostUnlockAsync(HttpClient client, string password)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/v1/auth/unlock/verify")
+        {
+            Content = JsonContent.Create(new { password }),
+        };
+        return client.SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
     private static string ExceptionText(Exception ex)
     {
         if (ex is AggregateException aggregate)
@@ -181,6 +265,24 @@ public sealed class AuthEndpointsTests
                 var overrides = ApiFactory.BuildAuthConfig();
                 overrides[$"Auth:Clients:{ApiFactory.TestClientId}:ApiKeyHash"] = string.Empty;
                 config.AddInMemoryCollection(overrides);
+            });
+        }
+    }
+
+    private sealed class NoUnlockHashFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("dev");
+            builder.ConfigureAppConfiguration((_, config) =>
+            {
+                var overrides = ApiFactory.BuildAuthConfig();
+                overrides["Auth:UnlockPasswordHash"] = string.Empty;
+                config.AddInMemoryCollection(overrides);
+            });
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddSingleton<IApiHealth>(_ => new FixedOkHealth());
             });
         }
     }

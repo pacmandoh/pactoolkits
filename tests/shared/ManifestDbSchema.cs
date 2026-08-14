@@ -1,5 +1,4 @@
 using System.Text.Json;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Core;
 
 namespace PacToolkits.Tests.Shared;
@@ -9,7 +8,9 @@ namespace PacToolkits.Tests.Shared;
 /// </summary>
 internal static class ManifestDbSchema
 {
-    public static DbSchemaVersionContext CompatibleContext()
+    public readonly record struct Bounds(string Min, string Max, string Target);
+
+    public static Bounds CompatibleBounds()
     {
         var path = FindManifestPath();
         using var stream = File.OpenRead(path);
@@ -21,11 +22,10 @@ internal static class ManifestDbSchema
             throw new InvalidOperationException($"release-manifest missing components: {path}");
         }
 
-        if (!components.TryGetProperty("desktop", out var desktopRoot)
-            || !desktopRoot.TryGetProperty("avalonia", out var desktop)
-            || desktop.ValueKind != JsonValueKind.Object)
+        if (!components.TryGetProperty("api", out var api)
+            || api.ValueKind != JsonValueKind.Object)
         {
-            throw new InvalidOperationException($"release-manifest missing desktop.avalonia: {path}");
+            throw new InvalidOperationException($"release-manifest missing api: {path}");
         }
 
         if (!components.TryGetProperty("database", out var databaseRoot)
@@ -35,19 +35,19 @@ internal static class ManifestDbSchema
             throw new InvalidOperationException($"release-manifest missing database.postgres: {path}");
         }
 
-        var min = RequireString(desktop, "minDbSchema", path);
-        var max = RequireString(desktop, "maxDbSchema", path);
+        var min = RequireString(api, "minDbSchema", path);
+        var max = RequireString(api, "maxDbSchema", path);
         var target = RequireString(postgres, "version", path);
-        return new DbSchemaVersionContext(min, max, target);
+        return new Bounds(min, max, target);
     }
 
     /// <summary>构造现场库一定 BelowMinimum 的闭区间（min/max/target 均高于 live）</summary>
-    public static DbSchemaVersionContext BelowMinimumContext(string liveSchema)
+    public static Bounds BelowMinimumBounds(string liveSchema)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(liveSchema);
         var min = NextPatch(liveSchema.Trim());
         var max = NextPatch(min);
-        return new DbSchemaVersionContext(min, max, max);
+        return new Bounds(min, max, max);
     }
 
     public static string NextPatch(string version)

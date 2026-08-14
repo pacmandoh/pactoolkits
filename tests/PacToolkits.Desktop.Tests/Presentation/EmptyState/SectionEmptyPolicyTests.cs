@@ -30,7 +30,6 @@ public sealed class SectionEmptyPolicyTests
 
     [Theory]
     [InlineData(PageDataAvailability.NotLoaded)]
-    [InlineData(PageDataAvailability.AwaitingDatabase)]
     [InlineData(PageDataAvailability.AwaitingService)]
     public void Show_empty_state_while_waiting_for_connection(PageDataAvailability availability)
     {
