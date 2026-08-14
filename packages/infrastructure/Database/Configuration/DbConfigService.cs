@@ -4,19 +4,15 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Infrastructure.Database;
 
 /// <summary>
-/// PostgreSQL 连接配置的加载、探测与热应用
+/// PostgreSQL 连接配置的加载与探测
 ///
-/// 同步持久化选项、重建 PostgreSQL 数据源并广播已应用配置
-/// 不负责后台存活监控（见 <c>DbConnectionMonitorService</c>）
+/// 启动时读选项并重建数据源
 /// </summary>
 public sealed class DbConfigService : IDbConfigService
 {
     private readonly IPgDataSourceFactory _factory;
-    private readonly IDbOptionsStore _optionsStore;
 
     public PgOptions Current { get; }
-    public string ConfigPath => _optionsStore.ConfigPath;
-    public event EventHandler? Applied;
 
     public DbConfigService(
         IOptions<PgOptions> opt,
@@ -24,11 +20,10 @@ public sealed class DbConfigService : IDbConfigService
         IDbOptionsStore optionsStore)
     {
         _factory = factory;
-        _optionsStore = optionsStore;
 
         Current = opt.Value;
 
-        var postgres = _optionsStore.LoadPgOptions();
+        var postgres = optionsStore.LoadPgOptions();
         CopyOptions(postgres, Current);
 
         _factory.Rebuild(Current);
@@ -50,33 +45,6 @@ public sealed class DbConfigService : IDbConfigService
         }
     }
 
-    public async Task ApplyAsync(PgOptions opt, CancellationToken ct = default)
-    {
-        await _optionsStore.SavePgOptionsAsync(CloneOptions(opt), ct).ConfigureAwait(false);
-
-        _factory.Rebuild(opt);
-
-        CopyOptions(opt, Current);
-
-        Applied?.Invoke(this, EventArgs.Empty);
-    }
-
-    private static PgOptions CloneOptions(PgOptions src) => new()
-    {
-        Host = src.Host,
-        Port = src.Port,
-        Database = src.Database,
-        Username = src.Username,
-        Password = src.Password,
-        ConnectTimeoutSeconds = src.ConnectTimeoutSeconds,
-        CommandTimeoutSeconds = src.CommandTimeoutSeconds,
-        PoolSize = src.PoolSize,
-        ReconnectIntervalSeconds = src.ReconnectIntervalSeconds,
-        KeepAliveSeconds = src.KeepAliveSeconds,
-        MonitorPingSeconds = src.MonitorPingSeconds,
-        MonitorPingTimeoutSeconds = src.MonitorPingTimeoutSeconds
-    };
-
     private static void CopyOptions(PgOptions src, PgOptions dst)
     {
         dst.Host = src.Host;
@@ -87,9 +55,6 @@ public sealed class DbConfigService : IDbConfigService
         dst.ConnectTimeoutSeconds = src.ConnectTimeoutSeconds;
         dst.CommandTimeoutSeconds = src.CommandTimeoutSeconds;
         dst.PoolSize = src.PoolSize;
-        dst.ReconnectIntervalSeconds = src.ReconnectIntervalSeconds;
         dst.KeepAliveSeconds = src.KeepAliveSeconds;
-        dst.MonitorPingSeconds = src.MonitorPingSeconds;
-        dst.MonitorPingTimeoutSeconds = src.MonitorPingTimeoutSeconds;
     }
 }
