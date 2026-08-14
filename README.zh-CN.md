@@ -46,7 +46,7 @@
 
 **面向药品追溯码业务的桌面端、自动化与数据库一体化工具套件**
 
-PacToolkits Desktop、Agents（Host 与模块）与 PostgreSQL 任务编排。
+PacToolkits Desktop、PacAPI、Agents（Host 与模块）与 PostgreSQL
 
 </div>
 
@@ -54,11 +54,12 @@ PacToolkits Desktop、Agents（Host 与模块）与 PostgreSQL 任务编排。
 
 ## 项目概览
 
-**PacToolkits** 是一个围绕药品追溯码业务构建的单仓库项目，统一管理三类核心能力：
+**PacToolkits** 是围绕药品追溯码业务的单仓库项目：
 
 - PacToolkits Desktop 业务客户端
+- PacAPI（ASP.NET HTTP 宿主）
 - Agents 运行时：.NET **Host**（`Agents.exe`）与独立自动化 **Modules**
-- 负责数据持久化、业务映射、任务创建和执行状态管理的 PostgreSQL 数据库体系
+- PostgreSQL：入库、映射、任务与执行状态
 
 仓库主要目录：
 
@@ -87,6 +88,7 @@ PacToolkits Desktop、Agents（Host 与模块）与 PostgreSQL 任务编排。
 ```mermaid
 flowchart LR
     DESKTOP["apps/desktop-avalonia\nAvalonia Desktop"]
+    API["apps/api-asp\nPacAPI (ASP.NET)"]
     PKG["packages/\napplication · infrastructure · core · agents-contracts"]
     HOST["runtime/agents/host\nAgents.exe Host"]
     INJ["runtime/agents/modules/injector\nInjector AHK 模块"]
@@ -95,12 +97,15 @@ flowchart LR
     CI[".github/workflows\n构建与发布自动化"]
 
     DESKTOP --> PKG
+    DESKTOP -->|HTTP| API
     DESKTOP -->|启停 Host / IPC desired| HOST
     HOST -->|子进程| INJ
-    INJ -->|任务领取 / 状态回写 / 事件记录| DB
+    INJ -->|HTTP| API
+    API --> PKG
     PKG --> DB
     SCRIPTS --> DESKTOP
     SCRIPTS --> HOST
+    SCRIPTS --> API
     SCRIPTS --> DB
     CI --> SCRIPTS
 ```
@@ -196,7 +201,7 @@ dotnet build PacToolkits.sln
 ## 设计原则
 
 - 版本以单一发布清单为准
-- Desktop、Agents、DB 协同演进
+- Desktop、PacAPI、Agents、DB 协同演进
 - 业务流程可观察、可追溯
 - 自动化能力通过独立配置管理，不与页面逻辑耦合
 - 任务与执行状态以数据库为准
