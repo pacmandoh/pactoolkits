@@ -8,6 +8,23 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class PacApiClientTests
 {
     [Fact]
+    public void CaptureOptions_keeps_AgentsApiKey_after_Apply()
+    {
+        using var client = CreateClient(new ScriptedHandler(), new ScriptedHandler(), new ScriptedHandler());
+        client.Apply(
+            new PacApiOptions
+            {
+                BaseUrl = "http://127.0.0.1:5080",
+                ApiKey = "desk",
+                AgentsApiKey = "agents-key",
+            });
+
+        var captured = client.CaptureOptions();
+        Assert.Equal("desk", captured.ApiKey);
+        Assert.Equal("agents-key", captured.AgentsApiKey);
+    }
+
+    [Fact]
     public async Task SendAsync_exchanges_token_then_sends_bearer()
     {
         var token = new ScriptedHandler();
