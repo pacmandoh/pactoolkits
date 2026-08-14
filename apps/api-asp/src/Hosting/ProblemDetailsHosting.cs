@@ -13,6 +13,8 @@ public static class ApiErrors
     public const string ServiceUnavailable = "service_unavailable";
     public const string InternalError = "internal_error";
     public const string RateLimited = "rate_limited";
+    public const string UnlockMismatch = "unlock_mismatch";
+    public const string UnlockNotConfigured = "unlock_not_configured";
 }
 
 public sealed record ApiProblem(

@@ -11,6 +11,8 @@ public static class CatalogEndpoints
 {
     public static IEndpointRouteBuilder MapCatalog(this IEndpointRouteBuilder routes)
     {
+        routes.MapGet("/v1/catalog/client-ids", GetClientIds)
+            .RequireAuthorization(AuthPolicies.Read);
         routes.MapGet("/v1/catalog/drug-ids", GetDrugIds)
             .RequireAuthorization(AuthPolicies.Read);
         routes.MapGet("/v1/catalog/drugs/{drugId}/specs", GetSpecs)
@@ -20,6 +22,12 @@ public static class CatalogEndpoints
         routes.MapGet("/v1/catalog/drugs/{drugId}/deprecated", GetDeprecated)
             .RequireAuthorization(AuthPolicies.Read);
         return routes;
+    }
+
+    private static async Task<IResult> GetClientIds(ILookupCatalogService lookup, CancellationToken ct)
+    {
+        var items = await lookup.GetClientIdsAsync(ct, forceRefresh: true).ConfigureAwait(false);
+        return Results.Ok(new StringListResponse(items));
     }
 
     private static async Task<IResult> GetDrugIds(ILookupCatalogService lookup, CancellationToken ct)

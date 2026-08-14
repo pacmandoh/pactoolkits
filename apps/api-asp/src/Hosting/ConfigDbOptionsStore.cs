@@ -3,14 +3,10 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Api.Hosting;
 
-/// <summary>
-/// 从配置节 Postgres 提供 <see cref="IDbOptionsStore"/>
-///
-/// API 不写 Desktop 配置文件；Save 只更新进程内快照
-/// </summary>
+/// <summary>从配置节 Postgres 提供连接选项</summary>
 public sealed class ConfigDbOptionsStore : IDbOptionsStore
 {
-    private PgOptions _current;
+    private readonly PgOptions _current;
 
     public ConfigDbOptionsStore(IOptions<PgOptions> options)
     {
@@ -18,16 +14,7 @@ public sealed class ConfigDbOptionsStore : IDbOptionsStore
         _current = Clone(options.Value);
     }
 
-    public string ConfigPath => "Postgres";
-
     public PgOptions LoadPgOptions() => Clone(_current);
-
-    public Task SavePgOptionsAsync(PgOptions options, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        _current = Clone(options);
-        return Task.CompletedTask;
-    }
 
     private static PgOptions Clone(PgOptions src) => new()
     {
@@ -39,9 +26,6 @@ public sealed class ConfigDbOptionsStore : IDbOptionsStore
         ConnectTimeoutSeconds = src.ConnectTimeoutSeconds,
         CommandTimeoutSeconds = src.CommandTimeoutSeconds,
         PoolSize = src.PoolSize,
-        ReconnectIntervalSeconds = src.ReconnectIntervalSeconds,
         KeepAliveSeconds = src.KeepAliveSeconds,
-        MonitorPingSeconds = src.MonitorPingSeconds,
-        MonitorPingTimeoutSeconds = src.MonitorPingTimeoutSeconds,
     };
 }

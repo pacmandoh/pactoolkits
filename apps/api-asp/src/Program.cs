@@ -45,6 +45,8 @@ app.MapDrugs();
 app.MapTraceCodes();
 app.MapInventory();
 app.MapMsfx();
+app.MapMsfxAutoRun();
+app.MapInjector();
 
 app.Run();
 
