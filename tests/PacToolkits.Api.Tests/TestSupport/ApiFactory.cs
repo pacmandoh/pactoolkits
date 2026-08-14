@@ -17,16 +17,20 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Api.Tests;
 
-/// <summary>内存宿主：具名客户端与固定 JWT 材料；默认健康检查始终成功；LISTEN 关闭</summary>
+/// <summary>内存宿主：按 id 配置的客户端与固定 JWT 材料；默认健康检查始终成功；LISTEN 关闭</summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>
 {
     public const string TestClientId = "test-client";
 
     public const string TestApiKey = "test-api-key-plaintext";
 
+    public const string TestUnlockPassword = "test-unlock-password";
+
     public const string TestJwtSigningKey = "test-jwt-signing-key-32chars-min!!";
 
     public static string TestApiKeyHash { get; } = ApiKeyHasher.Hash(TestApiKey);
+
+    public static string TestUnlockPasswordHash { get; } = ApiKeyHasher.Hash(TestUnlockPassword);
 
     public FakeChangeWatermarkRepo Watermarks { get; } = new();
 
@@ -50,6 +54,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     /// <summary>非空时替换 <see cref="ISyncService"/></summary>
     public ISyncService? Sync { get; init; }
+
+    /// <summary>非空时替换 <see cref="IMsfxAutoRunPersist"/></summary>
+    public IMsfxAutoRunPersist? AutoRunPersist { get; init; }
+
+    /// <summary>非空时替换 <see cref="IInjectorService"/></summary>
+    public IInjectorService? Injector { get; init; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -100,6 +110,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             {
                 services.Replace(ServiceDescriptor.Singleton<ISyncService>(Sync));
             }
+
+            if (AutoRunPersist is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<IMsfxAutoRunPersist>(AutoRunPersist));
+            }
+
+            if (Injector is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<IInjectorService>(Injector));
+            }
         });
     }
 
@@ -111,6 +131,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             [$"Auth:Clients:{TestClientId}:Scopes:0"] = AuthPolicies.Read,
             [$"Auth:Clients:{TestClientId}:Scopes:1"] = AuthPolicies.Write,
             [$"Auth:Clients:{TestClientId}:Scopes:2"] = AuthPolicies.SystemStatus,
+            ["Auth:UnlockPasswordHash"] = TestUnlockPasswordHash,
             ["Auth:HeaderName"] = AuthOptions.DefaultHeaderName,
             ["Auth:Jwt:Issuer"] = "pactoolkits-api-test",
             ["Auth:Jwt:Audience"] = "pactoolkits-clients-test",

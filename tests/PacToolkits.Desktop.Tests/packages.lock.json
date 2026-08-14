@@ -808,7 +808,6 @@
           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.10, )",
           "PacToolkits.Agents.Contracts": "[1.0.0, )",
           "PacToolkits.Application": "[1.0.0, )",
-          "PacToolkits.Infrastructure": "[1.0.0, )",
           "PacToolkits.Logger": "[1.0.0, )",
           "ShadUI": "[0.2.4, )",
           "Velopack": "[1.2.0, )"

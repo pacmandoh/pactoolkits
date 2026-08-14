@@ -635,14 +635,6 @@
         "resolved": "13.0.3",
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
-      "Npgsql": {
-        "type": "Transitive",
-        "resolved": "10.0.3",
-        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
-        }
-      },
       "Polly.Core": {
         "type": "Transitive",
         "resolved": "8.4.2",
@@ -836,23 +828,9 @@
           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.10, )",
           "PacToolkits.Agents.Contracts": "[1.0.0, )",
           "PacToolkits.Application": "[1.0.0, )",
-          "PacToolkits.Infrastructure": "[1.0.0, )",
           "PacToolkits.Logger": "[1.0.0, )",
           "ShadUI": "[0.2.4, )",
           "Velopack": "[1.2.0, )"
-        }
-      },
-      "pactoolkits.infrastructure": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Extensions.Configuration": "[10.0.10, )",
-          "Microsoft.Extensions.DependencyInjection": "[10.0.10, )",
-          "Microsoft.Extensions.Http": "[10.0.10, )",
-          "Microsoft.Extensions.Http.Resilience": "[10.8.0, )",
-          "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.10, )",
-          "Npgsql": "[10.0.3, )",
-          "PacToolkits.Application": "[1.0.0, )",
-          "PacToolkits.Core": "[1.0.0, )"
         }
       },
       "pactoolkits.logger": {

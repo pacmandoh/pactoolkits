@@ -301,6 +301,9 @@ public sealed class MsfxEndpointsTests
             CancellationToken ct)
             => throw new NotSupportedException();
 
+        public Task<MsfxMappingStatusSnapshot> GetMappingStatusSnapshotAsync(CancellationToken ct)
+            => Task.FromResult(new MsfxMappingStatusSnapshot(0, 0, 0, 0, 0));
+
         public Task<MsfxMapApplyResult> ApplyMappingAsync(int limit, CancellationToken ct)
         {
             ApplyMappingCalls++;

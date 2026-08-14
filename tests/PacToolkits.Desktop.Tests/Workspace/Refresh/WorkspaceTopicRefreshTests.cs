@@ -218,7 +218,7 @@ public sealed class WorkspaceTopicRefreshTests
     public void SkipActiveRefresh_defers_msfx_while_manual_write_active()
     {
         var active = new MsfxDeferPageStub(manualWriteActive: true);
-        active.TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+        active.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
 
         var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "msfx");
 
@@ -230,7 +230,7 @@ public sealed class WorkspaceTopicRefreshTests
     public void SkipActiveRefresh_does_not_defer_msfx_when_idle()
     {
         var active = new MsfxDeferPageStub(manualWriteActive: false);
-        active.TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+        active.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
 
         var defer = WorkspaceTopicRefresh.SkipActiveRefresh(active, "msfx");
 
@@ -276,14 +276,14 @@ public sealed class WorkspaceTopicRefreshTests
         bool stockEditEnabled = false)
     {
         var page = new InventoryDeferPageStub(suppressUntilUtc, stockEditEnabled);
-        page.TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+        page.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
         return page;
     }
 
     private static RefreshablePageStub CreateRefreshablePage(Func<CancellationToken, Task> reload)
     {
         var page = new RefreshablePageStub(reload);
-        page.TestInjectDbServices(new AppPageBaseReloadPipelineTests.FakeDbMonitor { IsConnected = true });
+        page.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
         return page;
     }
 

@@ -144,6 +144,42 @@ public sealed class AuthOptionsValidationTests
         Assert.True(result.Succeeded);
     }
 
+    [Fact]
+    public void Rejects_invalid_unlock_password_hash()
+    {
+        var options = ValidClientOptions();
+        options.UnlockPasswordHash = "not-a-sha256";
+
+        var result = AuthOptionsValidator.Validate(options, requireEnabledClient: true);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(
+            result.Failures!,
+            static f => f.Contains("UnlockPasswordHash", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Accepts_empty_unlock_password_hash()
+    {
+        var options = ValidClientOptions();
+        options.UnlockPasswordHash = string.Empty;
+
+        var result = AuthOptionsValidator.Validate(options, requireEnabledClient: true);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Accepts_valid_unlock_password_hash()
+    {
+        var options = ValidClientOptions();
+        options.UnlockPasswordHash = ApiFactory.TestUnlockPasswordHash;
+
+        var result = AuthOptionsValidator.Validate(options, requireEnabledClient: true);
+
+        Assert.True(result.Succeeded);
+    }
+
     private static AuthOptions ValidClientOptions()
         => new()
         {

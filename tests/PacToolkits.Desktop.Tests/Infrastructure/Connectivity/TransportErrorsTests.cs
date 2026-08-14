@@ -12,56 +12,32 @@ public sealed class TransportErrorsTests
         => Assert.False(TransportErrors.IsTransport(new HttpRequestException("boom")));
 
     [Fact]
-    public void SignalsDbDisconnect_false_for_bare_http_request_exception()
-        => Assert.False(TransportErrors.SignalsDbDisconnect(new HttpRequestException("boom")));
-
-    [Fact]
-    public void Http_wrapped_socket_does_not_signal_db_or_count_as_transport()
+    public void Http_wrapped_socket_is_not_transport()
     {
         var ex = new HttpRequestException("upstream", new SocketException((int)SocketError.ConnectionRefused));
         Assert.False(TransportErrors.IsTransport(ex));
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]
-    public void Bare_socket_exception_is_local_db_transport()
-    {
-        var ex = new SocketException((int)SocketError.ConnectionRefused);
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
+    public void Bare_socket_exception_is_transport()
+        => Assert.True(TransportErrors.IsTransport(new SocketException((int)SocketError.ConnectionRefused)));
 
     [Fact]
-    public void Bare_io_exception_is_local_db_transport()
-    {
-        var ex = new IOException("Unable to read data from the transport connection");
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
+    public void Bare_io_exception_is_transport()
+        => Assert.True(TransportErrors.IsTransport(
+            new IOException("Unable to read data from the transport connection")));
 
     [Fact]
-    public void Bare_end_of_stream_is_local_db_transport()
-    {
-        var ex = new EndOfStreamException();
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
+    public void Bare_end_of_stream_is_transport()
+        => Assert.True(TransportErrors.IsTransport(new EndOfStreamException()));
 
     [Fact]
-    public void Bare_timeout_exception_is_local_db_transport()
-    {
-        var ex = new TimeoutException("command timeout");
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
+    public void Bare_timeout_exception_is_transport()
+        => Assert.True(TransportErrors.IsTransport(new TimeoutException("command timeout")));
 
     [Fact]
     public void IsTransport_true_for_failed_to_connect_on_any_exception()
-    {
-        var ex = new Exception("Failed to connect to [::1]:5432");
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
+        => Assert.True(TransportErrors.IsTransport(new Exception("Failed to connect to [::1]:5432")));
 
     [Fact]
     public void IsTransport_true_for_transient_pac_api_exception()
@@ -74,7 +50,6 @@ public sealed class TransportErrorsTests
             TraceId: "abc",
             RetryAfter: null));
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
         Assert.True(ex.IsTransient);
     }
 
@@ -97,7 +72,7 @@ public sealed class TransportErrorsTests
     }
 
     [Fact]
-    public void PacApi_with_inner_socket_does_not_signal_db()
+    public void PacApi_with_inner_socket_is_transport()
     {
         var ex = new PacApiException(
             new PacApiProblem(
@@ -110,7 +85,6 @@ public sealed class TransportErrorsTests
             new IOException("cut", new SocketException((int)SocketError.ConnectionReset)));
 
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]
@@ -128,12 +102,9 @@ public sealed class TransportErrorsTests
     }
 
     [Fact]
-    public void IsTransport_true_for_pg_connect_message()
-    {
-        var ex = new InvalidOperationException("Failed to connect to 127.0.0.1");
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
+    public void IsTransport_true_for_connect_message()
+        => Assert.True(TransportErrors.IsTransport(
+            new InvalidOperationException("Failed to connect to 127.0.0.1")));
 
     [Fact]
     public void IsTransport_true_for_aggregate_wrapping_connection_message()
@@ -142,7 +113,6 @@ public sealed class TransportErrorsTests
             new InvalidOperationException("wrapper"),
             new InvalidOperationException("Failed to connect"));
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]
@@ -151,7 +121,7 @@ public sealed class TransportErrorsTests
             new InvalidOperationException("duplicate key value violates unique constraint")));
 
     [Fact]
-    public void Mixed_aggregate_pac_api_and_socket_prefers_remote_not_db()
+    public void Mixed_aggregate_pac_api_and_socket_is_transport()
     {
         var api = new PacApiException(new PacApiProblem(
             Status: 503,
@@ -163,27 +133,10 @@ public sealed class TransportErrorsTests
         var ex = new AggregateException(api, new SocketException((int)SocketError.ConnectionRefused));
 
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]
-    public void Mixed_aggregate_pac_api_and_npgsql_keeps_signals_db()
-    {
-        var api = new PacApiException(new PacApiProblem(
-            Status: 503,
-            Code: "service_unavailable",
-            Title: "down",
-            Detail: null,
-            TraceId: "t",
-            RetryAfter: null));
-        var ex = new AggregateException(api, new Npgsql.FakeNpgsqlException("pg down", null));
-
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
-
-    [Fact]
-    public void Mixed_aggregate_http_and_socket_prefers_remote_not_db()
+    public void Mixed_aggregate_http_and_socket_is_transport()
     {
         var http = new HttpRequestException(
             "upstream",
@@ -193,11 +146,10 @@ public sealed class TransportErrorsTests
             new SocketException((int)SocketError.ConnectionRefused));
 
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]
-    public void PacApi_wrapping_aggregate_sockets_does_not_signal_db()
+    public void PacApi_wrapping_aggregate_sockets_is_transport()
     {
         var ex = new PacApiException(
             new PacApiProblem(
@@ -212,28 +164,15 @@ public sealed class TransportErrorsTests
                 new SocketException((int)SocketError.ConnectionRefused)));
 
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.False(TransportErrors.SignalsDbDisconnect(ex));
     }
 
     [Fact]
-    public void Npgsql_wrapping_aggregate_still_signals_db()
-    {
-        var ex = new Npgsql.FakeNpgsqlException(
-            "connection broken",
-            new AggregateException(new InvalidOperationException("business")));
-
-        Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
-    }
-
-    [Fact]
-    public void Connect_message_wrapping_aggregate_still_signals_db()
+    public void Connect_message_wrapping_aggregate_is_transport()
     {
         var ex = new InvalidOperationException(
             "Failed to connect to 127.0.0.1",
             new AggregateException(new InvalidOperationException("business")));
 
         Assert.True(TransportErrors.IsTransport(ex));
-        Assert.True(TransportErrors.SignalsDbDisconnect(ex));
     }
 }

@@ -14,7 +14,6 @@ public sealed class SectionEmptyPendingTests
 
     [Theory]
     [InlineData(PageDataAvailability.NotLoaded)]
-    [InlineData(PageDataAvailability.AwaitingDatabase)]
     [InlineData(PageDataAvailability.AwaitingService)]
     public void IsPending_false_while_waiting_for_connection(PageDataAvailability availability)
     {

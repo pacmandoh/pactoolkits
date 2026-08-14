@@ -3,9 +3,9 @@ using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
+using PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 namespace PacToolkits.Desktop.Tests;
 
@@ -16,24 +16,14 @@ public sealed class AgentsRuntimeTests
     private static AgentsRuntime CreateRuntime(
         IAppConfigStore? config = null,
         IModuleSettingsStore? settings = null,
-        IReleaseVersionService? release = null,
-        string schemaVersion = "1.2.25")
+        IReleaseVersionService? release = null)
         => new(
             config ?? new FakeAppConfigStore(),
             settings ?? new FakeModuleSettingsStore(),
             release ?? new FakeReleaseVersionService(),
             new NullAppLogger(),
-            new AgentsAdmitService(new DbSchemaGate(new FixedSchemaVersion(schemaVersion))),
+            new AgentsAdmitService(),
             new AgentsBundleService());
-
-    private sealed class FixedSchemaVersion(string version) : IDbSchemaVersionService
-    {
-        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionRead(true, version, null));
-
-        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
-            => TryReadSchemaVersionAsync(ct);
-    }
 
     // Host 假文件与 ReleaseManifest，覆盖路径解析与清单门禁
     private sealed class TempAgentsInstall : IDisposable
@@ -113,7 +103,6 @@ public sealed class AgentsRuntimeTests
 
         Assert.False(result.Ok);
         Assert.Contains("支持下限", result.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("数据库版本", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -148,24 +137,6 @@ public sealed class AgentsRuntimeTests
         Assert.DoesNotContain("支持下限", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("支持上限", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("无法校验 Agents 与 PacToolkits", result.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Start_does_not_gate_on_database_schema()
-    {
-        using var agents = new TempAgentsInstall("0.1.0", "9.0.0");
-        var config = new FakeAppConfigStore();
-        agents.ApplyTo(config);
-        using var runtime = CreateRuntime(
-            config: config,
-            release: new FakeReleaseVersionService(desktopVersion: "0.16.1"));
-
-        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
-
-        // 配套已过关；失败原因可含 Host/OS，但不得走库 schema 门禁
-        Assert.DoesNotContain("数据库版本", result.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("低于最低支持版本", result.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("Failed to connect", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -449,8 +420,6 @@ public sealed class AgentsRuntimeTests
                 DbSchemaVersion: "1.2.22",
                 BuildChannel: "stable",
                 BuildDate: "2026-06-13",
-                DesktopMinDbSchema: "1.2.22",
-                DesktopMaxDbSchema: "1.2.22",
                 MinApiContract: "1.0.0",
                 MaxApiContract: "1.0.0");
         }

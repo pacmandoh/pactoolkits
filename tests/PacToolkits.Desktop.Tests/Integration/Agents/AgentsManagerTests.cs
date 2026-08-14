@@ -1,7 +1,7 @@
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+using PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 namespace PacToolkits.Desktop.Tests;
 

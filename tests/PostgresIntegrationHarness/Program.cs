@@ -16,18 +16,6 @@ static PgOptions LoadOptions(string? database = null)
         Password = Environment.GetEnvironmentVariable("PGPASSWORD") ?? string.Empty,
     };
 
-static SettingsService CreateService(PgOptions options, DbAccessGuard guard)
-{
-    var config = new FixedDbConfig(options);
-    var logger = new NullLogger();
-    return new SettingsService(
-        config,
-        new DbConnectionTester(logger),
-        new DbSchemaGate(new DbSchemaVersionService(config, logger)),
-        new ClientIdReadRepo(logger, guard),
-        guard);
-}
-
 static PgDb CreatePgDb(PgOptions options, DbAccessGuard guard, NullLogger logger)
 {
     var factory = new PgDataSourceFactory();
@@ -49,6 +37,7 @@ try
 {
     var logger = new NullLogger();
     var schema = new DbSchemaVersionService(new FixedDbConfig(options), logger);
+    var gate = new DbSchemaGate(schema);
     var read = await schema.TryReadSchemaVersionAsync(options, CancellationToken.None);
     string? liveSchema = null;
     if (!read.Ok || string.IsNullOrWhiteSpace(read.Value))
@@ -62,16 +51,11 @@ try
     }
 
     var guard = new DbAccessGuard();
-    var clients = new ClientIdReadRepo(logger, guard);
-    var machines = await clients.GetDistinctClientIdsAsync(options, CancellationToken.None);
-    Pass($"client_alias_read count={machines.Count}");
-
-    var service = CreateService(options, guard);
-    var compatibleContext = ManifestDbSchema.CompatibleContext();
-    var snapshot = await service.GetSchemaStatusAsync(compatibleContext, options, CancellationToken.None);
-    if (!snapshot.SchemaOk || snapshot.Compatibility != DbSchemaCompatibility.Compatible)
+    var compatible = ManifestDbSchema.CompatibleBounds();
+    var match = gate.Match(read, compatible.Min, compatible.Max);
+    if (match.Status != DbSchemaCompatibility.Compatible || !match.IsCompatible)
     {
-        Fail("schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
+        Fail("schema_status", $"{match.Status} {match.Message}");
     }
     else
     {
@@ -81,11 +65,11 @@ try
     // BelowMinimum：相对现场库推算，避免手写下一版号
     if (liveSchema is not null)
     {
-        var belowMinContext = ManifestDbSchema.BelowMinimumContext(liveSchema);
-        var belowSnapshot = await service.GetSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
-        if (belowSnapshot.Compatibility != DbSchemaCompatibility.BelowMinimum || belowSnapshot.Satisfied)
+        var below = ManifestDbSchema.BelowMinimumBounds(liveSchema);
+        var belowMatch = gate.Match(read, below.Min, below.Max);
+        if (belowMatch.Status != DbSchemaCompatibility.BelowMinimum || belowMatch.IsCompatible)
         {
-            Fail("below_minimum_block", belowSnapshot.IncompatibleMessage ?? belowSnapshot.Compatibility.ToString());
+            Fail("below_minimum_block", belowMatch.Message ?? belowMatch.Status.ToString());
         }
         else
         {
@@ -187,12 +171,8 @@ static async Task<NpgsqlConnection> OpenConnectionAsync(PgOptions options)
 file sealed class FixedDbConfig(PgOptions current) : IDbConfigService
 {
     public PgOptions Current { get; } = current;
-    public string ConfigPath => "/tmp/pactoolkits-itest.config.json";
-#pragma warning disable CS0067
-    public event EventHandler? Applied;
-#pragma warning restore CS0067
+
     public Task<bool> TestConnectionAsync(PgOptions opt, CancellationToken ct) => Task.FromResult(true);
-    public Task ApplyAsync(PgOptions opt, CancellationToken ct = default) => Task.CompletedTask;
 }
 
 file sealed class NullLogger : IAppLogger
