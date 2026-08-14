@@ -94,8 +94,8 @@ while IFS= read -r module_id; do
   [[ -n "$module_id" ]] || continue
   module_dir="$ROOT_DIR/$(manifest_agents_module_source_dir "$module_id")"
   declared_version="$(manifest_agents_module_version "$MANIFEST" "$module_id")"
-  declared_min_db="$(manifest_agents_module_min_db "$MANIFEST" "$module_id")"
-  declared_max_db="$(manifest_agents_module_max_db "$MANIFEST" "$module_id")"
+  declared_min_c="$(manifest_agents_module_min_api_contract "$MANIFEST" "$module_id")"
+  declared_max_c="$(manifest_agents_module_max_api_contract "$MANIFEST" "$module_id")"
   module_meta="$module_dir/module.json"
   [[ -f "$module_meta" ]] || {
     echo "ERROR: missing $module_meta (run scripts/export-version.sh)" >&2
@@ -106,14 +106,14 @@ while IFS= read -r module_id; do
     echo "ERROR: $module_meta version=$meta_version != agents.modules.$module_id.version=$declared_version" >&2
     exit 1
   }
-  meta_min_db="$(jq_r '.minDbSchema // empty' "$module_meta")"
-  meta_max_db="$(jq_r '.maxDbSchema // empty' "$module_meta")"
-  [[ "$meta_min_db" == "$declared_min_db" ]] || {
-    echo "ERROR: $module_meta minDbSchema=$meta_min_db != agents.modules.$module_id.minDbSchema=$declared_min_db" >&2
+  meta_min_c="$(jq_r '.minApiContract // empty' "$module_meta")"
+  meta_max_c="$(jq_r '.maxApiContract // empty' "$module_meta")"
+  [[ "$meta_min_c" == "$declared_min_c" ]] || {
+    echo "ERROR: $module_meta minApiContract=$meta_min_c != agents.modules.$module_id.minApiContract=$declared_min_c" >&2
     exit 1
   }
-  [[ "$meta_max_db" == "$declared_max_db" ]] || {
-    echo "ERROR: $module_meta maxDbSchema=$meta_max_db != agents.modules.$module_id.maxDbSchema=$declared_max_db" >&2
+  [[ "$meta_max_c" == "$declared_max_c" ]] || {
+    echo "ERROR: $module_meta maxApiContract=$meta_max_c != agents.modules.$module_id.maxApiContract=$declared_max_c" >&2
     exit 1
   }
 done < <(manifest_agents_module_ids "$MANIFEST")
@@ -199,10 +199,10 @@ done < <(manifest_agents_component_ids "$MANIFEST")
 while IFS= read -r module_id; do
   module_id="${module_id//$'\r'/}"
   [[ -n "$module_id" ]] || continue
-  module_min_db="$(manifest_agents_module_min_db "$MANIFEST" "$module_id")"
-  module_max_db="$(manifest_agents_module_max_db "$MANIFEST" "$module_id")"
-  if [[ -n "$module_min_db" || -n "$module_max_db" ]]; then
-    echo "- agents.modules.${module_id}.version: $(manifest_agents_module_version "$MANIFEST" "$module_id") (db ${module_min_db}-${module_max_db})"
+  module_min_c="$(manifest_agents_module_min_api_contract "$MANIFEST" "$module_id")"
+  module_max_c="$(manifest_agents_module_max_api_contract "$MANIFEST" "$module_id")"
+  if [[ -n "$module_min_c" || -n "$module_max_c" ]]; then
+    echo "- agents.modules.${module_id}.version: $(manifest_agents_module_version "$MANIFEST" "$module_id") (api ${module_min_c}-${module_max_c})"
   else
     echo "- agents.modules.${module_id}.version: $(manifest_agents_module_version "$MANIFEST" "$module_id")"
   fi

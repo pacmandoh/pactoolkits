@@ -20,14 +20,6 @@ manifest_desktop_version() {
   jq_r '.components.desktop.avalonia.version // empty' "$1"
 }
 
-manifest_desktop_min_db() {
-  jq_r '.components.desktop.avalonia.minDbSchema // empty' "$1"
-}
-
-manifest_desktop_max_db() {
-  jq_r '.components.desktop.avalonia.maxDbSchema // empty' "$1"
-}
-
 manifest_desktop_min_api_contract() {
   jq_r '.components.desktop.avalonia.minApiContract // empty' "$1"
 }
@@ -63,18 +55,18 @@ manifest_agents_module_version() {
     '.components.agents.modules[$id].version // empty' "$manifest"
 }
 
-manifest_agents_module_min_db() {
+manifest_agents_module_min_api_contract() {
   local manifest="$1"
   local module_id="$2"
   jq_r --arg id "$module_id" \
-    '.components.agents.modules[$id].minDbSchema // empty' "$manifest"
+    '.components.agents.modules[$id].minApiContract // empty' "$manifest"
 }
 
-manifest_agents_module_max_db() {
+manifest_agents_module_max_api_contract() {
   local manifest="$1"
   local module_id="$2"
   jq_r --arg id "$module_id" \
-    '.components.agents.modules[$id].maxDbSchema // empty' "$manifest"
+    '.components.agents.modules[$id].maxApiContract // empty' "$manifest"
 }
 
 manifest_api_version() {
@@ -101,7 +93,9 @@ write_desktop_release_manifest() {
     schemaVersion,
     product,
     components: {
-      desktop: .components.desktop,
+      desktop: {
+        avalonia: (.components.desktop.avalonia | del(.minDbSchema, .maxDbSchema))
+      },
       agents: { version: .components.agents.version },
       database: .components.database
     },
@@ -109,7 +103,7 @@ write_desktop_release_manifest() {
   }' "$src" > "$dest"
 }
 
-# Agents 旁清单字段：version、minDesktop、maxDesktop，以及 modules 各 Id 的 version（库区间在 module.json）
+# Agents 旁清单字段：version、minDesktop、maxDesktop，以及 modules 各 Id 的 version（协议区间在 module.json）
 write_agents_release_manifest() {
   local src="$1"
   local dest="$2"
@@ -308,7 +302,7 @@ manifest_agents_component_ids() {
   jq_r '
     .components
     | to_entries[]
-    | select(.key == "agents" and .value.artifact["windows-x64"] != null)
+    | select(.key == "agents" and .value.entry["windows-x64"] != null)
     | .key
   ' "$1"
 }
@@ -527,16 +521,12 @@ validate_component_db_bounds() {
   local component_id="${2//$'\r'/}"
   local min_db max_db
   case "$component_id" in
-    desktop)
-      min_db="$(manifest_desktop_min_db "$manifest")"
-      max_db="$(manifest_desktop_max_db "$manifest")"
-      ;;
     api)
       min_db="$(manifest_api_min_db "$manifest")"
       max_db="$(manifest_api_max_db "$manifest")"
       ;;
     *)
-      echo "ERROR: component minDbSchema is only defined for desktop|api (got $component_id)" >&2
+      echo "ERROR: component minDbSchema is only defined for api (got $component_id)" >&2
       return 1
       ;;
   esac
@@ -581,32 +571,32 @@ validate_desktop_api_contract_bounds() {
   }
 }
 
-# 模块库区间：min/max 皆缺（不依赖库）或完整成对 X.Y.Z 且 min<=max；半套非法
-validate_agents_module_db_bounds() {
+# 模块协议区间：min/max 皆缺（不依赖 PacAPI 协议）或完整成对 X.Y.Z 且 min<=max；半套非法
+validate_agents_module_api_contract_bounds() {
   local manifest="$1"
-  local module_id min_db max_db
+  local module_id min_c max_c
   while IFS= read -r module_id; do
     module_id="${module_id//$'\r'/}"
     [[ -n "$module_id" ]] || continue
-    min_db="$(manifest_agents_module_min_db "$manifest" "$module_id")"
-    max_db="$(manifest_agents_module_max_db "$manifest" "$module_id")"
-    if [[ -z "$min_db" && -z "$max_db" ]]; then
+    min_c="$(manifest_agents_module_min_api_contract "$manifest" "$module_id")"
+    max_c="$(manifest_agents_module_max_api_contract "$manifest" "$module_id")"
+    if [[ -z "$min_c" && -z "$max_c" ]]; then
       continue
     fi
-    if [[ -z "$min_db" || -z "$max_db" ]]; then
-      echo "ERROR: agents.modules.$module_id requires both minDbSchema and maxDbSchema, or neither" >&2
+    if [[ -z "$min_c" || -z "$max_c" ]]; then
+      echo "ERROR: agents.modules.$module_id requires both minApiContract and maxApiContract, or neither" >&2
       return 1
     fi
-    is_stable_semver "$min_db" || {
-      echo "ERROR: invalid agents.modules.$module_id.minDbSchema: $min_db" >&2
+    is_stable_semver "$min_c" || {
+      echo "ERROR: invalid agents.modules.$module_id.minApiContract: $min_c" >&2
       return 1
     }
-    is_stable_semver "$max_db" || {
-      echo "ERROR: invalid agents.modules.$module_id.maxDbSchema: $max_db" >&2
+    is_stable_semver "$max_c" || {
+      echo "ERROR: invalid agents.modules.$module_id.maxApiContract: $max_c" >&2
       return 1
     }
-    semver_lte_stable "$min_db" "$max_db" || {
-      echo "ERROR: agents.modules.$module_id minDbSchema ($min_db) must be <= maxDbSchema ($max_db)" >&2
+    semver_lte_stable "$min_c" "$max_c" || {
+      echo "ERROR: agents.modules.$module_id minApiContract ($min_c) must be <= maxApiContract ($max_c)" >&2
       return 1
     }
   done < <(manifest_agents_module_ids "$manifest")
@@ -654,7 +644,7 @@ validate_agents_desktop_bounds() {
 
 validate_database_postgres_component_compat() {
   local manifest="$1"
-  local db_version min_db max_db label
+  local db_version min_db max_db
   db_version="$(manifest_database_postgres_version "$manifest")"
   is_stable_semver "$db_version" || {
     echo "ERROR: invalid database.postgres.version: $db_version" >&2
@@ -662,28 +652,17 @@ validate_database_postgres_component_compat() {
   }
 
   validate_desktop_api_contract_bounds "$manifest" || return 1
-
-  for label in desktop api; do
-    validate_component_db_bounds "$manifest" "$label" || return 1
-    case "$label" in
-      desktop)
-        min_db="$(manifest_desktop_min_db "$manifest")"
-        max_db="$(manifest_desktop_max_db "$manifest")"
-        ;;
-      api)
-        min_db="$(manifest_api_min_db "$manifest")"
-        max_db="$(manifest_api_max_db "$manifest")"
-        ;;
-    esac
-    semver_lte_stable "$min_db" "$db_version" || {
-      echo "ERROR: database.postgres.version ($db_version) must be >= ${label}.minDbSchema ($min_db)" >&2
-      return 1
-    }
-    semver_lte_stable "$db_version" "$max_db" || {
-      echo "ERROR: database.postgres.version ($db_version) must be <= ${label}.maxDbSchema ($max_db)" >&2
-      return 1
-    }
-  done
+  validate_component_db_bounds "$manifest" "api" || return 1
+  min_db="$(manifest_api_min_db "$manifest")"
+  max_db="$(manifest_api_max_db "$manifest")"
+  semver_lte_stable "$min_db" "$db_version" || {
+    echo "ERROR: database.postgres.version ($db_version) must be >= api.minDbSchema ($min_db)" >&2
+    return 1
+  }
+  semver_lte_stable "$db_version" "$max_db" || {
+    echo "ERROR: database.postgres.version ($db_version) must be <= api.maxDbSchema ($max_db)" >&2
+    return 1
+  }
 
   validate_agents_desktop_bounds "$manifest" || return 1
 }
@@ -818,8 +797,6 @@ validate_manifest_v2() {
     (($root.components.desktop | keys) == ["avalonia"]) and
     ($root.components.desktop.avalonia.version | type == "string" and length > 0) and
     $root.components.desktop.avalonia.packageId == "PacToolkits" and
-    ($root.components.desktop.avalonia.minDbSchema | semver) and
-    ($root.components.desktop.avalonia.maxDbSchema | semver) and
     ($root.components.desktop.avalonia.minApiContract | semver) and
     ($root.components.desktop.avalonia.maxApiContract | semver) and
     ($root.components.api.version | semver) and
@@ -829,8 +806,8 @@ validate_manifest_v2() {
     ($root.components.agents.version | semver) and
     ($root.components.agents.minDesktop | type == "string" and length > 0) and
     ($root.components.agents.maxDesktop | type == "string" and length > 0) and
-    ($root.components.agents.artifact["windows-x64"] | type == "string" and length > 0) and
-    (($root.components.agents.artifact.installDir? // ".") | type == "string" and length > 0) and
+    ($root.components.agents.entry["windows-x64"] | type == "string" and length > 0) and
+    ($root.components.agents.installDir | type == "string" and length > 0) and
     ($root.components.agents.modules | type == "object") and
     ($root.components.agents.modules | length > 0) and
     (
@@ -841,12 +818,12 @@ validate_manifest_v2() {
           (.value.version | semver) and
           (
             (
-              ((.value.minDbSchema? // null) == null) and
-              ((.value.maxDbSchema? // null) == null)
+              ((.value.minApiContract? // null) == null) and
+              ((.value.maxApiContract? // null) == null)
             ) or
             (
-              (.value.minDbSchema | type == "string" and semver) and
-              (.value.maxDbSchema | type == "string" and semver)
+              (.value.minApiContract | type == "string" and semver) and
+              (.value.maxApiContract | type == "string" and semver)
             )
           )
         )
@@ -862,7 +839,7 @@ validate_manifest_v2() {
   validate_product_version_matches_channel "$manifest" || return 1
   validate_desktop_version_matches_channel "$manifest" || return 1
   validate_database_postgres_component_compat "$manifest" || return 1
-  validate_agents_module_db_bounds "$manifest" || return 1
+  validate_agents_module_api_contract_bounds "$manifest" || return 1
 }
 
 release_tag_version() {

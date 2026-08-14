@@ -103,13 +103,7 @@ jq '
   .components.agents.maxDesktop = "0.17.1-beta.1"
 ' "$stable_fixture_manifest" > "$beta_manifest"
 validate_manifest_v2 "$beta_manifest"
-db_version="$(jq -r '.components.database.postgres.version' "$beta_manifest")"
-desktop_min_db="$(jq -r '.components.desktop.avalonia.minDbSchema' "$beta_manifest")"
 agent_min_desktop="$(jq -r '.components["agents"].minDesktop' "$beta_manifest")"
-[[ "$desktop_min_db" == "$db_version" ]] || {
-  echo "ERROR: beta channel desktop.minDbSchema must track database.postgres.version" >&2
-  exit 1
-}
 [[ -n "$agent_min_desktop" ]] || {
   echo "ERROR: beta channel agents.minDesktop must be present" >&2
   exit 1
@@ -170,7 +164,7 @@ if validate_manifest_v2 "$beta_stable_product_manifest" >/dev/null 2>&1; then
 fi
 
 invalid_min_max_manifest="$(mktemp)"
-jq '.components.desktop.avalonia.maxDbSchema = "1.2.21"' "$ROOT_DIR/release-manifest.json" > "$invalid_min_max_manifest"
+jq '.components.api.maxDbSchema = "1.2.21"' "$ROOT_DIR/release-manifest.json" > "$invalid_min_max_manifest"
 if validate_manifest_v2 "$invalid_min_max_manifest" >/dev/null 2>&1; then
   echo "ERROR: manifest validation should reject minDbSchema > maxDbSchema" >&2
   exit 1
@@ -183,9 +177,9 @@ if validate_manifest_v2 "$invalid_db_compat_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Windows/MSYS2 jq 输出 CRLF 时，带 CR 的 desktop id 仍应通过
-validate_component_db_bounds "$ROOT_DIR/release-manifest.json" $'desktop\r' || {
-  echo "ERROR: validate_component_db_bounds should accept desktop id with trailing CR" >&2
+# Windows/MSYS2 jq 输出 CRLF 时，带 CR 的 api id 仍应通过
+validate_component_db_bounds "$ROOT_DIR/release-manifest.json" $'api\r' || {
+  echo "ERROR: validate_component_db_bounds should accept api id with trailing CR" >&2
   exit 1
 }
 validate_agents_desktop_bounds "$ROOT_DIR/release-manifest.json" || {
@@ -265,8 +259,6 @@ jq \
   .components.desktop.avalonia.version = "0.18.0-beta.1" |
   .components.agents.minDesktop = "0.18.0-beta.1" |
   .components.agents.maxDesktop = "0.18.0-beta.1" |
-  .components.desktop.avalonia.minDbSchema = $db |
-  .components.desktop.avalonia.maxDbSchema = $db |
   .components.api.minDbSchema = $db |
   .components.api.maxDbSchema = $db |
   .components.database.postgres.version = $db
@@ -445,21 +437,21 @@ if validate_manifest_v2 "$invalid_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-invalid_module_db_half_manifest="$(mktemp)"
-jq 'del(.components.agents.modules.Injector.maxDbSchema)' \
-  "$ROOT_DIR/release-manifest.json" > "$invalid_module_db_half_manifest"
-if validate_manifest_v2 "$invalid_module_db_half_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject half agents.modules db bounds" >&2
+invalid_module_contract_half_manifest="$(mktemp)"
+jq 'del(.components.agents.modules.Injector.maxApiContract)' \
+  "$ROOT_DIR/release-manifest.json" > "$invalid_module_contract_half_manifest"
+if validate_manifest_v2 "$invalid_module_contract_half_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject half agents.modules api contract bounds" >&2
   exit 1
 fi
 
-invalid_module_db_order_manifest="$(mktemp)"
+invalid_module_contract_order_manifest="$(mktemp)"
 jq '
-  .components.agents.modules.Injector.minDbSchema = "1.2.30" |
-  .components.agents.modules.Injector.maxDbSchema = "1.2.20"
-' "$ROOT_DIR/release-manifest.json" > "$invalid_module_db_order_manifest"
-if validate_manifest_v2 "$invalid_module_db_order_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject agents.modules minDbSchema > maxDbSchema" >&2
+  .components.agents.modules.Injector.minApiContract = "1.5.0" |
+  .components.agents.modules.Injector.maxApiContract = "1.4.0"
+' "$ROOT_DIR/release-manifest.json" > "$invalid_module_contract_order_manifest"
+if validate_manifest_v2 "$invalid_module_contract_order_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject agents.modules minApiContract > maxApiContract" >&2
   exit 1
 fi
 
@@ -471,20 +463,10 @@ if validate_manifest_v2 "$invalid_api_contract_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-invalid_api_bounds_manifest="$(mktemp)"
-jq '
-  .components.api.minDbSchema = "1.2.30" |
-  .components.api.maxDbSchema = "1.2.20"
-' "$ROOT_DIR/release-manifest.json" > "$invalid_api_bounds_manifest"
-if validate_manifest_v2 "$invalid_api_bounds_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject api minDbSchema > maxDbSchema" >&2
-  exit 1
-fi
-
 invalid_bundle_version_manifest="$(mktemp)"
 invalid_module_id_manifest="$(mktemp)"
 agents_staging_fixture="$(mktemp -d)"
-trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_module_db_half_manifest" "$invalid_module_db_order_manifest" "$invalid_api_contract_manifest" "$invalid_api_bounds_manifest" "$invalid_bundle_version_manifest" "$invalid_module_id_manifest"; rm -rf "$agents_staging_fixture"' EXIT
+trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_module_contract_half_manifest" "$invalid_module_contract_order_manifest" "$invalid_api_contract_manifest" "$invalid_bundle_version_manifest" "$invalid_module_id_manifest"; rm -rf "$agents_staging_fixture"' EXIT
 jq '.components["agents"].version = "not-semver"' "$ROOT_DIR/release-manifest.json" > "$invalid_bundle_version_manifest"
 if validate_manifest_v2 "$invalid_bundle_version_manifest" >/dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid agents host versions" >&2
@@ -609,23 +591,6 @@ RELEASE_TAG="v9.9.9" ./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manife
 }
 
 current_db="$(manifest_database_postgres_version "$ROOT_DIR/release-manifest.json")"
-desktop_min_db_conflict_out="$(./scripts/bump-version.sh --desktop-min-db "$current_db" --component-min-db "desktop=9.9.9" --dry-run 2>&1)" && {
-  echo "ERROR: bump-version.sh should reject conflicting desktop minDbSchema flags" >&2
-  exit 1
-}
-echo "$desktop_min_db_conflict_out" | grep -Fq "conflicting desktop minDbSchema" || {
-  echo "ERROR: expected bump-version desktop minDbSchema conflict error message" >&2
-  exit 1
-}
-
-desktop_max_db_conflict_out="$(./scripts/bump-version.sh --desktop-max-db "$current_db" --component-max-db "desktop=9.9.9" --dry-run 2>&1)" && {
-  echo "ERROR: bump-version.sh should reject conflicting desktop maxDbSchema flags" >&2
-  exit 1
-}
-echo "$desktop_max_db_conflict_out" | grep -Fq "conflicting desktop maxDbSchema" || {
-  echo "ERROR: expected bump-version desktop maxDbSchema conflict error message" >&2
-  exit 1
-}
 
 # 独立字段：只改 api bounds、module bounds 或 contract 时，其它字段须保持不变
 api_bounds_preview="$(mktemp)"
@@ -652,22 +617,23 @@ jq -e --arg db "$current_db" --slurpfile root "$ROOT_DIR/release-manifest.json" 
 rm -f "$api_bounds_preview"
 
 module_bounds_preview="$(mktemp)"
+current_module_contract="$(jq -r '.components.agents.modules.Injector.minApiContract' "$ROOT_DIR/release-manifest.json")"
 module_bounds_out="$(./scripts/bump-version.sh \
-  --module-min-db "Injector=$current_db" \
-  --module-max-db "Injector=$current_db" \
+  --module-min-api-contract "Injector=$current_module_contract" \
+  --module-max-api-contract "Injector=$current_module_contract" \
   --output "$module_bounds_preview" \
   --dry-run 2>&1)" || {
-  echo "ERROR: bump-version module min/maxDbSchema independent update failed" >&2
+  echo "ERROR: bump-version module min/maxApiContract independent update failed" >&2
   echo "$module_bounds_out" >&2
   exit 1
 }
-jq -e --arg db "$current_db" --slurpfile root "$ROOT_DIR/release-manifest.json" '
-  .components.agents.modules.Injector.minDbSchema == $db and
-  .components.agents.modules.Injector.maxDbSchema == $db and
+jq -e --arg c "$current_module_contract" --slurpfile root "$ROOT_DIR/release-manifest.json" '
+  .components.agents.modules.Injector.minApiContract == $c and
+  .components.agents.modules.Injector.maxApiContract == $c and
   .components.agents.modules.Injector.version == $root[0].components.agents.modules.Injector.version and
   .components.agents.modules.Scanner == $root[0].components.agents.modules.Scanner
 ' "$module_bounds_preview" > /dev/null || {
-  echo "ERROR: module bounds bump should only touch target module min/maxDbSchema" >&2
+  echo "ERROR: module bounds bump should only touch target module min/maxApiContract" >&2
   exit 1
 }
 rm -f "$module_bounds_preview"

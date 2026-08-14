@@ -102,7 +102,7 @@ jobs:
           jq -e '
             ((.components.desktop | keys) == ["avalonia"]) and
             (.components.desktop.avalonia | type == "object") and
-            (.components.agents.artifact["windows-x64"] | type == "string" and length > 0) and
+            (.components.agents.entry["windows-x64"] | type == "string" and length > 0) and
             (.components.agents.modules | type == "object" and length > 0)
           ' release-manifest.json >/dev/null
 
@@ -135,7 +135,7 @@ jobs:
           # shellcheck source=scripts/lib/resolve-bundled-agents-source.sh
           source scripts/lib/resolve-bundled-agents-source.sh
           while IFS=$'\t' read -r bundle_id version exe_name install_dir; do
-            [[ -n "$install_dir" ]] || { echo "Missing artifact.installDir for component $bundle_id" >&2; exit 1; }
+            [[ -n "$install_dir" ]] || { echo "Missing installDir for component $bundle_id" >&2; exit 1; }
             if [[ "$install_dir" == "." ]]; then
               agents_target_dir="_desktop_publish/Agents"
             else
@@ -159,7 +159,7 @@ jobs:
             echo "Bundled $bundle_id -> ${agents_target_dir#"_desktop_publish/"}/$exe_name (from $source)"
           done < <(jq -r '
             .components.agents as $agents |
-            ["agents", $agents.version, $agents.artifact["windows-x64"], ($agents.artifact.installDir // ".")] |
+            ["agents", $agents.version, $agents.entry["windows-x64"], ($agents.installDir // ".")] |
             @tsv
           ' release-manifest.json)
 
@@ -217,7 +217,7 @@ jobs:
             echo "Collected Agents zip -> $agents_zip"
           done < <(jq -r '
             .components.agents |
-            [.version, .artifact["windows-x64"]] |
+            [.version, .entry["windows-x64"]] |
             @tsv
           ' release-manifest.json)
 
