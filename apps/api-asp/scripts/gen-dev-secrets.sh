@@ -59,7 +59,8 @@ done
 
 rand_secret() {
   if command -v openssl >/dev/null 2>&1; then
-    openssl rand -base64 48 | tr -d '=\n' | tr '+/' '-_'
+    # MSYS2 的 openssl rand 会带 CR，明文里不能留
+    openssl rand -base64 48 | tr -d '=\n\r' | tr '+/' '-_'
   else
     python3 -c 'import secrets; print(secrets.token_urlsafe(48))'
   fi
