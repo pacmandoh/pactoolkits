@@ -49,9 +49,11 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 
 | 键                                                               | 用途                                                     |
 | ---------------------------------------------------------------- | -------------------------------------------------------- |
-| `PAC_API_KEY`                                                    | 本地 curl 换票明文 Key（API 进程不读明文，只读散列）     |
+| `PAC_API_KEY`                                                    | Desktop 换票明文（API 进程不读明文，只读散列）           |
+| `PAC_AGENTS_API_KEY`                                             | Agents 换票明文；填 Desktop「Agents 密钥」（API 进程不读明文，只读散列） |
 | `PAC_UNLOCK_PASSWORD`                                            | 本地敏感操作口令明文（API 只读 `Auth__UnlockPasswordHash`） |
-| `Auth__Clients__dev__ApiKeyHash`                                 | 服务端比对的 Key 散列                                    |
+| `Auth__Clients__dev__ApiKeyHash`                                 | Desktop 客户端 Key 散列                                  |
+| `Auth__Clients__agents__ApiKeyHash`                              | Agents 客户端 Key 散列                                   |
 | `Auth__UnlockPasswordHash`                                       | 敏感操作口令散列                                         |
 | `Auth__Jwt__SigningKey`                                          | JWT HMAC                                                 |
 | `Postgres__Host` / `Port` / `Database` / `Username` / `Password` | 覆盖 `appsettings` 的 Postgres 节；`Password` 须本机手填 |
@@ -78,6 +80,11 @@ Auth__Clients__site-a__Enabled=true
 Auth__Clients__site-a__Scopes__0=read
 Auth__Clients__site-a__Scopes__1=write
 Auth__Clients__site-a__Scopes__2=system.status
+Auth__Clients__agents__ApiKeyHash=<sha256-hex>
+Auth__Clients__agents__Enabled=true
+Auth__Clients__agents__Scopes__0=read
+Auth__Clients__agents__Scopes__1=write
+Auth__Clients__agents__Scopes__2=system.status
 Auth__Jwt__SigningKey=<≥32 random>
 Auth__UnlockPasswordHash=<sha256-hex>
 Postgres__Password=<secret>

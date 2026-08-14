@@ -838,4 +838,15 @@ grep -Fq -- '-File `"$ScriptPath`"' scripts/create_sync_task.ps1 || {
   exit 1
 }
 
+gen_secrets="${ROOT_DIR}/apps/api-asp/scripts/gen-dev-secrets.sh"
+bash -n "$gen_secrets"
+grep -Fq 'PAC_AGENTS_API_KEY=${PAC_AGENTS_API_KEY}' "$gen_secrets" || {
+  echo "ERROR: gen-dev-secrets must write PAC_AGENTS_API_KEY" >&2
+  exit 1
+}
+grep -Fq 'Auth__Clients__${AGENTS_ID}__ApiKeyHash=${Agents_ApiKeyHash}' "$gen_secrets" || {
+  echo "ERROR: gen-dev-secrets must write agents ApiKeyHash" >&2
+  exit 1
+}
+
 echo "Tooling tests passed."
