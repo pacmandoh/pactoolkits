@@ -1,6 +1,4 @@
 {
-  "PgDriver": "PostgreSQL Unicode(x64)",
-  "PgSsl": "disable",
   "OptWindowClass": "TFrm_mzcffy",
   "IptWindowClass": "Tfrm_wzzsm",
   "AppWin": [

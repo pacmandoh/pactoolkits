@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
-; 校验 modules/injector/.env.local：路径约定与 PG_* 连库键（业务 AppWin 在 settings.json）
+; 校验 modules/injector/.env.local：路径约定与 PAC_API_* 键（业务 AppWin 在 settings.json）
 #Include "%A_ScriptDir%\..\..\..\lib\ahk\JSON.ahk"
 #Include "%A_ScriptDir%\..\..\..\lib\ahk\path.ahk"
 #Include "%A_ScriptDir%\..\src\util_misc.ahk"
@@ -18,7 +18,7 @@ Main() {
 
 	path := loaded["path"]
 	cfg := loaded["cfg"]
-	need := ["PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER"]
+	need := ["PAC_API_BASE_URL", "PAC_API_KEY"]
 	miss := []
 	for _, k in need {
 		if !(cfg.Has(k) && Trim("" cfg[k]) != "")
@@ -32,14 +32,7 @@ Main() {
 		ExitApp 1
 	}
 
-	if !cfg.Has("PG_SSL")
-		cfg["PG_SSL"] := "disable"
-
-	MsgBox "[信息] env 路径与 PG_* 键校验通过`n`n路径=`n" path "`n`n"
-		. "PG_HOST=" cfg["PG_HOST"] "`n"
-		. "PG_PORT=" cfg["PG_PORT"] "`n"
-		. "PG_DB=" cfg["PG_DB"] "`n"
-		. "PG_USER=" cfg["PG_USER"] "`n"
-		. "PG_DRIVER=" cfg["PG_DRIVER"] "`n"
-		. "PG_SSL=" cfg["PG_SSL"]
+	MsgBox "[信息] env 路径与 PAC_API_* 键校验通过`n`n路径=`n" path "`n`n"
+		. "PAC_API_BASE_URL=" cfg["PAC_API_BASE_URL"] "`n"
+		. "PAC_API_KEY=" cfg["PAC_API_KEY"]
 }

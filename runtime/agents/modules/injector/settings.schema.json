@@ -6,44 +6,6 @@
       "title": "基础配置",
       "fields": [
         {
-          "key": "PgDriver",
-          "type": "string",
-          "label": "PG 驱动",
-          "description": "Injector 连接 PostgreSQL 使用的 ODBC 驱动名"
-        },
-        {
-          "key": "PgSsl",
-          "type": "enum",
-          "label": "PG SSL",
-          "description": "Injector 连接数据库时的 SSL 模式",
-          "options": [
-            {
-              "value": "disable",
-              "label": "禁用"
-            },
-            {
-              "value": "allow",
-              "label": "允许（可明文）"
-            },
-            {
-              "value": "prefer",
-              "label": "优先 SSL"
-            },
-            {
-              "value": "require",
-              "label": "必须 SSL"
-            },
-            {
-              "value": "verify-ca",
-              "label": "校验 CA"
-            },
-            {
-              "value": "verify-full",
-              "label": "完整校验"
-            }
-          ]
-        },
-        {
           "key": "ConfirmTimeoutMs",
           "type": "int",
           "label": "确认超时",

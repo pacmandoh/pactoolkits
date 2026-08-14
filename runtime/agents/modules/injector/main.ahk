@@ -15,6 +15,7 @@
 #Include "%A_ScriptDir%\..\..\lib\ahk\ui.ahk"
 #Include "%A_ScriptDir%\..\..\lib\ahk\path.ahk"
 #Include "%A_ScriptDir%\..\..\lib\ahk\startup.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\pac_api.ahk"
 #Include "%A_ScriptDir%\src\util_misc.ahk"
 #Include "%A_ScriptDir%\src\util_config.ahk"
 #Include "%A_ScriptDir%\src\util_scene.ahk"
@@ -22,7 +23,6 @@
 #Include "%A_ScriptDir%\src\ui_paste.ahk"
 #Include "%A_ScriptDir%\src\ui_confirm.ahk"
 #Include "%A_ScriptDir%\src\parse_clipboard.ahk"
-#Include "%A_ScriptDir%\src\db_txn.ahk"
 #Include "%A_ScriptDir%\src\pg_exec.ahk"
 #Include "%A_ScriptDir%\src\main_semi_auto.ahk"
 #Include "%A_ScriptDir%\src\msfx_code.ahk"
@@ -60,7 +60,6 @@ global RuntimeInfo := Util_InitRuntimeInfo(VersionInfo)
 UI_Tip(Module_UiTitle() " v" VersionInfo["moduleVersion"], 1600)
 
 Cfg_RequireKeys(Cfg, [
-	"PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL",
 	"OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN",
 	"IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN",
 	"COL_FIELDS", "CONFIRM_TIMEOUT_MS", "APP_WIN"

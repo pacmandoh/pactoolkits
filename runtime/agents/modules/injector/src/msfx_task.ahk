@@ -1,4 +1,4 @@
-; 码上放心仓库任务：解析行、防重、贴码验证与节拍（SQL/取码见 msfx_sql / msfx_code）
+; 码上放心仓库任务：解析行、防重、贴码验证与节拍（PacAPI/取码见 msfx_sql / msfx_code）
 Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colFields, iptCls, win := "A", clickAnchor := "") {
 	win := Util_NormalizeWin(win)
 	flowT0 := A_TickCount
