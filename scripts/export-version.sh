@@ -70,7 +70,7 @@ namespace PacToolkits.Api.Hosting;
 /// HTTP 协议版本（SemVer）
 ///
 /// 由清单 components.api.contractVersion 生成
-/// 客户端以该常量做协议兼容判断；制品版本与 SchemaBounds 不参与
+/// 客户端以该常量做协议兼容判断；PacAPI 程序版本与 SchemaBounds 不参与
 /// </summary>
 public static class ApiContract
 {
@@ -129,19 +129,19 @@ while IFS= read -r module_id; do
     echo "ERROR: missing version for agents.modules.$module_id" >&2
     exit 1
   }
-  module_min_db="$(manifest_agents_module_min_db "$MANIFEST" "$module_id")"
-  module_max_db="$(manifest_agents_module_max_db "$MANIFEST" "$module_id")"
+  module_min_c="$(manifest_agents_module_min_api_contract "$MANIFEST" "$module_id")"
+  module_max_c="$(manifest_agents_module_max_api_contract "$MANIFEST" "$module_id")"
   if [[ -f "$module_json" ]]; then
     tmp="$(mktemp)"
-    # 与清单成对：有 min/max 则写入，否则从 module.json 去掉这两项
-    if [[ -n "$module_min_db" && -n "$module_max_db" ]]; then
+    # 与清单成对：有 min/max 则写入，否则从 module.json 去掉这两项；顺带清掉旧 min/maxDbSchema
+    if [[ -n "$module_min_c" && -n "$module_max_c" ]]; then
       jq --arg id "$module_id" --arg ver "$module_version" \
-        --arg min "$module_min_db" --arg max "$module_max_db" \
-        '.id = $id | .version = $ver | .minDbSchema = $min | .maxDbSchema = $max' \
+        --arg min "$module_min_c" --arg max "$module_max_c" \
+        '.id = $id | .version = $ver | .minApiContract = $min | .maxApiContract = $max | del(.minDbSchema, .maxDbSchema)' \
         "$module_json" > "$tmp"
     else
       jq --arg id "$module_id" --arg ver "$module_version" \
-        '.id = $id | .version = $ver | del(.minDbSchema, .maxDbSchema)' \
+        '.id = $id | .version = $ver | del(.minApiContract, .maxApiContract, .minDbSchema, .maxDbSchema)' \
         "$module_json" > "$tmp"
     fi
     chmod 644 "$tmp"
