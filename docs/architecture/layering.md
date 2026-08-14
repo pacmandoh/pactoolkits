@@ -1,6 +1,6 @@
 # 分层与依赖规则
 
-PacToolkits 按 Desktop、API、Application、Infrastructure、Core、Agents.Contracts 和 Logger 划分职责。Agents Host 与模块位于 `runtime/agents/`：共享 `packages/agents-contracts`（IPC / Snapshot / 路径）；JSON Lines 经 `packages/logger`。
+PacToolkits 按 Desktop、API、Application、Infrastructure、Core、Agents.Contracts 和 Logger 划分职责。Agents Host 与模块位于 `runtime/agents/`：共享 `packages/agents-contracts`（IPC / Snapshot / 路径）；JSON Lines 走 `packages/logger`
 
 ## 依赖方向
 
@@ -17,7 +17,6 @@ flowchart TB
     MODULE["runtime/agents/modules/*\n独立模块进程"]
 
     DESKTOP --> APP
-    DESKTOP --> INF
     DESKTOP --> AGENT
     DESKTOP --> LOGGER
     API --> APP
@@ -32,17 +31,13 @@ flowchart TB
     HOST -.->|启动和停止| MODULE
 ```
 
-**允许（现状）：**
+**允许：**
 
-- Desktop 依赖 Application、Infrastructure、Agents.Contracts、Logger
+- Desktop 依赖 Application、Agents.Contracts、Logger；业务数据走 HTTP 调 API
 - API 依赖 Application、Infrastructure（csproj 按域路由需要引用）
 - Host 依赖 Agents.Contracts、Logger
 - Infrastructure 依赖 Application、Core
 - Application 依赖 Core
-
-**目标：**
-
-- Desktop 依赖 Application、Agents.Contracts、Logger；业务数据经 HTTP 调 API，不再引用 Infrastructure / 直连 Pg
 
 **禁止：**
 
@@ -50,6 +45,7 @@ flowchart TB
 - Core 依赖任意 I/O（数据库、文件系统、日志框架、配置、桌面端）
 - Application、Core 依赖 Avalonia
 - ViewModel 直接引用 Npgsql 或编写 SQL
+- Desktop 引用 `PacToolkits.Infrastructure`、Npgsql，或注册 `AddPacToolkitsInfrastructure`
 - API 依赖 Desktop / Avalonia
 
 ## 各层职责
@@ -61,9 +57,9 @@ flowchart TB
 
 ### `packages/application`
 
-- **Abstractions/**、**DTOs/**、**Services/**：按业务域建二级目录（Dashboard、Msfx、ScanCode、Agents 等）；PacApi 的 HTTP DTO 放在 `DTOs/Api/`
+- **Abstractions/**、**DTOs/**、**Services/**：按业务域建二级目录（Dashboard、Msfx、ScanCode、Agents 等）；PacAPI 的 HTTP DTO 放在 `DTOs/Api/`
 - **Diagnostics/**、**Serialization/**、**Threading/**、**TextSearch/**：跨域能力，留在顶层
-- 库与 Agents 门禁：`IDbSchemaGate`、`IAgentsAdmitService`、`IAgentsBundleService`（文案见 `DbSchemaDesktop`）
+- 库与 Agents 门禁：`IDbSchemaGate`（API/库 schema）、`IAgentsAdmitService`（模块 `contractVersion` 区间）、`IAgentsBundleService`（Agents 与 Desktop 版本配套）
 - 注册入口：`AddPacToolkitsApplication()`（`Services/ServiceCollectionExtensions.cs`）
 - public namespace 为 `.Application.Abstractions`、`.DTOs`、`.Services` 等；物理二级目录不改变对外 namespace
 
@@ -71,7 +67,7 @@ flowchart TB
 
 ### `packages/infrastructure`
 
-- **Database/**：按 Connections、Monitoring、Configuration、Schema、ChangeFeed、Sql 等分子目录；含 `PgDb`、连接监控、DI 扩展
+- **Database/**：按 Connections、Configuration、Schema、ChangeFeed、Sql 等分子目录；含 `PgDb`、连接配置、DI 扩展
 - **Repositories/**：按业务域分子目录（Dashboard、Msfx、ScanCode 等）
 - 注册入口：`AddPacToolkitsInfrastructure()`
 - public namespace 为 `.Infrastructure.Database`、`.Repositories`
@@ -89,7 +85,7 @@ flowchart TB
 ### `apps/desktop-avalonia`
 
 - Views、ViewModels 按页面与 Shell 平行分目录；Controls、Behaviors 按用途分子目录（见 [desktop-layout.md](./desktop-layout.md)）
-- 桌面专属服务落在 `Services` 下的 Infrastructure、Integration、Presentation、Workspace；PacApi 客户端在 `Infrastructure/Api/`
+- 桌面专属服务落在 `Services` 下的 Infrastructure、Integration、Presentation、Workspace；PacAPI 在 `Infrastructure/Api/`，Agents Host 在 `Integration/Agents/`
 - DI 入口是 `Composition/ServiceRegistration.cs` 的 `AddPacToolkitsUiServices()`；`AgentsRuntime` 负责 OS 上启停 Host、写 desired、投影 Snapshot（模块进程在 Host）
 - 禁止 `Common`、`Helpers`、`Utils`、`Misc`
 - 页面连接、可用性和空状态见 [desktop-state.md](./desktop-state.md)
@@ -97,7 +93,7 @@ flowchart TB
 
 ### `apps/api-asp`
 
-- HTTP 宿主（`PacToolkits.Api`）：具名客户端用 API Key（散列）换 JWT 与授权策略；匿名 `/health` 探活；LISTEN 写入 SSE 变更流；域路由
+- HTTP 宿主（`PacToolkits.Api`）：按 id 配置的客户端用 API Key（散列）换 JWT 与授权策略；匿名 `/health` 探活；LISTEN 写入 SSE 变更流；域路由
 - DI 组装入口：`AddPacToolkitsApi`；全量 Application 与 Infrastructure（Desktop Store 与 MSFX 客户端由宿主适配，见 [api.md](./api.md)）
 - 部署与本地脚本：[API README](../../apps/api-asp/README.md)
 
@@ -108,9 +104,11 @@ flowchart TB
 ```text
 DashboardViewModel
   IDashboardService (application)
-    IDashboardRepo (abstraction)
-      DashboardRepo (infrastructure)
-        PgDb / Npgsql
+    ApiDashboard (desktop HTTP)
+      PacApiClient
+        API DashboardService
+          DashboardRepo (infrastructure)
+            PgDb / Npgsql
 ```
 
 **Agents 启停：**
@@ -126,11 +124,11 @@ Settings / MainWindow shell
 
 ## 敏感操作与解锁
 
-`ISensitiveUnlockService` 定义在 Application 层；Desktop 的 `SensitiveUnlockService` 提供实现，并依赖 Dialog、Toast 等桌面交互能力。解锁后按空闲超时（默认 15 分钟）自动锁定：`UnlockActivity` 在主窗前台输入时续期；后台或前台无输入则到期锁定。
+`ISensitiveUnlockService` 在 Application；Desktop `SensitiveUnlockService` 调 PacAPI 验口令（`Auth:UnlockPasswordHash`），本机会话管空闲超时（15 分钟）、失败冷却与提示互斥。`UnlockActivity` 主窗前台输入续期，否则到期锁定
 
 ## 架构约束
 
 1. 新业务能力优先在 Application 定义接口和服务，由 Infrastructure 提供外部系统实现
 2. Desktop 与 Host 共享的 Agents 类型放入 `agents-contracts`，模块业务配置不进入 Desktop 全局配置模型
 3. 新模块通过 `module.json` 声明入口、桌面元数据和构建方式，业务自动化保持在独立模块进程
-4. 域数据 HTTP 只经 `apps/api-asp`：路由调 Application 用例，再进 Infrastructure。Desktop 目标为 HTTP 客户端、不引用 Infrastructure；现状仍经 Application + Infrastructure 访问本机 Pg。同一域禁止并行双写
+4. 域数据 HTTP 只走 `apps/api-asp`：路由调 Application 用例，再进 Infrastructure。Desktop 是 HTTP 客户端。同一域禁止并行双写

@@ -46,7 +46,7 @@
 
 **Drug trace-code tools: desktop, automation, and PostgreSQL**
 
-PacToolkits Desktop, Agents (Host and modules), and PostgreSQL for drug trace-code operations.
+PacToolkits Desktop, PacAPI, Agents (Host and modules), and PostgreSQL for drug trace-code operations.
 
 </div>
 
@@ -57,6 +57,7 @@ PacToolkits Desktop, Agents (Host and modules), and PostgreSQL for drug trace-co
 **PacToolkits** is a monorepo for drug trace-code work:
 
 - PacToolkits Desktop for business workflows and diagnostics
+- PacAPI (ASP.NET HTTP host)
 - Agents runtime: a .NET **Host** (`Agents.exe`) and separately supervised automation **Modules**
 - PostgreSQL schema and migrations for intake, mapping, tasks, and execution state
 
@@ -87,6 +88,7 @@ Main areas:
 ```mermaid
 flowchart LR
     DESKTOP["apps/desktop-avalonia\nAvalonia Desktop"]
+    API["apps/api-asp\nPacAPI (ASP.NET)"]
     PKG["packages/\napplication · infrastructure · core · agents-contracts"]
     HOST["runtime/agents/host\nAgents.exe Host"]
     INJ["runtime/agents/modules/injector\nInjector AHK module"]
@@ -95,12 +97,15 @@ flowchart LR
     CI[".github/workflows\nBuild and release automation"]
 
     DESKTOP --> PKG
+    DESKTOP -->|HTTP| API
     DESKTOP -->|start Host / IPC desired| HOST
     HOST -->|child process| INJ
-    INJ -->|task claim / state sync / event logs| DB
+    INJ -->|HTTP| API
+    API --> PKG
     PKG --> DB
     SCRIPTS --> DESKTOP
     SCRIPTS --> HOST
+    SCRIPTS --> API
     SCRIPTS --> DB
     CI --> SCRIPTS
 ```
@@ -136,7 +141,7 @@ pactoolkits/
 - [Monorepo layout](./docs/architecture/monorepo-layout.md)
 - [Layering and dependency rules](./docs/architecture/layering.md)
 - [Agents runtime architecture](./docs/architecture/agents.md)
-- [API host and migration](./docs/architecture/api.md)
+- [API host](./docs/architecture/api.md)
 - [Desktop UI state model](./docs/architecture/desktop-state.md)
 - [Release flow](./docs/operations/release-flow.md)
 - [Beta release policy](./docs/operations/beta-release-policy.md)
@@ -196,7 +201,7 @@ dotnet build PacToolkits.sln
 ## Design Principles
 
 - Versioning follows a single release manifest
-- Desktop, Agents, and DB advance together under published ranges
+- Desktop, PacAPI, Agents, and DB advance together under published ranges
 - Business flows stay observable (logs, status, queues)
 - Automation is configured, not hard-coded into UI pages
 - Task and execution state live in the database

@@ -16,8 +16,8 @@ Behaviors/<Category>/
 Converters/
 Ui/<Area>/            Interaction、Formatting、State、Collections…
 Services/
-  Infrastructure/     Api、Agents、Connectivity、Configuration…
-  Integration/        Msfx、Update
+  Infrastructure/     Api、Configuration、Files、Logging、Platform、Connectivity…
+  Integration/        Agents、Msfx、Update
   Presentation/       Connectivity、EmptyState、Tasks、Unlock、Update
   Workspace/          Inventory、Refresh
 ViewModels/
@@ -51,11 +51,15 @@ Styles/  Assets/  Resources/
 | `Services/Presentation/<Sub>/`   | `.Services.Presentation.<Sub>`   |
 | `Services/Workspace/<Sub>/`      | `.Services.Workspace.<Sub>`      |
 
-`Services/Infrastructure/Agents/` 使用 `.Services.Infrastructure.Agents`
+`Services/Integration/Agents/` 使用 `.Services.Integration.Agents`
 
 剪贴板与 `UiBehavior` 在 `Infrastructure/Platform/`（namespace 同名）。禁止 `.Services.Infrastructure.System`：同层代码中的 `System.IO`、`System.Net` 会被解析到该命名空间
 
-PacApi 客户端在 `Services/Infrastructure/Api/`。同目录两类前缀：**`PacApi*`** 是连宿主的传输与协议（`PacApiClient`、选项、异常、Handler）；**`Api*`** 是经客户端实现 Application 抽象的域适配（`ApiDashboard`、`ApiSync` 等）以及 Shell 可用性（`ApiAvailabilityService`）。共享 HTTP DTO 在 `packages/application/DTOs/Api/`，不放在 Desktop Api 目录。详见 [api.md](./api.md)
+**Infrastructure** 是 Desktop 自己赖以运行的技术实现（配置、文件、日志、平台、HTTP 传输）。**Integration** 是与独立运行时或外部系统的适配（Agents Host、码上放心 HTTP、更新后端）
+
+PacAPI 客户端在 `Services/Infrastructure/Api/`。同目录两类前缀：**`PacApi*`** 是连宿主的传输与协议（`PacApiClient`、选项、异常、Handler）；**`Api*`** 是用 `PacApiClient` 实现 Application 抽象的域适配（`ApiDashboard`、`ApiSync` 等）以及 Shell 可用性（`ApiAvailabilityService`）。共享 HTTP DTO 在 `packages/application/DTOs/Api/`，不放在 Desktop Api 目录。详见 [api.md](./api.md)
+
+Agents Host 在 `Services/Integration/Agents/`（`AgentsRuntime`、`AgentsLink`、`AgentsHostLauncher`），面向 Host 协议与启停
 
 ### 物理子目录与稳定 namespace
 
@@ -73,7 +77,7 @@ PacApi 客户端在 `Services/Infrastructure/Api/`。同目录两类前缀：**`
 
 ## packages
 
-Application 顶层为 `Abstractions`、DTOs、Services，以及 Diagnostics、Serialization、TextSearch、Threading。前三者按业务域分子目录；PacApi DTO 在 `DTOs/Api/`。Diagnostics、Serialization、Threading 在顶层
+Application 顶层为 `Abstractions`、DTOs、Services，以及 Diagnostics、Serialization、TextSearch、Threading。前三者按业务域分子目录；PacAPI 的 HTTP DTO 在 `DTOs/Api/`。Diagnostics、Serialization、Threading 在顶层
 
 Infrastructure 的 Database、Repositories 按区域或业务域分子目录
 

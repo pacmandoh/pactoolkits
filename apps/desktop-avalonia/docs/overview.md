@@ -1,6 +1,6 @@
 # Desktop（Avalonia）概览
 
-Desktop 承载业务交互、配置、审计、更新和 Agents 运行控制。ViewModel 通过 `packages/application` 调用业务用例，PostgreSQL 实现位于 `packages/infrastructure`。
+Desktop 承载业务交互、配置、审计、更新和 Agents 运行控制。ViewModel 通过 `packages/application` 调用业务用例；域数据走 PacAPI。
 
 ## 主要职责
 
@@ -18,7 +18,7 @@ Desktop 承载业务交互、配置、审计、更新和 Agents 运行控制。V
 相对 `apps/desktop-avalonia/src/`（业务代码）：
 
 - `Views/`、`ViewModels/`
-- `Services/Application/`、`Services/Infrastructure/`、`Services/Presentation/`、`Services/Integration/`
+- `Services/Infrastructure/`、`Services/Presentation/`、`Services/Integration/`、`Services/Workspace/`
 - `Styles/`、`Controls/`、`Behaviors/`、`Converters/`
 
 ## 代表页面与入口
@@ -34,7 +34,8 @@ Desktop 承载业务交互、配置、审计、更新和 Agents 运行控制。V
 - CommunityToolkit.Mvvm
 - Lucide.Avalonia
 - Velopack
-- 项目引用：`PacToolkits.Application`、`PacToolkits.Infrastructure`、`PacToolkits.Agents.Contracts`
+- 域数据：PacAPI (ASP.NET)
+- 项目引用：`PacToolkits.Application`、`PacToolkits.Agents.Contracts`、`PacToolkits.Logger`
 
 ## UI 状态
 

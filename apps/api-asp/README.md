@@ -1,6 +1,6 @@
 # PacToolkits API (ASP.NET)
 
-`apps/api-asp` 的 HTTP 宿主（`PacToolkits.Api`）：具名客户端用 API Key 散列换 JWT；授权、健康检查（PostgreSQL 与 schema）、LISTEN 写入 SSE 变更流；域路由挂到 Application 与 Infrastructure。
+`apps/api-asp` 的 HTTP 宿主（`PacToolkits.Api`）：按 id 配置的客户端用 API Key 散列换 JWT；授权、健康检查（PostgreSQL 与 schema）、LISTEN 写入 SSE 变更流；域路由挂到 Application 与 Infrastructure
 
 架构与接入约定见 [docs/architecture/api.md](../../docs/architecture/api.md)。
 
@@ -17,6 +17,7 @@ apps/api-asp/
 
 ```text
 POST /v1/auth/token   Header X-Api-Key: <plaintext>，换 JWT
+POST /v1/auth/unlock/verify  Bearer write；敏感操作口令
 GET  /v1/ping         Authorization: Bearer <jwt>（需 scope read）
 GET  /v1/system/info  Bearer（需 system.status；含 contractVersion）
 GET  /v1/system/status Bearer（需 system.status；database 与 schema 诊断）
@@ -27,6 +28,7 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 | 项       | 说明                                                                                                                                         |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Clients  | `Auth:Clients:<id>`：`ApiKeyHash`（SHA-256 hex）、`Enabled`、`Scopes`；ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白 |
+| Unlock   | `Auth:UnlockPasswordHash`（SHA-256 hex）；Desktop 敏感操作口令；明文不进服务端配置 |
 | Key      | 明文只在客户端；服务端只比散列；同一散列不得分给多个 ClientId                                                                                |
 | JWT      | HMAC-SHA256；`Auth:Jwt:SigningKey` ≥32；**改密钥须重启**                                                                                     |
 | Policy   | `read` / `write` / `system.status`（配置未知 scope 则启动失败）                                                                              |
@@ -48,7 +50,9 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 | 键                                                               | 用途                                                     |
 | ---------------------------------------------------------------- | -------------------------------------------------------- |
 | `PAC_API_KEY`                                                    | 本地 curl 换票明文 Key（API 进程不读明文，只读散列）     |
+| `PAC_UNLOCK_PASSWORD`                                            | 本地敏感操作口令明文（API 只读 `Auth__UnlockPasswordHash`） |
 | `Auth__Clients__dev__ApiKeyHash`                                 | 服务端比对的 Key 散列                                    |
+| `Auth__UnlockPasswordHash`                                       | 敏感操作口令散列                                         |
 | `Auth__Jwt__SigningKey`                                          | JWT HMAC                                                 |
 | `Postgres__Host` / `Port` / `Database` / `Username` / `Password` | 覆盖 `appsettings` 的 Postgres 节；`Password` 须本机手填 |
 
@@ -63,7 +67,7 @@ dotnet publish apps/api-asp/src/PacToolkits.Api.csproj -c Release -o /opt/pactoo
 ```
 
 生产密钥：**`/etc/pactoolkits/.env.asp`**（`chmod 600`），systemd `EnvironmentFile=`。
-公网只经 Nginx HTTPS 反代本机 5080；勿把明文 Key 写进服务端配置。
+公网只走 Nginx HTTPS 反代本机 5080；勿把明文 Key 写进服务端配置
 
 ```bash
 # /etc/pactoolkits/.env.asp（示例）
@@ -75,12 +79,13 @@ Auth__Clients__site-a__Scopes__0=read
 Auth__Clients__site-a__Scopes__1=write
 Auth__Clients__site-a__Scopes__2=system.status
 Auth__Jwt__SigningKey=<≥32 random>
+Auth__UnlockPasswordHash=<sha256-hex>
 Postgres__Password=<secret>
 ```
 
 生成散列：`printf '%s' "$PLAINTEXT_KEY" | openssl dgst -sha256 -hex`
 
-换票限流按 `RemoteIpAddress`（30 次/分钟）。多终端经同一机器转发或 NAT 时共用额度。Nginx 用 `$remote_addr` **覆盖**转发头（勿用 `$proxy_add_x_forwarded_for`）。API 默认只信任环回代理；Nginx 不在本机时须把其地址配进 `KnownProxies` / `KnownIPNetworks`。
+换票限流按 `RemoteIpAddress`（30 次/分钟）。多终端走同一台机器转发或 NAT 时共用额度。Nginx 用 `$remote_addr` **覆盖**转发头（勿用 `$proxy_add_x_forwarded_for`）。API 默认只信任环回代理；Nginx 不在本机时须把其地址配进 `KnownProxies` / `KnownIPNetworks`
 
 ```nginx
 # 反代到本机 API（片段）；X-Forwarded-For 必须覆盖，禁止追加客户端原值
@@ -94,7 +99,7 @@ location / {
 
 上线前在真实中转拓扑手工验证：
 
-1. 路径经中转、再经 Nginx 到 API（与生产一致）
+1. 路径先中转，再过 Nginx 到 API（与生产一致）
 2. 约 10 台终端同时冷启动，或同分钟内密集换票
 3. 记录 429 次数与成功换票数
 4. 直连 API（绕过 Nginx）并带伪造 `X-Forwarded-For`：限流键仍应为直连 IP，不得因伪造头被当成多个来源

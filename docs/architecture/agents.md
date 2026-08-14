@@ -6,7 +6,7 @@ Agents 是独立部署的自动化运行时，由常驻 Host 与一个或多个�
 2. **Host**（`runtime/agents/host`，`Agents.exe`）— 发现、desired reconcile、模块启停/崩溃/ready/模块热更、发布 StatusSnapshot
 3. **Desktop 侧**（`AgentsRuntime` 等）— UI、OS 级 Host 进程树、会话 desired、投影 Snapshot
 
-Desktop **不**枚举/Kill 模块 PID（启停 Host 闸门的入口孤儿扫杀除外）、**不**轮询扫盘 catalog、**不**写 `module.ready`。DB 策略挂/卸模块只改 **desired**。
+Desktop **不**枚举/Kill 模块 PID（启停 Host 闸门的入口孤儿扫杀除外）、**不**轮询扫盘 catalog、**不**写 `module.ready`。Admit 挂/卸模块只改 **desired**。
 
 当前模块包括：
 
@@ -17,14 +17,14 @@ Desktop **不**枚举/Kill 模块 PID（启停 Host 闸门的入口孤儿扫杀�
 
 ## 术语
 
-| 术语         | 定义                                                                                                       |
-| ------------ | ---------------------------------------------------------------------------------------------------------- |
-| **Agents**   | Host、模块与发布清单，默认安装在 `Agents/`                                                                 |
-| **Host**     | `Agents.exe`：desired reconcile、模块进程监管、Snapshot / moduleFailed                                     |
-| **Module**   | `Modules/<Id>/` 独立进程；`module.json` 描述入口与桌面元数据；库区间由清单 export 写入（运行时只读此文件） |
-| **Desktop**  | 配置与 UI；CreateProcess/超时强杀 **Host 树**；会话 **desired**；展示 Snapshot                             |
-| **desired**  | 期望挂载的模块 ID 集合（持续意图，非一次性 start 命令）                                                    |
-| **Snapshot** | Host 发布的 status schema v2（主路径走管道；磁盘为镜像）                                                   |
+| 术语         | 定义                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Agents**   | Host、模块与发布清单，默认安装在 `Agents/`                                                                   |
+| **Host**     | `Agents.exe`：desired reconcile、模块进程监管、Snapshot / moduleFailed                                       |
+| **Module**   | `Modules/<Id>/` 独立进程；`module.json` 描述入口与桌面元数据；协议区间由清单 export 写入（运行时只读此文件） |
+| **Desktop**  | 配置与 UI；CreateProcess/超时强杀 **Host 树**；会话 **desired**；展示 Snapshot                               |
+| **desired**  | 期望挂载的模块 ID 集合（持续意图，非一次性 start 命令）                                                      |
+| **Snapshot** | Host 发布的 status schema v2（主路径走管道；磁盘为镜像）                                                     |
 
 ## 部署布局
 
@@ -62,20 +62,20 @@ flowchart LR
   Host -->|"pipe: Snapshot"| Runtime
 ```
 
-| 能力        | Desktop                                                                                                             | Host                                               |
-| ----------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| 控制        | 管道 `desired` / `quit`；文件只镜像                                                                                 | 管道服务；未收过 IPC 时可用 desired 文件种子       |
-| Snapshot    | 管道缓存优先；文件观测镜像；本地 CreateProcess 失败优先 Failed                                                      | 合成 state / LastError / catalog，schema **仅 v2** |
-| catalog     | 只吃 Snapshot；不轮询扫盘                                                                                           | 扫 `Modules/*/module.json` 并入 Snapshot           |
-| 启模块      | **先门禁**再 `desired` 加入 id（仅可挂集合）                                                                        | reconcile 启动；ready/失败写入 Snapshot            |
-| 停模块      | desired 去掉 id                                                                                                     | reconcile 停止                                     |
-| 停 Host     | desired=[] 再 quit；超时 **Kill Host 进程树**                                                                       | quit 后 StopAll 子模块                             |
-| 模块 PID    | **运行时监管无**；**Host 启停闸门**可按入口路径清残留（防双实例）                                                   | 子进程树 Kill / 热更重启                           |
-| DB / schema | **Application** `IAgentsAdmitService`（连库且 schema 落在模块区间）后，仅可挂 id 进 desired；PG 配置仍 Desktop 校验 | **不**连库、**不**判 schema；只跟 desired          |
+| 能力        | Desktop                                                                                                         | Host                                               |
+| ----------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 控制        | 管道 `desired` / `quit`；文件只镜像                                                                             | 管道服务；未收过 IPC 时可用 desired 文件种子       |
+| Snapshot    | 管道缓存优先；文件观测镜像；本地 CreateProcess 失败优先 Failed                                                  | 合成 state / LastError / catalog，schema **仅 v2** |
+| catalog     | 只吃 Snapshot；不轮询扫盘                                                                                       | 扫 `Modules/*/module.json` 并入 Snapshot           |
+| 启模块      | **先门禁**再 `desired` 加入 id（仅可挂集合）                                                                    | reconcile 启动；ready/失败写入 Snapshot            |
+| 停模块      | desired 去掉 id                                                                                                 | reconcile 停止                                     |
+| 停 Host     | desired=[] 再 quit；超时 **Kill Host 进程树**                                                                   | quit 后 StopAll 子模块                             |
+| 模块 PID    | **运行时监管无**；**Host 启停闸门**可按入口路径清残留（防双实例）                                               | 子进程树 Kill / 热更重启                           |
+| PacAPI 协议 | **Application** `IAgentsAdmitService` 用探测到的 `contractVersion` 与模块区间 Classify 后，仅可挂 id 进 desired | 只跟 desired                                       |
 
-**库策略门禁**：`Enabled` 是用户偏好；`desired` 只含当次允许运行的子集。为何不能挂由 Desktop 投影/`LastError` 说明，Host 不接收 schema 事实、不二次决策。
+**协议门禁**：`Enabled` 是用户偏好；`desired` 只含当次允许运行的子集。为何不能挂由 Desktop 投影/`LastError` 说明，Host 不接收协议事实、不二次决策。
 
-**库 schema 小门**：Application `IDbSchemaGate`（Desktop 业务与模块 Admit 共用：读库 schema 与任意区间 `Match`）。批量 Admit 时 schema 只读一次；与 Agents 包的 `minDesktop`/`maxDesktop` 无关（后者每次起 Host 从 Agents 安装树现读）。`IAgentsBundleService` 只做 Agents×Desktop 产品 SemVer。
+**模块协议小门**：Application `SemVerRange.Classify`（Admit 用探测到的 `contractVersion` 与模块 `minApiContract`/`maxApiContract`）。批量 Admit 时协议版本只取一次探测结果；与 Agents 包的 `minDesktop`/`maxDesktop` 无关（后者每次起 Host 从 Agents 安装树现读）。`IAgentsBundleService` 只做 Agents×Desktop 产品 SemVer
 
 **Agents 与 Desktop 配套**：Host 路径已有效后读 **Agents 安装树**旁 `ReleaseManifest.json`（`components.agents.minDesktop` / `maxDesktop`），与当前 Desktop 产品 SemVer 比较（`IAgentsBundleService`）；再过 OS 门禁。清单/组件缺失、区间不全、Desktop 版本未知或不可解析一律拒绝，不放宽。Agents 可独立自更新，不以 Desktop 安装目录清单为准。
 
@@ -100,17 +100,18 @@ Host 与 AHK 模块与 Desktop 共用日志根（默认 LocalAppData，可由 `L
 
 字段：`ts`、`level`、`module`、`event`、`message`、`version`、`context?`、`exception?`。`level` 仅 `Debug` / `Info` / `Warn` / `Error` / `Fatal`。
 
-日志策略：Desktop `Logging.*` 作用于 Desktop 与 Host（Host 读 `--config`）；模块用户 `settings.json` 门控经 AHK `Log_ApplySettings`。
+日志策略：Desktop `Logging.*` 作用于 Desktop 与 Host（Host 读 `--config`）；模块用户 `settings.json` 门控走 AHK `Log_ApplySettings`
 
 ## 配置所有权
 
-| 配置                  | 位置                                            | 说明                                       |
-| --------------------- | ----------------------------------------------- | ------------------------------------------ |
-| Host 路径与模块启用   | `PacToolkits.Desktop.config.json`               | Desktop 维护；`Agents.Modules[id].Enabled` |
-| 模块默认与表单 schema | `Agents/Modules/<Id>/settings.*`                | 随模块发布                                 |
-| 模块用户配置          | `{ConfigDir}/agents/modules/<Id>/settings.json` | 首次从默认复制；升级不覆盖                 |
+| 配置                  | 位置                                            | 说明                                                                          |
+| --------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| Host 路径与模块启用   | `PacToolkits.Desktop.config.json`               | Desktop 维护；`Agents.Modules[id].Enabled`                                    |
+| 模块 PacAPI 凭据      | 环境 `PAC_API_BASE_URL` / `PAC_API_KEY`         | 缺省读 `--config` 的 `PacApi.BaseUrl` / `AgentsApiKey`；不读 Desktop `ApiKey` |
+| 模块默认与表单 schema | `Agents/Modules/<Id>/settings.*`                | 随模块发布                                                                    |
+| 模块用户配置          | `{ConfigDir}/agents/modules/<Id>/settings.json` | 首次从默认复制；升级不覆盖                                                    |
 
-`AppConfigStore` **不再**按磁盘模块目录扩/删 `Agents.Modules` 键；catalog 与启用扩容由 Runtime 吃 Snapshot 后 merge。  
+`Agents.Modules` catalog 与启用键由 Runtime 根据 Host StatusSnapshot merge。
 Host 启动模块时 `--module-settings` 传用户配置路径。
 
 ## 模块描述与发现
@@ -160,7 +161,7 @@ Host 扫目录；Desktop 设置页无 catalog 时为空（须路径正确并在*
 
 该包零依赖。Host 引用路径与协议类型；模块不引 C# 包，走命令行与文件。
 
-Desktop 实现侧（`Services/Infrastructure/Agents/`）组合：`AgentsLink`、`AgentsHostLauncher`、`AgentsDesiredSession`、`AgentsSnapshotProjection` 等；组装细节不是第四套公共层。
+Desktop（`Services/Integration/Agents/`）组合：`AgentsLink`、`AgentsHostLauncher`、`AgentsDesiredSession`、`AgentsSnapshotProjection` 等；组装细节不是第四套公共层
 
 ## 构建与发布
 

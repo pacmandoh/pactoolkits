@@ -1,6 +1,6 @@
 # PacToolkits Desktop（Avalonia）
 
-PacToolkits Desktop 提供业务页面、配置、更新和诊断能力。ViewModel 通过 `packages/application` 调用用例，PostgreSQL 实现位于 `packages/infrastructure`；`AgentsRuntime` 负责 Host 与模块的运行控制。
+PacToolkits Desktop 提供业务页面、配置、更新和诊断能力。ViewModel 通过 `packages/application` 调用用例；域数据走 PacAPI。`AgentsRuntime` 负责 Host 与模块的运行控制。
 
 ## 构建
 

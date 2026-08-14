@@ -3,7 +3,7 @@
 更新时间：2026-07-27
 
 适用范围：`PacToolkits.Desktop.Avalonia` JSON Lines 文件日志
-生成方式：扫描 `apps/desktop-avalonia/src`、`packages/infrastructure` 和 `packages/application`；事件定义以源码为准
+生成方式：扫描 `apps/desktop-avalonia/src` 与 `packages/application`；事件定义以源码为准
 
 ## 1. 使用说明
 
@@ -26,15 +26,15 @@
 ### Error（用户可感知失败）
 
 - 更新：`update.check.fail`、`update.apply.flow_fail`、`update.*.fail`
-- 数据库与页面加载：`db.startup_check.fail`、`db.schema.incompatible.startup`、`*.reload_fail`、`*.save.fail`、`scan.submit.fail`
+- 页面加载：`*.reload_fail`、`*.save.fail`、`scan.submit.fail`
 - Agents：`agents.start_or_restart.fail`、`agents.module_*.fail`、`settings.agents.*.fail`
 - 未等待的后台任务：`*.detached.fail`（`ObserveDetached` 或 `TaskObserve` 记录未 `await` 任务的异常）
 
 ### Warn（降级或可恢复）
 
 - Agents 门控/状态失败：`agents.host.fail`、`agents.module.fail`（含非 Windows 拒绝启动）
-- 瞬断重试：`conn.open.transient_disconnect.retry`、`reload.transport_retry`
-- 局部失败继续：`client_id.query.partial_fail`、多数 `*.dispose.*_fail`
+- 瞬断重试：`reload.transport_error`、`reload.service_retry.fail`
+- 局部失败继续：多数 `*.dispose.*_fail`
 - MSFX 审计成功类也记 Warn（如 `msfx.task.reopen.success`）便于检索
 
 ### Info（轨迹）
@@ -72,23 +72,10 @@
 - `agents.startup_autostart.exception` (Warn) — Startup auto-start threw exception
 - `agents.startup_autostart.fail` (Warn) — Failed to auto-start Agents host on startup
 - `config.agent_sync_fail` (Warn) — Failed to synchronize agent configuration
-- `config.external_apply_fail` (Warn) — Failed to handle external DB config change
-- `config.external_db_change_ignored` (Warn) — Detected external DB config change, ignored until manual apply in Settings
 - `config.safe_hot_reload.fail` (Warn) — Failed to hot-reload safe config sections
 - `config.watch.parse_null` (Warn) — Config deserialize returned null; hot-reload skipped
 - `config.watch.read_fail` (Warn) — Failed to read or parse config for hot-reload
 - `config.watcher.init_fail` (Warn) — Failed to initialize config watcher
-- `db.probe.error` (Error) — Database probe failed
-- `db.probe.timeout` (Warn) — Database probe timed out
-- `db.probe.unsuccessful` (Warn) — Database probe finished with unsuccessful result
-- `db.schema.incompatible` (Warn) — Database schema incompatible
-- `db.schema.incompatible.startup` (Error) — Database schema incompatible during startup
-- `db.schema.ok` (Info) — Database schema version compatible
-- `db.schema.external_update_required.startup` (Warn) — Database schema below app minimum; external update required before Settings local access
-- `db.schema.status.refresh.fail` (Warn) — Failed to refresh DB schema status for Settings page
-- `db.startup_check.fail` (Error/Warn) — Database connection test failed on startup
-- `db.startup_check.start` (Info) — Checking database connectivity on startup
-- `db.monitor.fail` (Warn) — Local DB monitor reported failure
 - `dispose.safe_execute_fail` (Warn) — Dispose cleanup action failed
 - `drug_index.watermark.refresh_fail` (Warn) — Drug index watermark refresh failed
 - `main.init` (Info) — Main window initialized
@@ -100,19 +87,16 @@
 
 ### AppPageBase
 
-- `reload.access_blocked.fail` (Warn) — Reload stopped because database access is blocked
-- `reload.db_monitor_unhook.fail` (Warn) — Failed to unhook DB monitor events
-- `reload.db_signal_refresh.fail` (Warn) — Auto refresh from DB signal failed
-- `reload.db_transport_error` (Warn) — Reload hit transport error, signaling monitor
 - `reload.execute.fail` (Error) — Page refresh execution failed
 - `reload.finished` (Info) — Page reload finished
-- `reload.get_access_guard.fail` (Warn) — Failed to resolve database access guard from DI
-- `reload.get_db_monitor.fail` (Warn) — Failed to resolve DB monitor from DI
-- `reload.get_startup_state.fail` (Warn) — Failed to resolve startup state from DI
+- `reload.get_api_availability.fail` (Warn) — Failed to resolve API availability from DI
+- `reload.get_time.fail` (Warn) — Failed to resolve TimeProvider from DI
 - `reload.pipeline.fail` (Error) — Page reload failed with non-transport error
+- `reload.service_retry.clear_cancel.fail` (Warn) — Failed to cancel service retry CTS
+- `reload.service_retry.fail` (Warn) — Auto refresh after service wait failed
 - `reload.skipped` (Info) — Page reload skipped
 - `reload.started` (Info) — Page reload started
-- `reload.transport_retry` (Warn) — Retrying reload after transport error
+- `reload.transport_error` (Warn) — Reload hit transient transport error
 
 ### PageReload
 
@@ -145,9 +129,6 @@
 ### SettingsVM
 
 - `client_alias.save.fail` (Error) — Failed to save client aliases
-- `db.save.fail` (Error) — Failed to save DB settings
-- `db.schema.startup_refresh.fail` (Error) — Startup schema status refresh failed
-- `db.test.timeout` (Warn) — DB connection test timed out
 - `desktop_behavior.save.fail` (Error) — Failed to save desktop behavior
 - `dispose.client_alias_unsub_fail` (Warn) — Failed to unsubscribe ClientAlias
 - `dispose.desktop_behavior_unsub_fail` (Warn) — Failed to unsubscribe UiBehavior
@@ -206,12 +187,12 @@
 - `update.channel.align_installed` (Info) — Aligned configured update channel with Velopack installed channel
 - `update.channel.align_installed.fail` (Warn) — Failed aligning configured update channel with installed channel
 - `update.check.available` (Info) — Update check found release
-- `update.check.compatibility_blocked` (Warn) — Update check blocked by release or database compatibility
+- `update.check.compatibility_blocked` (Warn) — Update check blocked by feed probe
 - `update.check.fail` (Error) — Update check failed
 - `update.check.start` (Info) — Starting update check
 - `update.check.uptodate` (Info) — No updates available
 - `update.restart.apply` (Info) — Applying pending update and restarting
-- `update.restart.compatibility_blocked` (Warn) — Pending update restart blocked by current compatibility check
+- `update.restart.compatibility_blocked` (Warn) — Pending update restart blocked by feed probe
 
 ### UpdateDesktopFlow
 
@@ -296,7 +277,7 @@
 - `msfx.auto.run.fail` (Error) — MSFX auto run failed
 - `msfx.auto.run.finish` (Info) — MSFX auto run finished
 - `msfx.auto.run.start` (Info) — MSFX auto run started
-- `msfx.sensitive.unlock.cancelled` (Warn) — MSFX sensitive operation cancelled before database write
+- `msfx.sensitive.unlock.cancelled` (Warn) — MSFX sensitive operation cancelled before PacAPI write
 - `msfx.sensitive.unlock.granted` (Warn) — MSFX sensitive operation unlocked
 - `msfx.task.discard.fail` (Error) — MSFX inject task discard failed
 - `msfx.task.discard.success` (Warn) — MSFX inject task discarded
@@ -326,42 +307,9 @@
 - `msfx.upout.query_fail` (Error) — Failed to query upstream outbound list
 - `msfx.upout.query_timeout` (Warn) — Upstream outbound query timed out
 
-### PgDb
-
-- `conn.open.transient_disconnect.retry` (Warn) — Transient disconnect detected while opening connection, retrying once
-- `pool.clear.fail` (Warn) — Failed to clear Npgsql pools
-- `session_lock.release.fail` (Warn) — PostgreSQL session lock release failed
-- `tx.rollback.fail` (Warn) — Transaction rollback failed
-
-### DbConnectionMonitor
-
-- `monitor.conn.close_fail` (Warn) — Failed to close probe connection
-- `monitor.dispose.cancel_fail` (Warn) — Failed to cancel DB monitor
-- `monitor.dispose.channel_close_fail` (Warn) — Failed to close monitor channel
-- `monitor.next_signal.await_fail` (Warn) — Failed awaiting pending signal
-- `monitor.pending_signal.read_fail` (Warn) — Failed to read pending signal
-- `monitor.probe.fail` (Warn) — Database probe loop failed
-- `monitor.probe.scalar_fail` (Warn) — DB probe scalar check failed
-- `monitor.wait_cancel.fail` (Warn) — Failed to cancel wait CTS
-
-### DbConnectionTester
-
-- `db.test.fail` (Warn) — Database connection test failed
-
-### DbSchemaVersion
-
-- `schema_version.read_fail` (Warn) — Failed reading schema_version
-
 ### ChangeWatermark
 
 - `watermark.dispatch.fail` (Warn) — Watermark dispatch failed
-- `watermark.dispose.cancel_fail` (Warn) — Failed to cancel watermark service
-- `watermark.dispose.channel_close_fail` (Warn) — Failed to close watermark channel
-- `watermark.poll.fail` (Warn) — Watermark polling failed
-
-### ClientIdReadRepo
-
-- `client_id.query.partial_fail` (Warn) — Failed one client-id query, continue fallback
 
 ### ClientAliasStore
 
@@ -385,7 +333,6 @@
 - `catalog.sync.detached.fail` (Error) — Detached task failed
 - `commit.apply.detached.fail` (Error) — Detached task failed (`AutoCompleteCommit` / TaskObserve)
 - `config.watch.detached.fail` (Error) — Detached task failed
-- `db.bootstrap.detached.fail` (Error) — Detached task failed
 - `drug_index.watermark.refresh.fail` (Error) — Detached task failed
 - `entry.reload.detached.fail` (Error) — Detached task failed
 - `grid.mount.detached.fail` (Error) — Detached task failed (`PageGridMountScheduler`)
@@ -405,7 +352,6 @@
 - `reconcile.detached.fail` (Error) — Detached task failed
 - `reload.detached.fail` (Error) — Detached task failed
 - `reload.quiet.detached.fail` (Error) — Detached task failed
-- `schema.refresh.detached.fail` (Error) — Detached task failed
 - `selection.change.detached.fail` (Error) — Detached task failed
 - `settings.agents.host_run.detached.fail` (Error) — Detached task failed
 - `settings.agents.module_enable.detached.fail` (Error) — Detached task failed
