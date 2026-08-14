@@ -21,7 +21,7 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class MsfxLink : AppPageBase
 {
     private bool CanRunAutoOnce()
-        => _dbMonitor.IsConnected && !IsAutoBusy && !IsManualMsfxWriteActive;
+        => IsApiReady && !IsAutoBusy && !IsManualMsfxWriteActive;
 
     private bool CanRefreshAutoBoard()
         => CanPage && !IsAutoBoardBusy && !IsAutoBusy && !IsManualMsfxWriteActive;
@@ -340,7 +340,7 @@ public sealed partial class MsfxLink : AppPageBase
             ScopeKey: UnlockScopes.SharedOps,
             Scene: scene,
             PromptTitle: scene,
-            PromptHint: $"{scene} 属于高风险 MSFX 操作\n目标：{targetId}\n原因：{reason}\n请输入当前数据库密码以解锁",
+            PromptHint: $"{scene} 属于高风险 MSFX 操作\n目标：{targetId}\n原因：{reason}\n请输入敏感操作密码以解锁",
             OperatorName: operatorName,
             TargetId: targetId,
             Reason: reason), ct).ConfigureAwait(false);
@@ -363,7 +363,7 @@ public sealed partial class MsfxLink : AppPageBase
         }
         else
         {
-            LogWarn("msfx.sensitive.unlock.cancelled", "MSFX sensitive operation cancelled before database write", null, audit);
+            LogWarn("msfx.sensitive.unlock.cancelled", "MSFX sensitive operation cancelled before PacAPI write", null, audit);
             AddAutoLog("敏感操作", $"{scene} 已取消：{targetId}", TraceEntryState.Info);
         }
 
@@ -1051,7 +1051,7 @@ public sealed partial class MsfxLink : AppPageBase
         }
         catch (Exception ex)
         {
-            AddAutoLog("审计", $"刷新数据库概览失败：{ex.Message}", TraceEntryState.Warning);
+            AddAutoLog("审计", $"刷新同步概览失败：{ex.Message}", TraceEntryState.Warning);
             LogWarn("msfx.audit.snapshot.refresh_fail", "MSFX snapshot refresh failed", ex);
             throw;
         }

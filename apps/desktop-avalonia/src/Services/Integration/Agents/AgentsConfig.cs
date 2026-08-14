@@ -8,7 +8,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>持久化 Agents 全局配置与模块启用状态，并将变更同步到运行时</summary>
 public sealed class AgentsConfigService : IAgentsConfigService

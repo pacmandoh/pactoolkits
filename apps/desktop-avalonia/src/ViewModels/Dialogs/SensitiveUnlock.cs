@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using ShadUI;
 
@@ -18,7 +19,7 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
     private string _title = string.Empty;
     private string _hintMessage = string.Empty;
     private string _password = string.Empty;
-    private Func<string, string?>? _verify;
+    private Func<string, Task<string?>>? _verify;
 
     public string Title
     {
@@ -70,7 +71,7 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
             : Array.Empty<string>();
     }
 
-    public void Initialize(string title, string hintMessage, Func<string, string?>? verify = null)
+    public void Initialize(string title, string hintMessage, Func<string, Task<string?>>? verify = null)
     {
         Title = title;
         HintMessage = hintMessage;
@@ -91,12 +92,12 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
     }
 
     [RelayCommand]
-    private void Submit()
+    private async Task Submit()
     {
         var password = Password.Trim();
         if (string.IsNullOrEmpty(password))
         {
-            SetPasswordError("请输入数据库密码");
+            SetPasswordError("请输入敏感操作密码");
             return;
         }
 
@@ -106,7 +107,7 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
             return;
         }
 
-        var error = _verify.Invoke(password);
+        var error = await _verify.Invoke(password).ConfigureAwait(true);
         if (!string.IsNullOrEmpty(error))
         {
             SetPasswordError(error);

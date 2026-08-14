@@ -33,7 +33,7 @@ public interface IAppConfigStore
 ///
 /// 统一读取、写入并规范化应用配置，不执行业务查询
 /// </summary>
-public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
+public sealed class AppConfigStore : IAppConfigStore
 {
     private const string UnifiedConfigFileName = "PacToolkits.Desktop.config.json";
     private static readonly JsonSerializerOptions _writeOptions = new()
@@ -189,7 +189,6 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
     {
         var root = source ?? new AppConfigRoot();
         root.SchemaVersion = 2;
-        root.Postgres ??= new PgOptions();
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
         root.Agents ??= new AgentsOptions();
         root.PacApi ??= new PacApiOptions();
@@ -265,6 +264,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         var options = source ?? new PacApiOptions();
         options.BaseUrl = (options.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
         options.ApiKey = (options.ApiKey ?? string.Empty).Trim();
+        options.AgentsApiKey = (options.AgentsApiKey ?? string.Empty).Trim();
         options.HeaderName = string.IsNullOrWhiteSpace(options.HeaderName)
             ? "X-Api-Key"
             : options.HeaderName.Trim();
@@ -345,28 +345,4 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 
     private string SerializeDesktopConfig(AppConfigRoot normalized)
         => JsonSerializer.Serialize(normalized, _writeOptions);
-
-    public PgOptions LoadPgOptions() => Load().Postgres;
-
-    public async Task SavePgOptionsAsync(PgOptions options, CancellationToken ct)
-    {
-        var cloned = ClonePostgres(options);
-        await UpdateAsync(cfg => cfg.Postgres = cloned, ct).ConfigureAwait(false);
-    }
-
-    private static PgOptions ClonePostgres(PgOptions src) => new()
-    {
-        Host = src.Host,
-        Port = src.Port,
-        Database = src.Database,
-        Username = src.Username,
-        Password = src.Password,
-        ConnectTimeoutSeconds = src.ConnectTimeoutSeconds,
-        CommandTimeoutSeconds = src.CommandTimeoutSeconds,
-        PoolSize = src.PoolSize,
-        ReconnectIntervalSeconds = src.ReconnectIntervalSeconds,
-        KeepAliveSeconds = src.KeepAliveSeconds,
-        MonitorPingSeconds = src.MonitorPingSeconds,
-        MonitorPingTimeoutSeconds = src.MonitorPingTimeoutSeconds
-    };
 }

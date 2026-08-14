@@ -30,7 +30,7 @@ public partial class Settings : UserControl
 
     private static readonly (string PageName, string Title, string Icon)[] TabNav =
     [
-        ("TabDbPage", "连接设置", "Server"),
+        ("TabConnectionPage", "连接设置", "Server"),
         ("TabAliasPage", "客户端别名映射", "Users"),
         ("TabTraceRulePage", "追溯码校验规则", "Regex"),
         ("TabUiBehaviorPage", "界面行为", "MonitorCog"),

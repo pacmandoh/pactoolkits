@@ -11,7 +11,7 @@ using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>经 PacApi 的药品索引</summary>
+/// <summary>药品索引走 HTTP</summary>
 public sealed class ApiDrugIndex : IDrugIndexService
 {
     private readonly PacApiClient _api;

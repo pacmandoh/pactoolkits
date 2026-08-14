@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Agents.Contracts.Agents;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
 /// Desktop 侧 <see cref="IAgentsClient"/>：管道 Connect / desired / quit / Snapshot

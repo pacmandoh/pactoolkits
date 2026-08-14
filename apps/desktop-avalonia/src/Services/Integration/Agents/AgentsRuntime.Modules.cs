@@ -10,37 +10,40 @@ using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Agents.Contracts.Validation;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
-/// 模块 desired：Desktop 滤完可挂 id 再写；库依赖启停与 settings 门禁
+/// 模块 desired：本侧筛过允许挂载的 id 再写；依赖 PacAPI 的模块还要过 settings 门禁
 /// </summary>
 public sealed partial class AgentsRuntime
 {
-    private bool IsDatabaseConnected
-        => _dbMonitor is null || _dbMonitor.IsConnected;
+    private bool IsApiReady
+        => _availability is not null
+           && ConnectionView.From(_availability.Current, _availability.IsConfigured).Kind == ConnectionKind.Up;
 
-    private void OnDatabaseDisconnected()
-        => QueueDatabaseModuleLifecycle(connected: false);
+    private void OnApiAvailabilityChanged()
+        => QueueApiModuleLifecycle(connected: IsApiReady);
 
-    private void OnDatabaseReconnected()
-        => QueueDatabaseModuleLifecycle(connected: true);
+    private bool ModuleRequiresApi(string moduleId)
+        => _projection.Modules.FirstOrDefault(m => string.Equals(m.Id, moduleId, StringComparison.Ordinal))
+            is { RequiresApi: true };
 
-    private void QueueDatabaseModuleLifecycle(bool connected)
+    private void QueueApiModuleLifecycle(bool connected)
     {
         if (_disposed)
         {
             return;
         }
 
-        Volatile.Write(ref _dbLifecycleWant, connected ? 1 : 0);
-        _ = PumpDatabaseModuleLifecycleAsync();
+        Volatile.Write(ref _apiLifecycleWant, connected ? 1 : 0);
+        _ = PumpApiModuleLifecycleAsync();
     }
 
-    private async Task PumpDatabaseModuleLifecycleAsync()
+    private async Task PumpApiModuleLifecycleAsync()
     {
-        if (Interlocked.Exchange(ref _dbLifecycleBusy, 1) == 1)
+        if (Interlocked.Exchange(ref _apiLifecycleBusy, 1) == 1)
         {
             return;
         }
@@ -49,7 +52,7 @@ public sealed partial class AgentsRuntime
         {
             while (!_disposed)
             {
-                var want = Interlocked.Exchange(ref _dbLifecycleWant, -1);
+                var want = Interlocked.Exchange(ref _apiLifecycleWant, -1);
                 if (want < 0)
                 {
                     break;
@@ -59,11 +62,11 @@ public sealed partial class AgentsRuntime
                 {
                     if (want == 1)
                     {
-                        await ResumeDatabaseModulesAsync(CancellationToken.None).ConfigureAwait(false);
+                        await ResumeApiModulesAsync(CancellationToken.None).ConfigureAwait(false);
                     }
                     else
                     {
-                        await PauseDatabaseModulesAsync(CancellationToken.None).ConfigureAwait(false);
+                        await PauseApiModulesAsync(CancellationToken.None).ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
@@ -71,7 +74,7 @@ public sealed partial class AgentsRuntime
                     _logger.Warn(
                         "Agents",
                         "agents.db_module_lifecycle.fail",
-                        "Database-bound module lifecycle sync failed",
+                        "API-bound module lifecycle sync failed",
                         ex,
                         new { want });
                 }
@@ -79,15 +82,15 @@ public sealed partial class AgentsRuntime
         }
         finally
         {
-            Interlocked.Exchange(ref _dbLifecycleBusy, 0);
-            if (!_disposed && Volatile.Read(ref _dbLifecycleWant) >= 0)
+            Interlocked.Exchange(ref _apiLifecycleBusy, 0);
+            if (!_disposed && Volatile.Read(ref _apiLifecycleWant) >= 0)
             {
-                _ = PumpDatabaseModuleLifecycleAsync();
+                _ = PumpApiModuleLifecycleAsync();
             }
         }
     }
 
-    private async Task PauseDatabaseModulesAsync(CancellationToken ct)
+    private async Task PauseApiModulesAsync(CancellationToken ct)
     {
         await _commandGate.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -103,7 +106,7 @@ public sealed partial class AgentsRuntime
             {
                 options = AgentsOptionsModel.Clone(_options);
                 toUnmount = _projection.Modules
-                    .Where(m => m.RequiresDatabase)
+                    .Where(m => m.RequiresApi)
                     .Select(m => m.Id)
                     .Where(id =>
                     {
@@ -115,7 +118,7 @@ public sealed partial class AgentsRuntime
 
                 foreach (var moduleId in toUnmount)
                 {
-                    _desired.PauseForDatabase(moduleId);
+                    _desired.Pause(moduleId);
                 }
             }
 
@@ -127,8 +130,8 @@ public sealed partial class AgentsRuntime
             PublishDesired(options);
             _logger.Info(
                 "Agents",
-                "agents.module.pause_db",
-                "Unmounted database-bound modules via desired after disconnect",
+                "agents.module.pause_api",
+                "Unmounted API-bound modules via desired after disconnect",
                 new { moduleIds = toUnmount.ToArray() });
             RefreshState();
             RaiseChanged();
@@ -140,7 +143,7 @@ public sealed partial class AgentsRuntime
         }
     }
 
-    private async Task ResumeDatabaseModulesAsync(CancellationToken ct)
+    private async Task ResumeApiModulesAsync(CancellationToken ct)
     {
         await _commandGate.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -164,13 +167,13 @@ public sealed partial class AgentsRuntime
 
             foreach (var moduleId in toStart)
             {
-                if (!IsModuleEnabled(moduleId) || !ModuleRequiresDatabase(moduleId))
+                if (!IsModuleEnabled(moduleId) || !ModuleRequiresApi(moduleId))
                 {
                     _desired.Unpause(moduleId);
                     continue;
                 }
 
-                if (!IsDatabaseConnected)
+                if (!IsApiReady)
                 {
                     break;
                 }
@@ -181,16 +184,16 @@ public sealed partial class AgentsRuntime
                     _desired.Unpause(moduleId);
                     _logger.Info(
                         "Agents",
-                        "agents.module.resume_db",
-                        "Restarted database-bound module after reconnect",
+                        "agents.module.resume_api",
+                        "Restarted API-bound module after reconnect",
                         new { moduleId });
                 }
                 else
                 {
                     _logger.Warn(
                         "Agents",
-                        "agents.module.resume_db.fail",
-                        "Failed to restart database-bound module after reconnect",
+                        "agents.module.resume_api.fail",
+                        "Failed to restart API-bound module after reconnect",
                         null,
                         new { moduleId, mount.Message });
                 }
@@ -204,11 +207,6 @@ public sealed partial class AgentsRuntime
             _commandGate.Release();
         }
     }
-
-    private bool ModuleRequiresDatabase(string moduleId)
-        => _projection.Modules.FirstOrDefault(m => string.Equals(m.Id, moduleId, StringComparison.Ordinal))
-            is { RequiresDatabase: true };
-
 
     public async Task<AgentsCommandResult> StopModuleAsync(string moduleId, CancellationToken ct = default)
     {
@@ -607,28 +605,38 @@ public sealed partial class AgentsRuntime
             return SetModuleError(moduleId, $"未发现模块：{moduleId}");
         }
 
-        var bound = new AgentsModuleDbBound(module.Id, module.MinDbSchema, module.MaxDbSchema);
-        var outcome = await _admit.AdmitAsync(bound, IsDatabaseConnected, ct).ConfigureAwait(false);
+        var bound = new AgentsModuleBound(module.Id, module.MinApiContract, module.MaxApiContract);
+        var outcome = await _admit.AdmitAsync(
+                bound,
+                IsApiReady,
+                _availability?.LastContractVersion,
+                ct)
+            .ConfigureAwait(false);
         if (!outcome.Ok)
         {
             return SetModuleError(moduleId, outcome.Message);
         }
 
-        return EnsurePgConfigOrError(moduleId, bound);
+        return EnsureApiConfigOrError(moduleId, bound);
     }
 
-    /// <summary>库依赖模块启动前校验 Desktop 侧 PG 配置（与 Admit 库区间门禁独立）</summary>
-    private AgentsCommandResult EnsurePgConfigOrError(string moduleId, AgentsModuleDbBound bound)
+    /// <summary>依赖 PacAPI 的模块启动前校验 Agents 独立 Key</summary>
+    private AgentsCommandResult EnsureApiConfigOrError(string moduleId, AgentsModuleBound bound)
     {
-        if (!bound.RequiresDatabase)
+        var module = _projection.Modules.FirstOrDefault(
+            m => string.Equals(m.Id, moduleId, StringComparison.Ordinal));
+        if (module is not { RequiresApi: true } && !bound.RequiresApiContract)
         {
             return new AgentsCommandResult(true, "ok");
         }
 
-        var launchConfig = ValidatePostgresLaunchConfig();
-        return launchConfig.Ok
-            ? new AgentsCommandResult(true, "ok")
-            : SetModuleError(moduleId, launchConfig.Message);
+        var pac = _configStore.Load().PacApi;
+        if (string.IsNullOrWhiteSpace(pac.BaseUrl) || string.IsNullOrWhiteSpace(pac.AgentsApiKey))
+        {
+            return SetModuleError(moduleId, "请先配置 PacAPI 地址与 Agents 访问密钥");
+        }
+
+        return new AgentsCommandResult(true, "ok");
     }
 
     private void NoteAdmitDeniedOnColdStart(AgentsAdmitResult admit, string moduleId)
@@ -638,8 +646,8 @@ public sealed partial class AgentsRuntime
             _desired.NotePaused(moduleId);
             _logger.Info(
                 "Agents",
-                "agents.module.skip_mount_db",
-                "Skipped mounting database-bound module while disconnected",
+                "agents.module.skip_mount_disconnected",
+                "Skipped mounting API-bound module while disconnected",
                 new { moduleId });
             return;
         }
@@ -647,8 +655,8 @@ public sealed partial class AgentsRuntime
         SetModuleError(moduleId, admit.Message);
         _logger.Warn(
             "Agents",
-            "agents.module.skip_mount_schema",
-            "Skipped mounting database-bound module: admit gate failed",
+            "agents.module.skip_mount_admit",
+            "Skipped mounting API-bound module: admit gate failed",
             null,
             new { moduleId, admit.Message, admit.DenyKind });
     }

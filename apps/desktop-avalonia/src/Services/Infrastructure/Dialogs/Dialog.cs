@@ -33,7 +33,7 @@ public interface IDialogService
     Task<string?> PromptUnlockPassword(
         string title,
         string hintMessage,
-        Func<string, string?>? verify = null);
+        Func<string, Task<string?>>? verify = null);
     Task ShowAppInfo(AppInfoArgs model);
     Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
     Task ShowMsfxStateDetail(MsfxStateDetailArgs model);
@@ -41,9 +41,7 @@ public interface IDialogService
 }
 
 /// <summary>
-/// 对话框服务
-///
-/// 编排警告和表单对话框，不执行具体业务校验
+/// 弹出警告和表单对话框，不做业务校验
 /// </summary>
 public sealed class DialogService(
     DialogManager dialogManager,
@@ -124,7 +122,7 @@ public sealed class DialogService(
     public Task<string?> PromptUnlockPassword(
         string title,
         string hintMessage,
-        Func<string, string?>? verify = null)
+        Func<string, Task<string?>>? verify = null)
         => ClearUnlockPasswordAfterPromptAsync(
             FormDialogSession.ShowAsync(
                 dialogManager,

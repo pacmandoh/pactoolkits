@@ -104,6 +104,9 @@ public sealed partial class Dashboard
     {
         public static readonly NoopLookup Instance = new();
 
+        public Task<IReadOnlyList<string>> GetClientIdsAsync(CancellationToken ct, bool forceRefresh = false)
+            => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
         public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)
             => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
 

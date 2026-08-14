@@ -40,7 +40,6 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     public override ICommand RefreshCommand => _localRefreshCommand;
     public override ICommand ImportCommand => _importCommand;
     public override ICommand ExportCommand => _exportCommand;
-    protected override bool RequiresLocalDbForReload => false;
 
     private bool CanOperateUi() => !IsBusy;
     private bool CanIo() => CanOperateUi();
@@ -1244,20 +1243,20 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                     if (dbSourceAfter is not null || dbTargetAfter is null)
                     {
                         throw new InvalidOperationException(
-                            $"迁移提交校验失败(DB)：sourceExists={(dbSourceAfter is not null ? 1 : 0)}, targetExists={(dbTargetAfter is not null ? 1 : 0)}");
+                            $"迁移提交校验失败：sourceExists={(dbSourceAfter is not null ? 1 : 0)}, targetExists={(dbTargetAfter is not null ? 1 : 0)}");
                     }
                 }
                 else
                 {
                     if (dbTargetAfter is null)
                     {
-                        throw new InvalidOperationException("迁移提交校验失败(DB)：目标键未找到");
+                        throw new InvalidOperationException("迁移提交校验失败：目标键未找到");
                     }
 
                     if (dbTargetAfter.Qty != EditQty.Value)
                     {
                         throw new InvalidOperationException(
-                            $"迁移提交校验失败(DB)：qty 未生效，期望 {EditQty.Value}，实际 {dbTargetAfter.Qty}");
+                            $"迁移提交校验失败：qty 未生效，期望 {EditQty.Value}，实际 {dbTargetAfter.Qty}");
                     }
                 }
 

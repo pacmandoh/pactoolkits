@@ -33,7 +33,7 @@ public interface ISettingsPage
 }
 
 /// <summary>
-/// 协调数据库、Agents、MSFX、更新和客户端别名等设置表单，并管理保存与即时生效边界
+/// 设置页：PacAPI、Agents、MSFX、更新、客户端别名；区分保存与立即生效
 /// </summary>
 public partial class Settings : AppPageBase, ISettingsPage
 {
@@ -44,9 +44,9 @@ public partial class Settings : AppPageBase, ISettingsPage
     public override ICommand? RefreshCommand => null;
     protected override bool SupportsStaleWhileReconnect => false;
 
-    private readonly ISettingsService _settings;
     private readonly IToastService _toast;
     private readonly IClientAliasService _alias;
+    private readonly ILookupCatalogService _lookup;
     private readonly IAppConfigStore _appConfigStore;
     private readonly ITraceCodeRuleService _traceCodeRule;
     private readonly IUiBehaviorService _uiBehavior;
@@ -77,17 +77,23 @@ public partial class Settings : AppPageBase, ISettingsPage
     private const string MsfxDefaultGatewayUrl = "https://eco.taobao.com/router/rest";
     private const string MsfxPullSourceApi = "listupout";
 
-    [ObservableProperty] private string _host;
-    [ObservableProperty] private int _port;
-    [ObservableProperty] private string _database;
-    [ObservableProperty] private string _username;
-    [ObservableProperty] private string _password;
-
     [ObservableProperty] private string _pacApiUrl = string.Empty;
     [ObservableProperty] private string _pacApiKey = string.Empty;
+    [ObservableProperty] private string _pacApiAgentsKey = string.Empty;
     [ObservableProperty] private bool _isPacApiBusy;
+    [ObservableProperty] private string _pacApiInfoLabel = "未探测";
+    [ObservableProperty] private bool _isPacApiInfoUnknown = true;
+    [ObservableProperty] private bool _isPacApiInfoReady;
+    [ObservableProperty] private bool _isPacApiInfoFail;
+    [ObservableProperty] private string _pacApiVersion = "--";
+    [ObservableProperty] private string _pacApiContract = "--";
+    [ObservableProperty] private string _pacApiContractRange = "--";
+    [ObservableProperty] private string _pacApiDatabase = "--";
+    [ObservableProperty] private string _pacApiSchema = "--";
+    [ObservableProperty] private string _pacApiSchemaVersion = "--";
+    [ObservableProperty] private string _pacApiCheckedAt = "--";
+    [ObservableProperty] private string _pacApiDetail = "--";
 
-    [ObservableProperty] private bool _isDbConnected;
     [ObservableProperty] private bool _isClientAliasRefreshing;
     [ObservableProperty] private int _traceCodeRequiredLength = 20;
     [ObservableProperty] private string _traceCodePattern = "^8\\d+$";
@@ -101,7 +107,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private string _currentProductVersion = "unknown";
     [ObservableProperty] private bool? _updateAvailability;
     [ObservableProperty] private string _latestProductVersion = "unknown";
-    [ObservableProperty] private string _updateChannelSwitchHint = "检查具体更新版本时会验证目标 Feed 与数据库兼容范围";
+    [ObservableProperty] private string _updateChannelSwitchHint = "检查更新时会确认目标通道 Feed 可用，并核对清单产品版本";
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _hasUpdateAvailable;
     [ObservableProperty] private bool _hasUpdateTarget;
@@ -109,8 +115,6 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private bool _hasDownloadedUpdate;
     [ObservableProperty] private string _updateTargetVersion = "--";
     [ObservableProperty] private string _updateTargetSource = "--";
-    [ObservableProperty] private string _updateTargetDatabase = "--";
-    [ObservableProperty] private string _updateTargetSchemaRange = "--";
     [ObservableProperty] private string _updateTargetCheckedAt = "--";
     [ObservableProperty] private string _updateTargetDownloadedAt = "--";
     [ObservableProperty] private string _updateTargetStatus = "--";
@@ -121,19 +125,6 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private int _loggingMaxFileSizeMb = 20;
     [ObservableProperty] private string _loggingDirectory = string.Empty;
     [ObservableProperty] private bool _isLoggingBusy;
-    [ObservableProperty] private string _dbSchemaCurrentVersion = "unknown";
-    [ObservableProperty] private string _dbSchemaTargetVersion = "unknown";
-    [ObservableProperty] private string _dbSchemaRequiredMinVersion = "unknown";
-    [ObservableProperty] private string _dbSchemaRequiredMaxVersion = "unknown";
-    [ObservableProperty] private string _dbSchemaStatusText = "未检查";
-    [ObservableProperty] private bool _isDbSchemaChecking;
-    [ObservableProperty] private string _dbSchemaErrorText = string.Empty;
-    [ObservableProperty] private bool? _dbSchemaBadgeStatus;
-    [ObservableProperty] private string _dbSchemaBadgeLabel = "未检查";
-    [ObservableProperty] private string _dbSchemaLastCheckedAtText = "--";
-    [ObservableProperty] private string _dbSchemaLastCheckSourceText = "--";
-    public string DbSchemaManagementText
-        => "仅检查数据库兼容性；请使用服务器端数据库部署工具更新结构";
     [ObservableProperty] private string _msfxGatewayUrl = "https://eco.taobao.com/router/rest";
     [ObservableProperty] private string _msfxAppKey = string.Empty;
     [ObservableProperty] private string _msfxAppSecret = string.Empty;
@@ -149,7 +140,6 @@ public partial class Settings : AppPageBase, ISettingsPage
 
     [ObservableProperty] private bool _isClientAliasEditMode;
     [ObservableProperty] private bool _isClientAliasReadOnly = true;
-    public bool CanCopyDbSchemaDiagnostics => !string.IsNullOrWhiteSpace(BuildDbSchemaDiagnosticsText());
     public ObservableCollection<string> LoggingLevelOptions { get; } = new()
     {
         "Debug",
@@ -182,9 +172,9 @@ public partial class Settings : AppPageBase, ISettingsPage
     };
     public Settings(
         IAppConfigStore appConfigStore,
-        ISettingsService settings,
         IToastService toast,
         IClientAliasService alias,
+        ILookupCatalogService lookup,
         ITraceCodeRuleService traceCodeRule,
         IUiBehaviorService uiBehavior,
         IUpdateSettingsService updateSettings,
@@ -205,9 +195,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         IModuleSettingsStore moduleSettings)
     {
         _appConfigStore = appConfigStore;
-        _settings = settings;
         _toast = toast;
         _alias = alias;
+        _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
         _traceCodeRule = traceCodeRule;
         _uiBehavior = uiBehavior;
         _updateSettings = updateSettings;
@@ -228,23 +218,17 @@ public partial class Settings : AppPageBase, ISettingsPage
         _moduleSettings = moduleSettings ?? throw new ArgumentNullException(nameof(moduleSettings));
         InitializeAgents();
         ClientAliases.CollectionChanged += OnClientAliasesChanged;
-        var c = settings.AppliedDb;
-        _host = c.Host;
-        _port = c.Port;
-        _database = c.Database;
-        _username = c.Username;
-        _password = c.Password;
 
         IsClientAliasEditMode = false;
         IsClientAliasReadOnly = true;
 
         SyncTraceCodeRule();
         SyncPacApi();
+        SyncPacApiInfo();
         SyncMsfxApi();
         SyncUiBehavior();
         SyncUpdateOptions();
         SyncLogging();
-        RunDetached(RefreshSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
         _updates.Changed += OnUpdatesChanged;
@@ -252,6 +236,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         _loggingSettings.Changed += OnLoggingSettingsChanged;
         _alias.Changed += OnClientAliasMapChanged;
         _traceCodeRule.Changed += OnTraceCodeRuleChanged;
+        _apiAvailability.Changed += OnPacApiAvailabilityChanged;
 
     }
 
@@ -269,9 +254,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         RefreshMsfxBadge(options);
     }
 
-    public Task RefreshSchemaStatusAsync(string source = "startup_postcheck")
-        => UpdateSchemaStatusAsync(source, manualProbe: false, bindPageLifetime: false);
-
     private void OnClientAliasesChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsClientAliasesEmpty));
 
@@ -281,8 +263,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         _pageWorkCancelled = false;
         ReloadAgentsRuntime();
         RefreshUnsaved();
+        SyncPacApiInfo();
         ReloadClientAliasesIfVisible("client_alias.reload.activate_fail");
-        // 游标经 PacApi；仅服务就绪时请求
+        // 游标走 PacAPI；服务就绪才请求
         if (ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured))
         {
             RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");
@@ -321,7 +304,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         {
             if (!CanToastError(ex))
             {
-                _logger.Warn("SettingsVM", eventName, "Settings background operation skipped toast (DB unavailable)", ex);
+                _logger.Warn("SettingsVM", eventName, "Settings background operation skipped toast (service unavailable)", ex);
                 return;
             }
 
@@ -541,10 +524,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         HasDownloadedUpdate = target?.DownloadedAt is not null;
         UpdateTargetVersion = target?.Version ?? "--";
         UpdateTargetSource = target is null ? "--" : $"{target.Channel} · {target.FeedUrl}";
-        UpdateTargetDatabase = target?.DatabaseLabel ?? "--";
-        UpdateTargetSchemaRange = target is null
-            ? "--"
-            : $"{target.RequiredMinDbSchema} - {target.RequiredMaxDbSchema}";
         UpdateTargetCheckedAt = target?.CheckedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--";
         UpdateTargetDownloadedAt = target?.DownloadedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--";
         UpdateTargetStatus = target is null ? "--" : GetUpdateTargetStatus(target.Stage);
@@ -640,6 +619,11 @@ public partial class Settings : AppPageBase, ISettingsPage
         catch (System.Exception ex)
         {
             _logger.Warn("SettingsVM", "dispose.trace_rule_unsub_fail", "Failed to unsubscribe TraceCodeRule", ex);
+        }
+        try { _apiAvailability.Changed -= OnPacApiAvailabilityChanged; }
+        catch (System.Exception ex)
+        {
+            _logger.Warn("SettingsVM", "dispose.pacapi_availability_unsub_fail", "Failed to unsubscribe PacApi availability", ex);
         }
         ClientAliases.CollectionChanged -= OnClientAliasesChanged;
         DisposeAgents();

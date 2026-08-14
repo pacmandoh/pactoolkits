@@ -10,7 +10,7 @@ using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>经 PacApi 的药品目录</summary>
+/// <summary>药品目录走 HTTP</summary>
 public sealed class ApiLookupCatalog : ILookupCatalogService
 {
     private readonly PacApiClient _api;
@@ -18,6 +18,18 @@ public sealed class ApiLookupCatalog : ILookupCatalogService
     public ApiLookupCatalog(PacApiClient api)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
+    }
+
+    public async Task<IReadOnlyList<string>> GetClientIdsAsync(CancellationToken ct, bool forceRefresh = false)
+    {
+        _ = forceRefresh;
+        var body = await _api.GetJsonAsync(
+                () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/catalog/client-ids")),
+                PacJsonContext.Default.StringListResponse,
+                ct)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("empty catalog client-ids response");
+        return body.Items;
     }
 
     public async Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)

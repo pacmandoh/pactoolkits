@@ -3,12 +3,15 @@ using Microsoft.Extensions.Options;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>Desktop 访问 PacToolkits.Api 的地址与密钥；设置页写入 AppConfigStore，保存后热应用</summary>
+/// <summary>Desktop 访问 PacToolkits.Api 的地址与密钥；设置页写入 AppConfigStore，保存后立刻生效</summary>
 public sealed class PacApiOptions
 {
     public string BaseUrl { get; set; } = string.Empty;
 
     public string ApiKey { get; set; } = string.Empty;
+
+    /// <summary>Agents 换票 Key；不复用 Desktop ApiKey</summary>
+    public string AgentsApiKey { get; set; } = string.Empty;
 
     public string HeaderName { get; set; } = "X-Api-Key";
 

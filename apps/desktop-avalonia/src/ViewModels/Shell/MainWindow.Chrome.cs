@@ -15,7 +15,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
-/// <summary>标题胶囊与底栏 chrome：PacApi 可用性、Agents 控制、状态入口</summary>
+/// <summary>标题胶囊与底栏 chrome：PacAPI 可用性、Agents 控制、状态入口</summary>
 public partial class MainWindowViewModel
 {
     private static readonly TimeSpan ChromeActionDebounce = TimeSpan.FromMilliseconds(1200);
@@ -74,23 +74,23 @@ public partial class MainWindowViewModel
             // 未配置文案
             if (!_apiAvailability.IsConfigured)
             {
-                return "PacApi 服务未配置";
+                return "PacAPI 服务未配置";
             }
 
             var snap = _apiAvailability.Current;
             if (!snap.FirstCheckCompleted)
             {
-                return "PacApi 服务检查中…";
+                return "PacAPI 服务检查中…";
             }
 
             var view = ConnectionView.From(snap, isConfigured: true);
             return view.Kind switch
             {
-                ConnectionKind.Up => "PacApi 服务已连接",
-                ConnectionKind.NotConfigured => "PacApi 服务未配置",
+                ConnectionKind.Up => "PacAPI 服务已连接",
+                ConnectionKind.NotConfigured => "PacAPI 服务未配置",
                 ConnectionKind.Blocked => view.Title,
-                ConnectionKind.Down => string.IsNullOrEmpty(view.Title) ? "PacApi 服务不可用" : view.Title,
-                _ => "PacApi 服务检查中…",
+                ConnectionKind.Down => string.IsNullOrEmpty(view.Title) ? "PacAPI 服务不可用" : view.Title,
+                _ => "PacAPI 服务检查中…",
             };
         }
     }
@@ -174,7 +174,7 @@ public partial class MainWindowViewModel
             var view = ConnectionView.From(
                 _apiAvailability.Current,
                 isConfigured: _apiAvailability.IsConfigured);
-            return string.IsNullOrEmpty(view.Title) ? "PacApi 服务不可用" : view.Title;
+            return string.IsNullOrEmpty(view.Title) ? "PacAPI 服务不可用" : view.Title;
         }
     }
 
@@ -257,7 +257,7 @@ public partial class MainWindowViewModel
         {
             if (!_apiAvailability.IsConfigured)
             {
-                _toasts.Error("PacApi 服务", "请前往设置配置地址与密钥并测试连接");
+                _toasts.Error("PacAPI 服务", "请前往设置配置地址与密钥并测试连接");
                 return;
             }
 
@@ -267,13 +267,13 @@ public partial class MainWindowViewModel
         catch (OperationCanceledException)
         {
             _logger.Warn("MainWindowVM", "api.probe.timeout", "API availability probe timed out");
-            _toasts.Error("PacApi 服务", "操作超时：请检查网络与配置");
+            _toasts.Error("PacAPI 服务", "操作超时：请检查网络与配置");
             return;
         }
         catch (Exception ex)
         {
             _logger.Error("MainWindowVM", "api.probe.error", "API availability probe failed", ex);
-            _toasts.Error("PacApi 服务", "PacApi 服务不可用");
+            _toasts.Error("PacAPI 服务", "PacAPI 服务不可用");
             return;
         }
         finally
@@ -284,15 +284,15 @@ public partial class MainWindowViewModel
         var snap = _apiAvailability.Current;
         if (ConnectionView.IsReady(snap, isConfigured: true))
         {
-            _toasts.Success("PacApi 服务", "PacApi 服务可用");
+            _toasts.Success("PacAPI 服务", "PacAPI 服务可用");
             return;
         }
 
         var view = ConnectionView.From(snap, isConfigured: true);
         var detail = !string.IsNullOrWhiteSpace(view.Message)
             ? view.Message
-            : snap.Detail ?? "PacApi 服务不可用";
-        _toasts.Error("PacApi 服务", detail);
+            : snap.Detail ?? "PacAPI 服务不可用";
+        _toasts.Error("PacAPI 服务", detail);
     }
 
     [RelayCommand(CanExecute = nameof(CanControlAgents))]

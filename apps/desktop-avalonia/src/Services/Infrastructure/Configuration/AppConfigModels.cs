@@ -11,7 +11,6 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 public sealed class AppConfigRoot
 {
     public int SchemaVersion { get; set; } = 2;
-    public PgOptions Postgres { get; set; } = new();
     public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
     public AgentsOptions Agents { get; set; } = new();

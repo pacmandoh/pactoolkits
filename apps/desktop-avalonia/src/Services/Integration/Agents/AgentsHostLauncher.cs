@@ -7,7 +7,7 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
 /// Desktop 对 Host 进程的 OS 级生命周期（CreateProcess / 超时强杀进程树 / Host.exe 热更）

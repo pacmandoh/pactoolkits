@@ -1,12 +1,15 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using PacToolkits.Application.Abstractions;
 using Polly;
 
-namespace PacToolkits.Infrastructure.Msfx;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Msfx;
 
 /// <summary>
-/// 注册 MSFX 命名 HttpClient 与传输层 Resilience
+/// 注册 MSFX 的 HttpClient（按名称区分）与传输层 Resilience
 ///
 /// 默认不重试 POST；只有 allowlist 里的查询 method 才重试
 /// 业务失败仍是 HTTP 200，不会进 retry

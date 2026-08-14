@@ -7,16 +7,17 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
 /// Desktop 侧编排：链路、HostLauncher、DesiredSession、SnapshotProjection
 ///
 /// 模块进程监管在 Host；本类不实现 IAgentsClient
-/// partial：.Host 启停，.Modules 挂载/库生命周期
+/// partial：.Host 启停；.Modules 负责挂载与 PacAPI 相关启停
 /// </summary>
 public sealed partial class AgentsRuntime : IAgentsRuntime
 {
@@ -25,7 +26,7 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAgentsAdmitService _admit;
     private readonly IAgentsBundleService _bundle;
-    private readonly IDbConnectionMonitorService? _dbMonitor;
+    private readonly IApiAvailabilityService? _availability;
     private readonly IAppLogger _logger;
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
@@ -40,8 +41,8 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
     private AgentsOptions _options = new();
     private bool _disposed;
     private int _polling;
-    private int _dbLifecycleBusy;
-    private int _dbLifecycleWant = -1;
+    private int _apiLifecycleBusy;
+    private int _apiLifecycleWant = -1;
     private DateTimeOffset _lastHostCommandAt = DateTimeOffset.MinValue;
     private CancellationTokenSource? _startCts;
     private int _applyingBinaryChanges;
@@ -70,14 +71,14 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
         IAppLogger logger,
         IAgentsAdmitService admit,
         IAgentsBundleService bundle,
-        IDbConnectionMonitorService? dbMonitor = null)
+        IApiAvailabilityService? availability = null)
     {
         _configStore = configStore;
         _moduleSettings = moduleSettings ?? throw new ArgumentNullException(nameof(moduleSettings));
         _releaseVersion = releaseVersion;
         _admit = admit ?? throw new ArgumentNullException(nameof(admit));
         _bundle = bundle ?? throw new ArgumentNullException(nameof(bundle));
-        _dbMonitor = dbMonitor;
+        _availability = availability;
         _logger = logger;
         _host = new AgentsHostLauncher(_gate, logger);
         _desired = new AgentsDesiredSession(_gate);
@@ -88,12 +89,7 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
         _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(1));
         _link.SnapshotChanged += OnIpcStatusArrived;
         _link.ModuleFailed += OnModuleFailed;
-
-        if (_dbMonitor is not null)
-        {
-            _dbMonitor.Disconnected += OnDatabaseDisconnected;
-            _dbMonitor.Reconnected += OnDatabaseReconnected;
-        }
+        _availability?.Changed += OnApiAvailabilityChanged;
     }
 
 
@@ -395,14 +391,9 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
         }
 
         _disposed = true;
-        Volatile.Write(ref _dbLifecycleWant, -1);
+        Volatile.Write(ref _apiLifecycleWant, -1);
         CancelStart();
-
-        if (_dbMonitor is not null)
-        {
-            _dbMonitor.Disconnected -= OnDatabaseDisconnected;
-            _dbMonitor.Reconnected -= OnDatabaseReconnected;
-        }
+        _availability?.Changed -= OnApiAvailabilityChanged;
 
         try
         {

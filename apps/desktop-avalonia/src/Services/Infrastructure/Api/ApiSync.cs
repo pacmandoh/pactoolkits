@@ -12,7 +12,7 @@ using PacToolkits.Application.Serialization;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>经 PacApi 的 MSFX 同步（看板、游标、映射、注入）</summary>
+/// <summary>MSFX 库侧同步走 HTTP（看板、游标、映射、注入）</summary>
 public sealed class ApiSync : ISyncService
 {
     private readonly PacApiClient _api;
@@ -132,6 +132,14 @@ public sealed class ApiSync : ISyncService
                .ConfigureAwait(false)
                ?? throw new InvalidOperationException("empty msfx mapping queue response");
     }
+
+    public async Task<MsfxMappingStatusSnapshot> GetMappingStatusSnapshotAsync(CancellationToken ct)
+        => await _api.GetJsonAsync(
+                   () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve("/v1/msfx/mapping/status")),
+                   PacJsonContext.Default.MsfxMappingStatusSnapshot,
+                   ct)
+               .ConfigureAwait(false)
+           ?? throw new InvalidOperationException("empty msfx mapping status response");
 
     public async Task<MsfxMapApplyResult> ApplyMappingAsync(int limit, CancellationToken ct)
     {

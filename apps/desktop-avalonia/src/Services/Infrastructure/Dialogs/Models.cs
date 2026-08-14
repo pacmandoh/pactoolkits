@@ -31,6 +31,10 @@ public sealed record InfoDetailArgs(
 
 public sealed record AppInfoArgs(
     string Version,
+    string Desktop,
+    string Agents,
+    string MinApiContract,
+    string MaxApiContract,
     string ReleaseDate);
 
 public sealed record MsfxStateDetailArgs(

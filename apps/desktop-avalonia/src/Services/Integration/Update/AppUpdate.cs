@@ -12,7 +12,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 /// <summary>
 /// 应用更新服务
 ///
-/// 结合发布清单、Velopack 更新候选和数据库状态下载并应用安装包，不参与界面流程编排
+/// 结合发布清单与 Velopack 更新候选下载并应用安装包，不参与界面流程编排
 /// </summary>
 public sealed class AppUpdateService : IAppUpdateService, IDisposable
 {
@@ -21,7 +21,6 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     private readonly IUpdateSettingsService _settings;
     private readonly IAppLogger _logger;
     private readonly IReleaseManifestProbeService _manifestProbe;
-    private readonly ISettingsService _appSettings;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string? _checkedVersion;
     private UpdateTargetState? _checkedTarget;
@@ -41,13 +40,11 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     public AppUpdateService(
         IUpdateSettingsService settings,
         IAppLogger logger,
-        IReleaseManifestProbeService manifestProbe,
-        ISettingsService appSettings)
+        IReleaseManifestProbeService manifestProbe)
     {
         _settings = settings;
         _logger = logger;
         _manifestProbe = manifestProbe;
-        _appSettings = appSettings;
         _observedOptions = settings.Current;
         CurrentVersion = ResolveInstalledVersion();
         LatestVersion = CurrentVersion;
@@ -163,13 +160,10 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 AppUpdatePolicy.ResolveFeedUrl(
                     options.FeedUrl,
                     AppUpdatePolicy.NormalizeChannel(options.Channel)),
-                BuildDatabaseLabel(_appSettings.AppliedDb),
-                "unknown",
-                "unknown",
                 null,
                 null,
                 UpdateTargetStage.ReadyToInstall,
-                "已下载更新将在安装前重新验证");
+                "已下载更新将在安装前再次核对清单");
             LatestVersion = pendingVersion;
             HasUpdateAvailable = true;
             UpdateAvailability = true;
@@ -279,11 +273,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             }
 
             Target = null;
-            var pgOptions = _appSettings.AppliedDb;
             var probe = await _manifestProbe.ProbeAsync(
                 options.FeedUrl,
                 targetChannel,
-                pgOptions,
                 ct).ConfigureAwait(false);
             if (!probe.Success)
             {
@@ -294,14 +286,11 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                     message: probe.Message,
                     checkedAt: now);
                 _logger.Warn("AppUpdateService", "update.check.compatibility_blocked",
-                    "Update check blocked by release or database compatibility", null, new
+                    "Update check blocked by feed probe", null, new
                     {
                         CurrentChannel = currentChannel,
                         TargetChannel = targetChannel,
-                        probe.FeedManifestUrl,
-                        probe.CurrentDbSchema,
-                        probe.RequiredMinDbSchema,
-                        probe.RequiredMaxDbSchema
+                        probe.FeedManifestUrl
                     });
                 SetState(blocked);
                 return blocked;
@@ -344,11 +333,10 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 latest,
                 targetChannel,
                 probe,
-                pgOptions,
                 now,
                 downloadedAt: null,
                 UpdateTargetStage.Available,
-                "已通过兼容性检查，点击立即更新后下载并安装");
+                "目标通道清单可用，点击立即更新后下载并安装");
             Target = decision.HasUpdate ? _checkedTarget : null;
             var result = CreateCheckResult(
                 success: true,
@@ -456,11 +444,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 }
             }
 
-            var pgOptions = _appSettings.AppliedDb;
             var probe = await _manifestProbe.ProbeAsync(
                 options.FeedUrl,
                 targetChannel,
-                pgOptions,
                 ct).ConfigureAwait(false);
             if (!probe.Success)
             {
@@ -500,11 +486,10 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                     latest,
                     targetChannel,
                     probe,
-                    pgOptions,
                     DateTimeOffset.Now,
                     downloadedAt: null,
                     UpdateTargetStage.Available,
-                    "已通过兼容性检查，点击立即更新后下载并安装");
+                    "目标通道清单可用，点击立即更新后下载并安装");
                 Target = null;
                 LatestVersion = latest;
                 HasUpdateAvailable = false;
@@ -522,11 +507,10 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 latest,
                 targetChannel,
                 probe,
-                pgOptions,
                 DateTimeOffset.Now,
                 downloadedAt: null,
                 UpdateTargetStage.Available,
-                "已通过兼容性检查，点击立即更新后下载并安装");
+                "目标通道清单可用，点击立即更新后下载并安装");
             Target = _checkedTarget with
             {
                 Stage = UpdateTargetStage.Downloading,
@@ -610,7 +594,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             {
                 SetLastMessage(pendingState.Message);
                 _logger.Warn("AppUpdateService", "update.restart.compatibility_blocked",
-                    "Pending update restart blocked by current compatibility check", null, new
+                    "Pending update restart blocked by feed probe", null, new
                     {
                         PendingVersion = pendingVersion,
                         Reason = pendingState.Message
@@ -676,11 +660,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         CancellationToken ct)
     {
         var channel = AppUpdatePolicy.NormalizeChannel(options.Channel);
-        var pgOptions = _appSettings.AppliedDb;
         var probe = await _manifestProbe.ProbeAsync(
             options.FeedUrl,
             channel,
-            pgOptions,
             ct).ConfigureAwait(false);
         if (!probe.Success)
         {
@@ -688,9 +670,6 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 pendingVersion,
                 channel,
                 probe.TargetFeedUrl,
-                BuildDatabaseLabel(pgOptions),
-                probe.RequiredMinDbSchema,
-                probe.RequiredMaxDbSchema,
                 DateTimeOffset.Now,
                 Target?.DownloadedAt,
                 UpdateTargetStage.Blocked,
@@ -703,9 +682,6 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 pendingVersion,
                 channel,
                 probe.TargetFeedUrl,
-                BuildDatabaseLabel(pgOptions),
-                probe.RequiredMinDbSchema,
-                probe.RequiredMaxDbSchema,
                 DateTimeOffset.Now,
                 Target?.DownloadedAt,
                 UpdateTargetStage.Blocked,
@@ -716,20 +692,16 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             pendingVersion,
             channel,
             probe.TargetFeedUrl,
-            BuildDatabaseLabel(pgOptions),
-            probe.RequiredMinDbSchema,
-            probe.RequiredMaxDbSchema,
             DateTimeOffset.Now,
             Target?.DownloadedAt,
             UpdateTargetStage.ReadyToInstall,
-            "已下载版本与当前通道、Feed 和数据库兼容"), false);
+            "已下载版本与当前通道清单一致"), false);
     }
 
     private static UpdateTargetState CreateTarget(
         string version,
         string channel,
         ReleaseManifestProbe probe,
-        PgOptions pgOptions,
         DateTimeOffset checkedAt,
         DateTimeOffset? downloadedAt,
         UpdateTargetStage stage,
@@ -738,9 +710,6 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             version,
             channel,
             probe.TargetFeedUrl,
-            BuildDatabaseLabel(pgOptions),
-            probe.RequiredMinDbSchema,
-            probe.RequiredMaxDbSchema,
             checkedAt,
             downloadedAt,
             stage,
@@ -790,9 +759,6 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         LastMessage = message;
         Changed?.Invoke();
     }
-
-    private static string BuildDatabaseLabel(PgOptions options)
-        => $"{options.Host.Trim()}:{options.Port}/{options.Database.Trim()}";
 
     private static UpdateManager CreateUpdateManager(PacToolkits.Application.Abstractions.UpdateOptions options)
     {

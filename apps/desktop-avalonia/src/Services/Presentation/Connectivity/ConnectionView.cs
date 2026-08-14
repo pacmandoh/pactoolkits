@@ -16,7 +16,7 @@ public enum ConnectionKind
     Blocked,
 }
 
-/// <summary>本机配置与 PacApi 探测快照映射为用户可见连接</summary>
+/// <summary>本机配置与 PacAPI 探测快照映射为用户可见连接</summary>
 public sealed record ConnectionView(ConnectionKind Kind, string Title, string Message)
 {
     /// <summary>未配置单独一种；已配置 Down/Blocked 用探测 Detail</summary>
@@ -38,21 +38,21 @@ public sealed record ConnectionView(ConnectionKind Kind, string Title, string Me
             ApiAvailabilityState.Ready => new(ConnectionKind.Up, string.Empty, string.Empty),
             ApiAvailabilityState.ContractBlocked => new(
                 ConnectionKind.Blocked,
-                "PacApi 服务协议不兼容",
-                snap.Detail ?? "与 PacApi 服务协议版本不兼容，业务功能已阻断"),
+                "PacAPI 服务协议不兼容",
+                snap.Detail ?? "与 PacAPI 服务协议版本不兼容，业务功能已阻断"),
             ApiAvailabilityState.SchemaBlocked => new(
                 ConnectionKind.Blocked,
-                "PacApi 服务数据库结构不兼容",
+                "PacAPI 服务数据库结构不兼容",
                 snap.Detail ?? "服务端数据库结构不兼容，业务功能已阻断"),
             ApiAvailabilityState.ServerDatabaseBlocked => new(
                 ConnectionKind.Down,
-                "PacApi 服务数据库不可用",
-                snap.Detail ?? "PacApi 服务已连接，但服务端数据库不可用，业务功能无法使用"),
+                "PacAPI 服务数据库不可用",
+                snap.Detail ?? "PacAPI 服务已连接，但服务端数据库不可用，业务功能无法使用"),
             _ => new(
                 ConnectionKind.Down,
-                "PacApi 服务不可用",
+                "PacAPI 服务不可用",
                 string.IsNullOrWhiteSpace(snap.Detail)
-                    ? "无法连接 PacApi 服务，业务功能无法使用"
+                    ? "无法连接 PacAPI 服务，业务功能无法使用"
                     : snap.Detail),
         };
     }
@@ -65,7 +65,7 @@ public sealed record ConnectionView(ConnectionKind Kind, string Title, string Me
 
     private static readonly ConnectionView NotConfiguredView = new(
         ConnectionKind.NotConfigured,
-        "未配置 PacApi 服务",
+        "未配置 PacAPI 服务",
         "请填写服务地址与密钥后再使用");
 
     private static readonly ConnectionView Unchecked = new(

@@ -16,8 +16,122 @@ public partial class Settings
         var options = _pacApi.CaptureOptions();
         PacApiUrl = options.BaseUrl;
         PacApiKey = options.ApiKey;
+        PacApiAgentsKey = options.AgentsApiKey;
         _pacApiBaseline = ClonePacApi(options);
     }
+
+    private void OnPacApiAvailabilityChanged()
+        => PostUi(SyncPacApiInfo, "pacapi.info.ui_fail");
+
+    private void SyncPacApiInfo()
+    {
+        var configured = _apiAvailability.IsConfigured;
+        var snap = _apiAvailability.Current;
+        if (!configured)
+        {
+            PacApiInfoLabel = "未配置";
+            IsPacApiInfoUnknown = true;
+            IsPacApiInfoReady = false;
+            IsPacApiInfoFail = false;
+            PacApiVersion = "--";
+            PacApiContract = "--";
+            PacApiContractRange = FormatContractRange();
+            PacApiDatabase = "--";
+            PacApiSchema = "--";
+            PacApiSchemaVersion = "--";
+            PacApiCheckedAt = "--";
+            PacApiDetail = "--";
+            return;
+        }
+
+        if (!snap.FirstCheckCompleted)
+        {
+            PacApiInfoLabel = "探测中";
+            IsPacApiInfoUnknown = true;
+            IsPacApiInfoReady = false;
+            IsPacApiInfoFail = false;
+        }
+        else if (snap.State is ApiAvailabilityState.Ready)
+        {
+            PacApiInfoLabel = "已连接";
+            IsPacApiInfoUnknown = false;
+            IsPacApiInfoReady = true;
+            IsPacApiInfoFail = false;
+        }
+        else
+        {
+            PacApiInfoLabel = snap.State switch
+            {
+                ApiAvailabilityState.ContractBlocked => "协议不兼容",
+                ApiAvailabilityState.SchemaBlocked => "结构不兼容",
+                ApiAvailabilityState.ServerDatabaseBlocked => "数据库不可用",
+                _ => "不可用"
+            };
+            IsPacApiInfoUnknown = false;
+            IsPacApiInfoReady = false;
+            IsPacApiInfoFail = true;
+        }
+
+        PacApiVersion = Dash(_apiAvailability.LastApiVersion);
+        PacApiContract = Dash(_apiAvailability.LastContractVersion);
+        PacApiContractRange = FormatContractRange();
+        PacApiDatabase = FormatDatabase(_apiAvailability.LastDatabase);
+        PacApiSchema = FormatSchema(_apiAvailability.LastSchema);
+        PacApiSchemaVersion = Dash(_apiAvailability.LastSchemaVersion);
+        PacApiCheckedAt = snap.CheckedAt == DateTimeOffset.MinValue
+            ? "--"
+            : snap.CheckedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+        PacApiDetail = string.IsNullOrWhiteSpace(snap.Detail) ? "--" : snap.Detail.Trim();
+    }
+
+    private string FormatContractRange()
+    {
+        var ver = _releaseVersion.Current;
+        var min = ver.MinApiContract;
+        var max = ver.MaxApiContract;
+        if (string.IsNullOrWhiteSpace(min)
+            || string.IsNullOrWhiteSpace(max)
+            || string.Equals(min, "unknown", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(max, "unknown", StringComparison.OrdinalIgnoreCase))
+        {
+            return "--";
+        }
+
+        return $"{min.Trim()} – {max.Trim()}";
+    }
+
+    private static string FormatDatabase(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "--";
+        }
+
+        return string.Equals(value.Trim(), "ok", StringComparison.OrdinalIgnoreCase)
+            ? "可用"
+            : "不可用";
+    }
+
+    private static string FormatSchema(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "--";
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "ok" => "兼容",
+            "incompatible" => "不兼容",
+            "metadata_missing" => "缺少元数据",
+            "unavailable" => "无法读取",
+            "skipped" => "未检查",
+            var raw => raw
+        };
+    }
+
+    private static string Dash(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim();
 
     [RelayCommand]
     private Task SavePacApiConfigAsync() => ApplyPacApiConfigAsync();
@@ -34,13 +148,13 @@ public partial class Settings
         var validated = PacApiOptions.Validate(draft);
         if (validated.Failed)
         {
-            _toast.Error("PacApi 服务", string.Join("；", validated.Failures ?? ["配置无效"]));
+            _toast.Error("PacAPI 服务", string.Join("；", validated.Failures ?? ["配置无效"]));
             return;
         }
 
         if (!draft.IsConfigured)
         {
-            _toast.Warn("PacApi 服务", "请先填写地址与密钥");
+            _toast.Warn("PacAPI 服务", "请先填写地址与密钥");
             return;
         }
 
@@ -67,14 +181,14 @@ public partial class Settings
                 || string.Equals(max, "unknown", StringComparison.OrdinalIgnoreCase))
             {
                 await RunOnUiAsync(() =>
-                    _toast.Warn("PacApi 服务", "客户端缺少 PacApi 服务协议版本范围，请更新客户端"));
+                    _toast.Warn("PacAPI 服务", "客户端缺少 PacAPI 服务协议版本范围，请更新客户端"));
                 return;
             }
 
             var contractBlock = PacApiContractGate.ClassifyBlockReason(info.ContractVersion, min, max);
             if (contractBlock is not null)
             {
-                await RunOnUiAsync(() => _toast.Warn("PacApi 服务", contractBlock));
+                await RunOnUiAsync(() => _toast.Warn("PacAPI 服务", contractBlock));
                 return;
             }
 
@@ -98,19 +212,19 @@ public partial class Settings
 
             if (status is null)
             {
-                await RunOnUiAsync(() => _toast.Error("PacApi 服务", "连接失败：空响应"));
+                await RunOnUiAsync(() => _toast.Error("PacAPI 服务", "连接失败：空响应"));
                 return;
             }
 
             var state = ApiAvailabilityService.ClassifyStatus(status);
             if (state is ApiAvailabilityState.Ready)
             {
-                await RunOnUiAsync(() => _toast.Success("PacApi 服务", "连接成功"));
+                await RunOnUiAsync(() => _toast.Success("PacAPI 服务", "连接成功"));
                 return;
             }
 
             var detail = ApiAvailabilityService.DescribeServerDatabase(status);
-            await RunOnUiAsync(() => _toast.Warn("PacApi 服务", detail));
+            await RunOnUiAsync(() => _toast.Warn("PacAPI 服务", detail));
         }
         catch (OperationCanceledException) when (IsPageWorkCancellation())
         {
@@ -119,7 +233,7 @@ public partial class Settings
         {
             _logger.Warn("SettingsVM", "pacapi.test.fail", "PacApi connection test failed", ex);
             var detail = ApiAvailabilityService.DescribeUserFacing(ex);
-            await RunOnUiAsync(() => _toast.Error("PacApi 服务", detail));
+            await RunOnUiAsync(() => _toast.Error("PacAPI 服务", detail));
         }
         finally
         {
@@ -138,7 +252,7 @@ public partial class Settings
         var validated = PacApiOptions.Validate(draft);
         if (validated.Failed)
         {
-            _toast.Error("PacApi 服务", string.Join("；", validated.Failures ?? ["配置无效"]));
+            _toast.Error("PacAPI 服务", string.Join("；", validated.Failures ?? ["配置无效"]));
             return false;
         }
 
@@ -160,7 +274,11 @@ public partial class Settings
 
             if (!draft.IsConfigured)
             {
-                await RunOnUiAsync(SyncPacApi);
+                await RunOnUiAsync(() =>
+                {
+                    SyncPacApi();
+                    SyncPacApiInfo();
+                });
                 RefreshUnsaved();
                 return true;
             }
@@ -171,11 +289,12 @@ public partial class Settings
             await RunOnUiAsync(() =>
             {
                 SyncPacApi();
+                SyncPacApiInfo();
                 if (ready)
                 {
                     if (beforeKind is not (ConnectionKind.Down or ConnectionKind.Blocked))
                     {
-                        _toast.Success("PacApi 服务", "配置已保存并应用");
+                        _toast.Success("PacAPI 服务", "配置已保存并应用");
                     }
                 }
                 else
@@ -183,7 +302,7 @@ public partial class Settings
                     var detail = string.IsNullOrWhiteSpace(snap.Detail)
                         ? "配置已写入，但连接失败"
                         : snap.Detail;
-                    _toast.Error("PacApi 服务", detail);
+                    _toast.Error("PacAPI 服务", detail);
                 }
             });
 
@@ -194,7 +313,7 @@ public partial class Settings
         {
             _logger.Error("SettingsVM", "pacapi.settings.save.fail", "Failed to save PacApi settings", ex);
             _toast.Error(
-                "PacApi 服务",
+                "PacAPI 服务",
                 $"保存失败：{ApiAvailabilityService.DescribeUserFacing(ex, ex.Message)}");
             return false;
         }
@@ -205,6 +324,7 @@ public partial class Settings
         {
             BaseUrl = (PacApiUrl ?? string.Empty).Trim().TrimEnd('/'),
             ApiKey = (PacApiKey ?? string.Empty).Trim(),
+            AgentsApiKey = (PacApiAgentsKey ?? string.Empty).Trim(),
             HeaderName = "X-Api-Key",
         };
 
@@ -213,6 +333,7 @@ public partial class Settings
         {
             BaseUrl = source.BaseUrl ?? string.Empty,
             ApiKey = source.ApiKey ?? string.Empty,
+            AgentsApiKey = source.AgentsApiKey ?? string.Empty,
             HeaderName = string.IsNullOrWhiteSpace(source.HeaderName) ? "X-Api-Key" : source.HeaderName,
         };
 
@@ -222,6 +343,7 @@ public partial class Settings
     private static bool PacApiEqual(PacApiOptions left, PacApiOptions right)
         => string.Equals(left.BaseUrl, right.BaseUrl, StringComparison.OrdinalIgnoreCase)
            && string.Equals(left.ApiKey, right.ApiKey, StringComparison.Ordinal)
+           && string.Equals(left.AgentsApiKey, right.AgentsApiKey, StringComparison.Ordinal)
            && string.Equals(
                string.IsNullOrWhiteSpace(left.HeaderName) ? "X-Api-Key" : left.HeaderName,
                string.IsNullOrWhiteSpace(right.HeaderName) ? "X-Api-Key" : right.HeaderName,

@@ -35,7 +35,6 @@ public sealed partial class ScanCode : AppPageBase
     public override string DisplayName => "追溯码录入";
     public override string Icon => "ScanBarcode";
     public override int Index => 3;
-    protected override bool RequiresLocalDbForReload => false;
 
     private readonly ILookupCatalogService _lookup;
     private readonly IScanCodeService _scanCode;
@@ -989,7 +988,7 @@ public sealed partial class ScanCode : AppPageBase
         await RunOnUiAsync(() => snapshot = AnalyzeAndApply(TraceCodesText)).ConfigureAwait(false);
 
         var candidates = snapshot.PoolCheckCandidates;
-        if (candidates.Count == 0 || !IsDbConnected)
+        if (candidates.Count == 0 || !IsApiReady)
         {
             await RunOnUiAsync(() =>
             {
@@ -1077,7 +1076,7 @@ public sealed partial class ScanCode : AppPageBase
 
     private void SchedulePoolCheck(IReadOnlyList<string> candidateCodes)
     {
-        // 相同追溯码集合只查询一次，避免连续输入重复访问数据库
+        // 相同码集合正在查或刚查过就跳过，避免连扫重复请求
         var key = BuildPoolCheckKey(candidateCodes);
         if (string.Equals(key, _poolCheckInFlightKey, StringComparison.Ordinal)
             || string.Equals(key, _lastCompletedPoolCheckKey, StringComparison.Ordinal))
@@ -1106,7 +1105,7 @@ public sealed partial class ScanCode : AppPageBase
         try
         {
             await Task.Delay(PoolCheckDebounce, ct).ConfigureAwait(false);
-            if (candidateCodes.Count == 0 || !IsDbConnected)
+            if (candidateCodes.Count == 0 || !IsApiReady)
             {
                 await RunOnUiAsync(() =>
                 {

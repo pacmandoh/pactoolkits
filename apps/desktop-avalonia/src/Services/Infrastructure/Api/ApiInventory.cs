@@ -13,7 +13,7 @@ using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>经 PacApi 的库存</summary>
+/// <summary>库存走 HTTP</summary>
 public sealed class ApiInventory : IInventoryOverviewService
 {
     private readonly PacApiClient _api;

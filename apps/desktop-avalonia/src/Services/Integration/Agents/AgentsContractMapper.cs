@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using PacToolkits.Agents.Contracts.Models;
 using AppDtos = PacToolkits.Application.DTOs;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 
 /// <summary>
 /// 在 Agents 持久化模型与 Application DTO 之间执行无业务规则的类型映射

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -72,150 +72,17 @@ public partial class Settings : AppPageBase, ISettingsPage
     }
 
     [RelayCommand]
-    private async Task TestAsync()
-    {
-        if (SkipTrigger())
-        {
-            return;
-        }
-
-        try
-        {
-            var opt = ToOptions();
-            using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(6));
-
-            var validation = await _settings.ValidateDbConnectionAsync(
-                opt,
-                BuildSchemaContext(),
-                cts.Token);
-
-            if (!validation.ConnectionOk)
-            {
-                IsDbConnected = false;
-                _toast.Error("数据库连接失败", validation.ConnectionSummary ?? "连接失败");
-                return;
-            }
-
-            if (!validation.SchemaCompatible)
-            {
-                IsDbConnected = false;
-                await _dialog.Warn(DbSchemaDesktop.Title, validation.IncompatibleMessage ?? "数据库版本不兼容");
-                return;
-            }
-
-            IsDbConnected = true;
-            _toast.Success("数据库连接", "连接成功");
-        }
-        catch (OperationCanceledException)
-        {
-            if (IsPageWorkCancellation())
-            {
-                return;
-            }
-
-            _logger.Warn("SettingsVM", "db.test.timeout", "DB connection test timed out");
-            IsDbConnected = false;
-            _toast.Error("数据库连接失败", "连接超时：请检查网络/主机/端口");
-        }
-    }
-
-    [RelayCommand]
-    private Task SaveAsync() => ApplyDbConfigAsync();
+    private Task SaveAsync() => ApplyConnectionTabAsync();
 
     private async Task<bool> ApplyConnectionTabAsync()
     {
-        var ok = true;
         if (IsPacApiDirty())
         {
-            ok = await ApplyPacApiConfigAsync() && ok;
+            return await ApplyPacApiConfigAsync();
         }
 
-        if (IsDatabaseDirty())
-        {
-            ok = await ApplyDbConfigAsync() && ok;
-        }
-
-        return ok;
+        return true;
     }
-
-    private async Task<bool> ApplyDbConfigAsync()
-    {
-        if (SkipTrigger())
-        {
-            return false;
-        }
-
-        try
-        {
-            await _settings.SaveDbConfigAsync(ToOptions(), _pageWorkCts.Token);
-            if (!await CheckDbSchemaAsync())
-            {
-                IsDbConnected = false;
-                _toast.Warn("数据库配置", "配置已保存，但数据库版本不兼容，当前不可用");
-                return false;
-            }
-
-            IsDbConnected = true;
-            _toast.Success("配置已保存", "数据库配置已应用");
-            RefreshUnsaved();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            if (ex is OperationCanceledException && IsPageWorkCancellation())
-            {
-                return false;
-            }
-
-            _logger.Error("SettingsVM", "db.save.fail", "Failed to save DB settings", ex);
-            IsDbConnected = false;
-            _toast.Error("保存失败", ex.Message);
-            return false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task CheckDbSchemaStatusAsync()
-    {
-        if (SkipTrigger() || IsDbSchemaChecking)
-        {
-            return;
-        }
-
-        await UpdateSchemaStatusAsync(
-            "manual_check",
-            manualProbe: true,
-            connectionOptions: ToOptions(),
-            operationCt: _pageWorkCts.Token);
-    }
-
-    [RelayCommand]
-    private async Task CopyDbSchemaDiagnosticsAsync()
-    {
-        if (SkipTrigger())
-        {
-            return;
-        }
-
-        var text = BuildDbSchemaDiagnosticsText();
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            _toast.Warn("数据库结构", "当前无可复制的诊断信息");
-            return;
-        }
-
-        await _clipboard.SetTextAsync(text);
-        _toast.Success("数据库结构", "已复制诊断信息");
-    }
-
-    private PgOptions ToOptions() => new()
-    {
-        Host = Host,
-        Port = Port,
-        Database = Database,
-        Username = Username,
-        Password = Password
-    };
 
     private async Task ReloadClientAliasesAsync(CancellationToken pageCt)
     {
@@ -228,17 +95,19 @@ public partial class Settings : AppPageBase, ISettingsPage
         await SetAliasRefreshingAsync(true);
         try
         {
-            var opt = ToOptions();
-            using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(6));
+            var apiReady = ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured);
+            IReadOnlyList<string> machines = Array.Empty<string>();
+            if (apiReady)
+            {
+                using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(6));
+                machines = await _lookup.GetClientIdsAsync(cts.Token, forceRefresh: true);
+            }
 
-            var loaded = await _settings.GetClientAliasSourcesAsync(opt, cts.Token);
-            var isDbConnected = loaded.IsDbConnected;
             var aliasMap = NormalizeAliasMapByMachine(_alias.GetAll());
-            var clientMachines = new HashSet<string>(loaded.ClientMachines, StringComparer.OrdinalIgnoreCase);
+            var clientMachines = new HashSet<string>(machines, StringComparer.OrdinalIgnoreCase);
 
             await RunOnUiAsync(() =>
             {
-                IsDbConnected = isDbConnected;
                 UntrackAllAliasRows();
                 ClientAliases.Clear();
 

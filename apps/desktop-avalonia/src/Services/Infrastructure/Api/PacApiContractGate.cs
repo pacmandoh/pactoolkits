@@ -15,7 +15,7 @@ public interface IPacApiContractGate
     /// <summary>未配置则跳过；已配置则拉 /v1/system/info 对照清单区间</summary>
     Task EnsureCompatibleAsync(CancellationToken ct = default);
 
-    /// <summary>设置热应用后作废上次协议检查结果</summary>
+    /// <summary>设置保存后作废上次协议检查结果</summary>
     void Reset();
 }
 
@@ -106,7 +106,7 @@ public sealed class PacApiContractGate : IPacApiContractGate
                 "PacApi",
                 "contract.range_missing",
                 "PacApi contract range missing from Desktop ReleaseManifest (minApiContract/maxApiContract)");
-            return "客户端缺少 PacApi 服务协议版本范围，请更新客户端";
+            return "客户端缺少 PacAPI 服务协议版本范围，请更新客户端";
         }
 
         var info = await _api.GetAvailabilityJsonAsync(
@@ -119,7 +119,7 @@ public sealed class PacApiContractGate : IPacApiContractGate
                 PacJsonContext.Default.PacApiSystemInfo,
                 ct)
             .ConfigureAwait(false)
-            ?? throw new InvalidOperationException("PacApi 服务返回空协议信息");
+            ?? throw new InvalidOperationException("PacAPI 服务返回空协议信息");
 
         return ClassifyBlockReason(info.ContractVersion, min, max, _logger);
     }
@@ -142,7 +142,7 @@ public sealed class PacApiContractGate : IPacApiContractGate
         }
 
         var incompatible =
-            $"与 PacApi 服务协议版本不兼容（服务端 {contractVersion}，客户端要求 {min}–{max}）";
+            $"与 PacAPI 服务协议版本不兼容（服务端 {contractVersion}，客户端要求 {min}–{max}）";
         logger?.Error(
             "PacApi",
             "contract.incompatible",

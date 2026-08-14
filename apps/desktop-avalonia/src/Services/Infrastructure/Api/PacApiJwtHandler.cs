@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>命名 HttpClient 附加 Bearer；经 IServiceProvider 晚取 PacApiClient，避免和 Handler 互相依赖</summary>
+/// <summary>HttpClient 附加 Bearer；经 IServiceProvider 晚取 PacApiClient，避免和 Handler 互相依赖</summary>
 internal sealed class PacApiJwtHandler(IServiceProvider services) : DelegatingHandler
 {
     private PacApiClient? _client;

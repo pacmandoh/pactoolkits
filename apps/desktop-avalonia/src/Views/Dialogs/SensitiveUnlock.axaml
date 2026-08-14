@@ -46,11 +46,11 @@
     </StackPanel>
 
     <StackPanel Spacing="6">
-      <TextBlock Classes="Caption Muted" Text="数据库密码" />
+      <TextBlock Classes="Caption Muted" Text="敏感操作密码" />
       <TextBox
         shad:ElementAssist.FocusOnLoad="True"
         PasswordChar="•"
-        PlaceholderText="请输入数据库密码进行验证"
+        PlaceholderText="请输入敏感操作密码进行验证"
         RevealPassword="False"
         Text="{Binding Password, Mode=TwoWay}">
         <TextBox.KeyBindings>
