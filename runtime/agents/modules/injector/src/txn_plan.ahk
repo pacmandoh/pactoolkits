@@ -3,24 +3,18 @@
 
 ; 读 drug_index 单盒数量
 Txn_FetchDbQty(drugId, spec) {
-	q := ""
-		. "SELECT qty FROM drug_index "
-		. "WHERE drug_id='" Util_EscapeSQL(drugId) "' "
-		. "  AND spec='" Util_EscapeSQL(spec) "' "
-		. "LIMIT 1;"
-	rr := DB_Query(q)
+	path := "/v1/catalog/drugs/" PacApi_UrlEncode(drugId) "/" PacApi_UrlEncode(spec) "/quantity"
+	rr := PacApi_Get(path)
 	if !rr["ok"]
 		return Map("ok", false, "level", "Error",
-			"message", "[查询错误]`n读取药品索引中单盒数量失败：`n" (rr.Has("err") ? rr["err"] : ""),
+			"message", "[查询错误]`n读取药品索引中单盒数量失败：`n" (rr.Has("err") ? rr["err"] : rr["message"]),
 			"err", rr.Has("err") ? rr["err"] : "")
-	if (rr["rows"].Length = 0)
+	body := rr["body"]
+	qty := IsObject(body) && body.Has("quantity") ? Util_ToInt(body["quantity"], 0) : 0
+	if (qty <= 0)
 		return Map("ok", false, "level", "Warn",
 			"message", "[查询错误]`n药品索引未配置该药品规格（无法计算拆零余数）`n药品=" drugId "`n规格=" spec)
-	dbQty := Util_ToInt(rr["rows"][1][1])
-	if (dbQty <= 0)
-		return Map("ok", false, "level", "Error",
-			"message", "[查询错误]`n药品索引中单盒数量非法：" dbQty)
-	return Map("ok", true, "dbQty", dbQty)
+	return Map("ok", true, "dbQty", qty)
 }
 
 ; 门诊数量「单位」对应计算 packWhole；空或未入 OptPackUnits/OptPieceUnits：失败

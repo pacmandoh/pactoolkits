@@ -5,7 +5,7 @@ using PacToolkits.Logger;
 namespace PacToolkits.Agents.Host;
 
 /// <summary>
-/// Host JSON Lines 文件日志；经 PacToolkits.Logger 统一落盘
+/// Host JSON Lines 文件日志；走 PacToolkits.Logger 统一落盘
 /// 门控策略读取 Desktop 配置 Logging（按文件变更缓存）
 /// </summary>
 internal static class HostLog

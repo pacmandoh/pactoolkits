@@ -6,7 +6,7 @@
 #Include "%A_LineFile%\..\args.ahk"
 #Include "%A_LineFile%\..\JSON.ahk"
 
-; ODBC/Postgres 与打包基底要求 64 位；失败则 ExitApp
+; 打包基底要求 64 位；失败则 ExitApp
 Arch_Require64(title) {
 	if (A_PtrSize != 4)
 		return

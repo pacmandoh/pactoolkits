@@ -6,8 +6,6 @@
   "entry": {
     "win-x64": "ModuleTemplate.exe"
   },
-  "minDbSchema": "1.2.25",
-  "maxDbSchema": "1.2.25",
   "desktop": {
     "icons": {
       "active": "Bone",

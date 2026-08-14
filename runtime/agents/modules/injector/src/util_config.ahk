@@ -28,9 +28,6 @@ Util_LoadUnifiedConfig(configPath) {
 	if (schema != 2)
 		return Util_CfgFail("SchemaVersion 不受支持：`n" schema "`n仅支持 SchemaVersion=2", "UNSUPPORTED_SCHEMA")
 
-	pg := Util_CfgGetMap(root, "Postgres", &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_POSTGRES")
 	; 模块配置必须由 Host 显式传入，禁止回退到安装目录默认文件而绕过用户配置
 	moduleSettingsPath := Args_GetValue("--module-settings")
 	if (moduleSettingsPath = "")
@@ -44,28 +41,10 @@ Util_LoadUnifiedConfig(configPath) {
 
 	cfg := Map()
 
-	cfg["PG_HOST"] := Util_CfgGetString(pg, "Host", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_POSTGRES")
-	cfg["PG_PORT"] := Util_CfgGetRangeInt(pg, "Port", 1, 65535, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_POSTGRES")
-	cfg["PG_DB"] := Util_CfgGetString(pg, "Database", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_POSTGRES")
-	cfg["PG_USER"] := Util_CfgGetString(pg, "Username", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_POSTGRES")
-	cfg["PG_PASS"] := Util_CfgGetString(pg, "Password", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_POSTGRES")
+	api := PacApi_Init(root)
+	if !api["ok"]
+		return Util_CfgFail(api["message"], "INVALID_PACAPI")
 
-	cfg["PG_DRIVER"] := Util_CfgGetString(agent, "PgDriver", true, &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
-	cfg["PG_SSL"] := Util_CfgGetOneOf(agent, "PgSsl", ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"], &ok, &err)
-	if !ok
-		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 	cfg["OPT_WINDOW_CLASS"] := Util_CfgGetString(agent, "OptWindowClass", true, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")

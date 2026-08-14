@@ -1,23 +1,12 @@
-; 杂项：ID/SQL/剪贴板/环境信息；dotenv 轻量解析（仅 test_that 读 .env.local，生产走 --config）
+; 杂项：ID/剪贴板/环境信息；dotenv 轻量解析（仅 test_that 读 .env.local，生产走 --config）
 Util_TxnId() {
 	r := Random(10000, 99999)
 	return FormatTime(, "yyyyMMddHHmmss") "_" r
 }
 
-Util_EscapeSQL(s) {
-	return StrReplace(s, "'", "''")
-}
-
 Util_ToInt(v, default := 0) {
 	s := Trim(v)
 	return RegExMatch(s, "^-?\d+$") ? (s + 0) : default
-}
-
-; 限制 SQL 文本长度，避免诊断信息遮蔽主要错误
-Util_ShortSQL(sql, maxLen := 1200) {
-	if (StrLen(sql) <= maxLen)
-		return sql
-	return SubStr(sql, 1, maxLen) "`n... (truncated, len=" StrLen(sql) ")"
 }
 
 Util_ReadUtf8(path) {
