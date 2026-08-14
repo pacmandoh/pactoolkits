@@ -34,8 +34,9 @@ public static class AgentsStatusCatalog
                     m.TopStatusPills,
                     m.Order),
                 Package: new ModulePackage(ModuleBuilders.Ahk2Exe, new ModuleAhk2Exe(string.Empty)),
-                MinDbSchema: m.MinDbSchema,
-                MaxDbSchema: m.MaxDbSchema));
+                MinApiContract: m.MinApiContract,
+                MaxApiContract: m.MaxApiContract,
+                RequiredApiScopes: m.RequiredApiScopes));
         }
 
         return list
@@ -50,8 +51,11 @@ public static class AgentsStatusCatalog
         wire.DisplayName = descriptor.DisplayName;
         wire.Runtime = descriptor.Runtime;
         wire.EntryWinX64 = descriptor.EntryWinX64;
-        wire.MinDbSchema = descriptor.MinDbSchema;
-        wire.MaxDbSchema = descriptor.MaxDbSchema;
+        wire.MinApiContract = descriptor.MinApiContract;
+        wire.MaxApiContract = descriptor.MaxApiContract;
+        wire.RequiredApiScopes = descriptor.RequiredApiScopes is { Count: > 0 }
+            ? descriptor.RequiredApiScopes.ToList()
+            : null;
         wire.IconActive = descriptor.Desktop.Icons.Active;
         wire.IconInactive = descriptor.Desktop.Icons.Inactive;
         wire.BottomStatusBar = descriptor.Desktop.BottomStatusBar;
