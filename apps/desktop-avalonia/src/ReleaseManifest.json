@@ -10,8 +10,8 @@
     },
     "desktop": {
       "avalonia": {
-        "maxApiContract": "1.3.0",
-        "minApiContract": "1.3.0",
+        "maxApiContract": "1.4.0",
+        "minApiContract": "1.4.0",
         "packageId": "PacToolkits",
         "version": "1.0.2-beta.8"
       }
