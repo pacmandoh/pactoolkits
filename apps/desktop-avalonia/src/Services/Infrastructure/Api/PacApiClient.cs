@@ -50,6 +50,7 @@ public sealed class PacApiClient : IDisposable
     private int _configEpoch;
     private string _baseUrl;
     private string _apiKey;
+    private string _agentsApiKey = string.Empty;
     private string _headerName;
     private readonly IAppLogger _logger;
     private readonly TimeProvider _time;
@@ -84,6 +85,7 @@ public sealed class PacApiClient : IDisposable
         var o = options.Value ?? new PacApiOptions();
         _baseUrl = (o.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
         _apiKey = (o.ApiKey ?? string.Empty).Trim();
+        _agentsApiKey = (o.AgentsApiKey ?? string.Empty).Trim();
         _headerName = string.IsNullOrWhiteSpace(o.HeaderName) ? "X-Api-Key" : o.HeaderName.Trim();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _time = timeProvider ?? TimeProvider.System;
@@ -160,6 +162,7 @@ public sealed class PacApiClient : IDisposable
             {
                 BaseUrl = _baseUrl,
                 ApiKey = _apiKey,
+                AgentsApiKey = _agentsApiKey,
                 HeaderName = _headerName,
             };
         }
@@ -181,6 +184,7 @@ public sealed class PacApiClient : IDisposable
 
         var baseUrl = (options.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
         var apiKey = (options.ApiKey ?? string.Empty).Trim();
+        var agentsApiKey = (options.AgentsApiKey ?? string.Empty).Trim();
         var headerName = string.IsNullOrWhiteSpace(options.HeaderName)
             ? "X-Api-Key"
             : options.HeaderName.Trim();
@@ -189,6 +193,7 @@ public sealed class PacApiClient : IDisposable
         {
             _baseUrl = baseUrl;
             _apiKey = apiKey;
+            _agentsApiKey = agentsApiKey;
             _headerName = headerName;
         }
 
