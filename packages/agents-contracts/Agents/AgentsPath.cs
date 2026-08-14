@@ -423,8 +423,13 @@ public static class AgentsPath
             return null;
         }
 
-        // 完整 minDbSchema+maxDbSchema 表示依赖库；皆缺表示不依赖；半套或非法则拒绝
-        if (!TryReadDbSchemaRange(root, out var minDbSchema, out var maxDbSchema))
+        // 完整 minApiContract+maxApiContract 表示依赖 PacAPI 协议；皆缺表示不校验；半套或非法则拒绝
+        if (!TryReadApiContractRange(root, out var minApiContract, out var maxApiContract))
+        {
+            return null;
+        }
+
+        if (!TryReadRequiredApiScopes(root, out var requiredApiScopes))
         {
             return null;
         }
@@ -454,25 +459,26 @@ public static class AgentsPath
             manifestPath,
             desktop,
             package,
-            minDbSchema,
-            maxDbSchema);
+            minApiContract,
+            maxApiContract,
+            requiredApiScopes);
     }
 
     /// <summary>
-    /// 解析顶层 minDbSchema/maxDbSchema；皆缺返回 true 且 bounds 为 null；半套或非法返回 false
+    /// 解析顶层 minApiContract/maxApiContract；皆缺返回 true 且 bounds 为 null；半套或非法返回 false
     /// </summary>
-    private static bool TryReadDbSchemaRange(
+    private static bool TryReadApiContractRange(
         JsonElement root,
-        out string? minDbSchema,
-        out string? maxDbSchema)
+        out string? minApiContract,
+        out string? maxApiContract)
     {
-        minDbSchema = null;
-        maxDbSchema = null;
+        minApiContract = null;
+        maxApiContract = null;
 
-        var hasMin = root.TryGetProperty("minDbSchema", out var minEl)
+        var hasMin = root.TryGetProperty("minApiContract", out var minEl)
                      && minEl.ValueKind != JsonValueKind.Null
                      && minEl.ValueKind != JsonValueKind.Undefined;
-        var hasMax = root.TryGetProperty("maxDbSchema", out var maxEl)
+        var hasMax = root.TryGetProperty("maxApiContract", out var maxEl)
                      && maxEl.ValueKind != JsonValueKind.Null
                      && maxEl.ValueKind != JsonValueKind.Undefined;
 
@@ -486,24 +492,62 @@ public static class AgentsPath
             return false;
         }
 
-        var min = ReadRequiredString(root, "minDbSchema");
-        var max = ReadRequiredString(root, "maxDbSchema");
-        if (min is null || max is null || !IsValidDbSchemaVersion(min) || !IsValidDbSchemaVersion(max))
+        var min = ReadRequiredString(root, "minApiContract");
+        var max = ReadRequiredString(root, "maxApiContract");
+        if (min is null || max is null || !IsValidStableSemVer(min) || !IsValidStableSemVer(max))
         {
             return false;
         }
 
-        if (CompareDbSchemaVersion(min, max) > 0)
+        if (CompareStableSemVer(min, max) > 0)
         {
             return false;
         }
 
-        minDbSchema = min;
-        maxDbSchema = max;
+        minApiContract = min;
+        maxApiContract = max;
         return true;
     }
 
-    private static bool IsValidDbSchemaVersion(string value)
+    /// <summary>
+    /// 解析顶层 requiredApiScopes；缺省或 null 表示不声明；空数组合法；字段存在但类型/元素非法则拒绝
+    /// </summary>
+    private static bool TryReadRequiredApiScopes(JsonElement root, out IReadOnlyList<string>? scopes)
+    {
+        scopes = null;
+        if (!root.TryGetProperty("requiredApiScopes", out var el)
+            || el.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return true;
+        }
+
+        if (el.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        var list = new List<string>();
+        foreach (var item in el.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
+            var scope = item.GetString()?.Trim();
+            if (string.IsNullOrWhiteSpace(scope))
+            {
+                return false;
+            }
+
+            list.Add(scope);
+        }
+
+        scopes = list.Count == 0 ? null : list;
+        return true;
+    }
+
+    private static bool IsValidStableSemVer(string value)
     {
         // 与 Core SemVer 纯 X.Y.Z 一致（拒前导零、拒 prerelease）；Contracts 无 Core 引用
         var parts = value.Split('.', StringSplitOptions.None);
@@ -527,7 +571,7 @@ public static class AgentsPath
         return true;
     }
 
-    private static int CompareDbSchemaVersion(string left, string right)
+    private static int CompareStableSemVer(string left, string right)
     {
         var l = left.Split('.');
         var r = right.Split('.');

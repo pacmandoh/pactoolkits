@@ -29,7 +29,7 @@ public sealed record ModulePackage(
 /// <summary>
 /// 已验证的模块描述及其源码或安装目录
 ///
-/// 顶层完整 minDbSchema+maxDbSchema 即依赖库与 schema 门禁；两者皆缺=不依赖库；半套拒绝
+/// 顶层完整 minApiContract+maxApiContract 即依赖 PacAPI 协议门禁；两者皆缺=不校验协议；半套拒绝
 /// </summary>
 public sealed record ModuleDescriptor(
     string Id,
@@ -41,11 +41,15 @@ public sealed record ModuleDescriptor(
     string ManifestPath,
     ModuleDesktop Desktop,
     ModulePackage Package,
-    string? MinDbSchema = null,
-    string? MaxDbSchema = null)
+    string? MinApiContract = null,
+    string? MaxApiContract = null,
+    IReadOnlyList<string>? RequiredApiScopes = null)
 {
-    public bool RequiresDatabase
-        => !string.IsNullOrWhiteSpace(MinDbSchema) && !string.IsNullOrWhiteSpace(MaxDbSchema);
+    public bool RequiresApiContract
+        => !string.IsNullOrWhiteSpace(MinApiContract) && !string.IsNullOrWhiteSpace(MaxApiContract);
+
+    public bool RequiresApi
+        => RequiredApiScopes is { Count: > 0 } || RequiresApiContract;
 }
 
 /// <summary>

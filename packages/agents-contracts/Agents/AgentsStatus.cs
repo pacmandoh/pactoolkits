@@ -161,9 +161,11 @@ public sealed class AgentsStatusModule
 
     public string? EntryWinX64 { get; set; }
 
-    public string? MinDbSchema { get; set; }
+    public string? MinApiContract { get; set; }
 
-    public string? MaxDbSchema { get; set; }
+    public string? MaxApiContract { get; set; }
+
+    public List<string>? RequiredApiScopes { get; set; }
 
     public string? IconActive { get; set; }
 
