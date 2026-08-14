@@ -5,39 +5,33 @@ using PacToolkits.Core;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 模块 desired 门禁：已连且 <see cref="IDbSchemaGate"/> 区间 Match
+/// 模块 desired 门禁：PacAPI 就绪且 contractVersion 落在模块 min/maxApiContract
 /// </summary>
 public sealed class AgentsAdmitService : IAgentsAdmitService
 {
-    private readonly IDbSchemaGate _schemaGate;
-
-    public AgentsAdmitService(IDbSchemaGate schemaGate)
-    {
-        _schemaGate = schemaGate ?? throw new ArgumentNullException(nameof(schemaGate));
-    }
-
     public async Task<AgentsAdmitResult> AdmitAsync(
-        AgentsModuleDbBound module,
-        bool databaseConnected,
+        AgentsModuleBound module,
+        bool apiReady,
+        string? contractVersion = null,
         CancellationToken ct = default)
     {
-        var list = await AdmitManyAsync([module], databaseConnected, ct).ConfigureAwait(false);
-        return list[0];
+        var results = await AdmitManyAsync([module], apiReady, contractVersion, ct).ConfigureAwait(false);
+        return results[0];
     }
 
-    public async Task<IReadOnlyList<AgentsAdmitResult>> AdmitManyAsync(
-        IReadOnlyList<AgentsModuleDbBound> modules,
-        bool databaseConnected,
+    public Task<IReadOnlyList<AgentsAdmitResult>> AdmitManyAsync(
+        IReadOnlyList<AgentsModuleBound> modules,
+        bool apiReady,
+        string? contractVersion = null,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(modules);
 
         if (modules.Count == 0)
         {
-            return Array.Empty<AgentsAdmitResult>();
+            return Task.FromResult<IReadOnlyList<AgentsAdmitResult>>(Array.Empty<AgentsAdmitResult>());
         }
 
-        DbSchemaVersionRead? schemaRead = null;
         var results = new List<AgentsAdmitResult>(modules.Count);
 
         foreach (var module in modules)
@@ -54,65 +48,67 @@ public sealed class AgentsAdmitService : IAgentsAdmitService
                 continue;
             }
 
-            if (!module.RequiresDatabase)
+            if (!module.RequiresApiContract)
             {
                 results.Add(Ok(module.ModuleId));
                 continue;
             }
 
-            if (!databaseConnected)
+            if (!apiReady)
             {
                 results.Add(new AgentsAdmitResult(
                     module.ModuleId,
                     Ok: false,
                     AgentsAdmitDenyKind.Disconnected,
-                    $"数据库未连接，无法启动 {module.ModuleId}"));
+                    $"PacAPI 未就绪，无法启动 {module.ModuleId}"));
                 continue;
             }
 
-            schemaRead ??= await _schemaGate.ReadAsync(ct).ConfigureAwait(false);
-            if (!schemaRead.Ok || string.IsNullOrWhiteSpace(schemaRead.Value))
+            if (string.IsNullOrWhiteSpace(contractVersion))
             {
                 results.Add(new AgentsAdmitResult(
                     module.ModuleId,
                     Ok: false,
-                    AgentsAdmitDenyKind.SchemaUnread,
-                    $"无法读取数据库版本，无法启动 {module.ModuleId}：{schemaRead.Reason ?? "读取失败"}"));
+                    AgentsAdmitDenyKind.ContractUnread,
+                    $"无法读取 PacAPI 协议版本，无法启动 {module.ModuleId}"));
                 continue;
             }
 
-            var eval = _schemaGate.Match(schemaRead, module.MinDbSchema!, module.MaxDbSchema!);
+            var eval = SemVerRange.Classify(
+                contractVersion,
+                module.MinApiContract,
+                module.MaxApiContract,
+                allowPrerelease: false);
             if (!eval.IsCompatible)
             {
                 results.Add(new AgentsAdmitResult(
                     module.ModuleId,
                     Ok: false,
-                    AgentsAdmitDenyKind.SchemaOutOfRange,
-                    RangeDeny(module.ModuleId, module.MinDbSchema!, module.MaxDbSchema!, eval)));
+                    AgentsAdmitDenyKind.ContractOutOfRange,
+                    RangeDeny(module.ModuleId, module.MinApiContract!, module.MaxApiContract!, eval)));
                 continue;
             }
 
             results.Add(Ok(module.ModuleId));
         }
 
-        return results;
+        return Task.FromResult<IReadOnlyList<AgentsAdmitResult>>(results);
     }
 
     private static AgentsAdmitResult Ok(string moduleId)
         => new(moduleId, Ok: true, AgentsAdmitDenyKind.None, "ok");
 
-    // 模块侧短句；业务长文走 DbSchemaDesktop
     private static string RangeDeny(
         string moduleId,
-        string minDbSchema,
-        string maxDbSchema,
-        DbSchemaCompatibilityResult eval)
+        string minApiContract,
+        string maxApiContract,
+        SemVerRangeResult eval)
         => eval.Status switch
         {
-            DbSchemaCompatibility.BelowMinimum
-                => $"{moduleId} 需要数据库 {minDbSchema} - {maxDbSchema}：当前 {eval.CurrentVersion} 过低",
-            DbSchemaCompatibility.AboveMaximum
-                => $"{moduleId} 需要数据库 {minDbSchema} - {maxDbSchema}：当前 {eval.CurrentVersion} 过高",
-            _ => $"{moduleId} 需要数据库 {minDbSchema} - {maxDbSchema}：当前 {eval.CurrentVersion} 不兼容",
+            SemVerRangeStatus.BelowMinimum
+                => $"{moduleId} 需要协议 {minApiContract} - {maxApiContract}：当前 {eval.Current} 过低",
+            SemVerRangeStatus.AboveMaximum
+                => $"{moduleId} 需要协议 {minApiContract} - {maxApiContract}：当前 {eval.Current} 过高",
+            _ => $"{moduleId} 需要协议 {minApiContract} - {maxApiContract}：当前 {eval.Current} 不兼容",
         };
 }

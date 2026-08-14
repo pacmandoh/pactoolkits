@@ -4,6 +4,9 @@ public static class PacApiHeaders
 {
     /// <summary>写命令幂等键</summary>
     public const string CommandId = "X-Command-Id";
+
+    /// <summary>AutoRun 跑锁；请求带此头即续期</summary>
+    public const string MsfxRunLock = "X-Msfx-Run-Lock";
 }
 
 public sealed record PacApiTokenResponse(
@@ -11,6 +14,8 @@ public sealed record PacApiTokenResponse(
     string TokenType,
     int ExpiresIn,
     string ClientId);
+
+public sealed record UnlockVerifyRequest(string Password);
 
 public sealed record PacApiSystemInfo(
     string Product,

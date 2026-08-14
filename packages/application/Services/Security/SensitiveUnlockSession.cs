@@ -97,7 +97,7 @@ public sealed class SensitiveUnlockSession
     }
 
     /// <summary>
-    /// 用户活动续期：仅滑动仍有效的解锁范围；到期由 Refresh / CheckAccess 判定
+    /// 用户活动续期：只给尚未到期的解锁范围续期；到期由 Refresh / CheckAccess 判定
     /// </summary>
     public void NoteActivity(DateTimeOffset now)
     {
@@ -172,11 +172,18 @@ public sealed class SensitiveUnlockSession
         }
     }
 
-    public Validation Validate(
-        string scopeKey,
-        string? input,
-        string expected,
-        DateTimeOffset now)
+    /// <summary>冷却中返回提示，否则 null</summary>
+    public string? GetCooldownError(string scopeKey, DateTimeOffset now)
+    {
+        var key = NormalizeScope(scopeKey);
+        lock (_gate)
+        {
+            var state = GetOrCreateState(key);
+            return state.CooldownUntilUtc > now ? CooldownError(state, now) : null;
+        }
+    }
+
+    public Validation Grant(string scopeKey, DateTimeOffset now)
     {
         var key = NormalizeScope(scopeKey);
         lock (_gate)
@@ -187,35 +194,39 @@ public sealed class SensitiveUnlockSession
                 return new Validation(key, IsSuccess: false, StateChanged: false, CooldownError(state, now));
             }
 
-            var normalized = NormalizeInput(input);
-            if (normalized is null)
-            {
-                return new Validation(key, IsSuccess: false, StateChanged: false, "请输入数据库密码");
-            }
-
-            if (!string.Equals(normalized, expected, StringComparison.Ordinal))
-            {
-                state.FailedAttempts++;
-                if (state.FailedAttempts >= _failedAttemptThreshold)
-                {
-                    state.CooldownUntilUtc = now + _cooldownDuration;
-                    state.FailedAttempts = 0;
-                    return new Validation(
-                        key,
-                        IsSuccess: false,
-                        StateChanged: true,
-                        $"密码连续错误过多，已锁定 {_cooldownDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture)} 秒");
-                }
-
-                var remaining = _failedAttemptThreshold - state.FailedAttempts;
-                return new Validation(key, IsSuccess: false, StateChanged: true, $"密码错误，还可重试 {remaining} 次");
-            }
-
             state.IsUnlocked = true;
             state.FailedAttempts = 0;
             state.CooldownUntilUtc = DateTimeOffset.MinValue;
             RenewIdle(state, now);
             return new Validation(key, IsSuccess: true, StateChanged: true, Error: null);
+        }
+    }
+
+    public Validation RecordFailure(string scopeKey, DateTimeOffset now)
+    {
+        var key = NormalizeScope(scopeKey);
+        lock (_gate)
+        {
+            var state = GetOrCreateState(key);
+            if (state.CooldownUntilUtc > now)
+            {
+                return new Validation(key, IsSuccess: false, StateChanged: false, CooldownError(state, now));
+            }
+
+            state.FailedAttempts++;
+            if (state.FailedAttempts >= _failedAttemptThreshold)
+            {
+                state.CooldownUntilUtc = now + _cooldownDuration;
+                state.FailedAttempts = 0;
+                return new Validation(
+                    key,
+                    IsSuccess: false,
+                    StateChanged: true,
+                    $"密码连续错误过多，已锁定 {_cooldownDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture)} 秒");
+            }
+
+            var remaining = _failedAttemptThreshold - state.FailedAttempts;
+            return new Validation(key, IsSuccess: false, StateChanged: true, $"密码错误，还可重试 {remaining} 次");
         }
     }
 
@@ -290,10 +301,4 @@ public sealed class SensitiveUnlockSession
             state.ExpiresAtUtc,
             state.FailedAttempts,
             state.CooldownUntilUtc);
-
-    private static string? NormalizeInput(string? value)
-    {
-        var trimmed = (value ?? string.Empty).Trim();
-        return trimmed.Length == 0 ? null : trimmed;
-    }
 }

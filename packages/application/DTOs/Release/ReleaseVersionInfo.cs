@@ -8,8 +8,6 @@ public sealed record ReleaseVersionInfo(
     string DbSchemaVersion,
     string BuildChannel,
     string BuildDate,
-    string DesktopMinDbSchema,
-    string DesktopMaxDbSchema,
     string MinApiContract,
     string MaxApiContract)
 {
@@ -20,8 +18,6 @@ public sealed record ReleaseVersionInfo(
         DbSchemaVersion: "unknown",
         BuildChannel: "unknown",
         BuildDate: "unknown",
-        DesktopMinDbSchema: "unknown",
-        DesktopMaxDbSchema: "unknown",
         MinApiContract: "unknown",
         MaxApiContract: "unknown");
 }

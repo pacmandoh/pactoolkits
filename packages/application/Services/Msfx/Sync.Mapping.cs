@@ -29,6 +29,9 @@ public sealed partial class SyncService
             seekLastPage,
             ct).ConfigureAwait(false);
 
+    public Task<MsfxMappingStatusSnapshot> GetMappingStatusSnapshotAsync(CancellationToken ct)
+        => _mapping.GetMappingStatusSnapshotAsync(ct);
+
     public Task<MsfxMapApplyResult> ApplyMappingAsync(int limit, CancellationToken ct)
         => _mapping.ApplyMappingAsync(NormalizeLimit(limit), ct);
 

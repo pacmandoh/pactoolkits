@@ -5,6 +5,8 @@ namespace PacToolkits.Application.Abstractions;
 /// </summary>
 public interface ILookupCatalogService
 {
+    Task<IReadOnlyList<string>> GetClientIdsAsync(CancellationToken ct, bool forceRefresh = false);
+
     Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false);
 
     Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct, bool forceRefresh = false);
