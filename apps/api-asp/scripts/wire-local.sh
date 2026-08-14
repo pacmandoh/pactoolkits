@@ -64,6 +64,7 @@ mkdir -p "${LOG_DIR}"
 # 清掉父 shell 遗留的 Auth scopes / SchemaBounds / Changes，避免盖掉 .env.asp
 for i in 0 1 2 3 4 5 6 7 8 9; do
   unset "Auth__Clients__dev__Scopes__${i}" 2>/dev/null || true
+  unset "Auth__Clients__agents__Scopes__${i}" 2>/dev/null || true
 done
 unset SchemaBounds__MinDbSchema SchemaBounds__MaxDbSchema Changes__ListenEnabled 2>/dev/null || true
 # shellcheck disable=SC1090
@@ -72,7 +73,7 @@ set -a
 # 含 SchemaBounds / Changes，避免本机校验时门禁与 Listen 开关未注入进程
 source <(grep -E '^(PAC_API_KEY|Auth__|Postgres__|ASPNETCORE_|SchemaBounds__|Changes__)' "${ENV_FILE}" | sed 's/\r$//')
 set +a
-[[ -n "${PAC_API_KEY:-}" && -n "${Auth__Clients__dev__ApiKeyHash:-}" && -n "${Auth__Jwt__SigningKey:-}" ]] \
+[[ -n "${PAC_API_KEY:-}" && -n "${Auth__Clients__dev__ApiKeyHash:-}" && -n "${Auth__Clients__agents__ApiKeyHash:-}" && -n "${Auth__Jwt__SigningKey:-}" ]] \
   || die "Auth secrets not ready: ${ENV_FILE}"
 [[ -n "${Postgres__Host:-}" && -n "${Postgres__Database:-}" && -n "${Postgres__Username:-}" ]] \
   || die "Postgres connection not ready: ${ENV_FILE}"
