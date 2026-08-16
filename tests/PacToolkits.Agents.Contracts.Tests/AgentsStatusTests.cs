@@ -85,6 +85,68 @@ public sealed class AgentsStatusTests
     }
 
     [Fact]
+    public void ContentEquals_ignores_timestamp_and_scope_list_instance()
+    {
+        var left = AgentsStatus.Create(
+            7,
+            [
+                new AgentsStatusModule
+                {
+                    Id = "Injector",
+                    Pid = 11,
+                    Ready = true,
+                    State = AgentsRunState.Running,
+                    RequiredApiScopes = ["read", "write"],
+                },
+            ]);
+        left.Ts = DateTimeOffset.UtcNow.AddSeconds(-1);
+
+        var right = AgentsStatus.Create(
+            7,
+            [
+                new AgentsStatusModule
+                {
+                    Id = "Injector",
+                    Pid = 11,
+                    Ready = true,
+                    State = AgentsRunState.Running,
+                    RequiredApiScopes = new List<string> { "read", "write" },
+                },
+            ]);
+
+        Assert.True(AgentsStatus.ContentEquals(left, right));
+    }
+
+    [Fact]
+    public void ContentEquals_detects_module_state_change()
+    {
+        var left = AgentsStatus.Create(
+            1,
+            [new AgentsStatusModule { Id = "Injector", State = AgentsRunState.Running, Pid = 1 }]);
+        var right = AgentsStatus.Create(
+            1,
+            [new AgentsStatusModule { Id = "Injector", State = AgentsRunState.Stopped, Pid = null }]);
+
+        Assert.False(AgentsStatus.ContentEquals(left, right));
+    }
+
+    [Fact]
+    public void Clone_copies_mutable_collections()
+    {
+        var source = AgentsStatus.Create(
+            7,
+            [new AgentsStatusModule { Id = "Injector", RequiredApiScopes = ["read"] }]);
+
+        var clone = source.Clone();
+
+        Assert.NotSame(source, clone);
+        Assert.NotSame(source.Modules, clone.Modules);
+        Assert.NotSame(source.Modules[0], clone.Modules[0]);
+        Assert.NotSame(source.Modules[0].RequiredApiScopes, clone.Modules[0].RequiredApiScopes);
+        Assert.True(AgentsStatus.ContentEquals(source, clone));
+    }
+
+    [Fact]
     public void TryDelete_removes_status_file()
     {
         var dir = CreateTempDir();

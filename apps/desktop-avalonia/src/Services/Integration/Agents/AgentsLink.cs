@@ -43,7 +43,7 @@ internal sealed class AgentsLink : IAgentsClient
         {
             lock (_gate)
             {
-                return AgentsIpcStream.CloneStatus(_status);
+                return _status?.Clone();
             }
         }
     }
@@ -57,12 +57,13 @@ internal sealed class AgentsLink : IAgentsClient
                 return null;
             }
 
-            if (DateTimeOffset.UtcNow - _statusAt > maxAge)
+            if (_pipe is not { IsConnected: true }
+                && DateTimeOffset.UtcNow - _statusAt > maxAge)
             {
                 return null;
             }
 
-            return AgentsIpcStream.CloneStatus(_status);
+            return _status?.Clone();
         }
     }
 
@@ -165,11 +166,12 @@ internal sealed class AgentsLink : IAgentsClient
 
     private async Task ReadLoopAsync(NamedPipeClientStream pipe, CancellationToken ct)
     {
+        var buffer = new AgentsIpcReadBuffer();
         try
         {
             while (!ct.IsCancellationRequested && pipe.IsConnected)
             {
-                var message = await AgentsIpcStream.ReadAsync(pipe, ct).ConfigureAwait(false);
+                var message = await AgentsIpcStream.ReadAsync(pipe, buffer, ct).ConfigureAwait(false);
                 if (message is null)
                 {
                     break;
@@ -177,26 +179,14 @@ internal sealed class AgentsLink : IAgentsClient
 
                 if (message.Ev == AgentsIpcEvs.Status && message.Status is not null)
                 {
-                    lock (_gate)
-                    {
-                        _status = message.Status;
-                        _statusAt = DateTimeOffset.UtcNow;
-                    }
-
-                    RaiseSnapshot();
+                    ApplySnapshot(message.Status);
                 }
                 else if (message.Ev == AgentsIpcEvs.ModuleFailed
                          && !string.IsNullOrWhiteSpace(message.ModuleId))
                 {
                     if (message.Status is not null)
                     {
-                        lock (_gate)
-                        {
-                            _status = message.Status;
-                            _statusAt = DateTimeOffset.UtcNow;
-                        }
-
-                        RaiseSnapshot();
+                        ApplySnapshot(message.Status);
                     }
 
                     try
@@ -221,6 +211,22 @@ internal sealed class AgentsLink : IAgentsClient
         finally
         {
             DisposeLink();
+        }
+    }
+
+    private void ApplySnapshot(AgentsStatus status)
+    {
+        var changed = false;
+        lock (_gate)
+        {
+            changed = !AgentsStatus.ContentEquals(_status, status);
+            _status = status;
+            _statusAt = DateTimeOffset.UtcNow;
+        }
+
+        if (changed)
+        {
+            RaiseSnapshot();
         }
     }
 

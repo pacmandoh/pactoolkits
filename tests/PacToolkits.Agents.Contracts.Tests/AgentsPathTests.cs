@@ -353,6 +353,35 @@ public sealed class AgentsPathTests : IDisposable
     }
 
     [Fact]
+    public void CatalogEquals_ignores_required_api_scopes_list_instance()
+    {
+        var left = new ModuleDescriptor(
+            Id: "Injector",
+            Version: "2.0.0",
+            Runtime: ModuleRuntimes.Ahk,
+            DisplayName: "注入",
+            EntryWinX64: "Injector.exe",
+            Directory: "/Agents/modules/Injector",
+            ManifestPath: "/Agents/modules/Injector/module.json",
+            Desktop: new ModuleDesktop(
+                new ModuleDesktopIcons("a.png", "b.png"),
+                BottomStatusBar: true,
+                TopStatusPills: true,
+                Order: 1),
+            Package: new ModulePackage(ModuleBuilders.Ahk2Exe, new ModuleAhk2Exe(string.Empty)),
+            MinApiContract: "1.4.0",
+            MaxApiContract: "1.4.0",
+            RequiredApiScopes: new List<string> { "read", "write" });
+
+        var right = left with { RequiredApiScopes = new List<string> { "read", "write" } };
+
+        Assert.True(AgentsPath.CatalogEquals([left], [right]));
+        Assert.False(AgentsPath.CatalogEquals(
+            [left],
+            [left with { RequiredApiScopes = ["read"] }]));
+    }
+
+    [Fact]
     public void TryReadHostVersion_reads_agents_component_version()
     {
         var agentsDir = Path.Combine(_baseDirectory, "Agents");

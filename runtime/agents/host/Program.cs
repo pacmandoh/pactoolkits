@@ -11,6 +11,8 @@ namespace PacToolkits.Agents.Host;
 internal static class Program
 {
     private static readonly TimeSpan ControlPoll = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan CatalogScanPeriod = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan BinaryCheckPeriod = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan ModuleReadyTimeout = TimeSpan.FromSeconds(12);
 
     private sealed class ModuleSlot
@@ -59,36 +61,50 @@ internal static class Program
 
         HostLog.Info("host.ready", "Agents Host control loop started");
         ipc.Start();
-        PublishStatus(baseDir, slots, ipc);
+        PublishStatus(baseDir, slots, ipc, ipc.ReadDesiredIds());
+
+        var lastCatalogScan = DateTimeOffset.UtcNow;
+        var lastBinaryCheck = DateTimeOffset.MinValue;
 
         while (!quit.IsSet && !ipc.QuitRequested)
         {
             ipc.DrainActions();
-            ReconcileSlots(slots, baseDir);
+            var now = DateTimeOffset.UtcNow;
+            if (now - lastCatalogScan >= CatalogScanPeriod)
+            {
+                ReconcileSlots(slots, baseDir);
+                lastCatalogScan = now;
+            }
+
             var desired = ipc.ReadDesiredIds();
             ReapExited(slots, baseDir, desired);
             ReconcileDesired(slots, baseDir, childArgs, ipc);
-            NoteReadyAndWatchdog(slots, baseDir, ipc.ReadDesiredIds());
+            NoteReadyAndWatchdog(slots, baseDir, desired);
 
-            binaries.Sync(slots.Select(s => (s.Id, s.EntryPath)).ToList());
-            foreach (var moduleId in binaries.DetectReloads(
-                         slots.Select(s => (s.Id, Alive: s.Process is { HasExited: false })).ToList()))
+            if (now - lastBinaryCheck >= BinaryCheckPeriod)
             {
-                var slot = slots.FirstOrDefault(s => string.Equals(s.Id, moduleId, StringComparison.Ordinal));
-                if (slot is null)
+                binaries.Sync(slots.Select(s => (s.Id, s.EntryPath)).ToList());
+                foreach (var moduleId in binaries.DetectReloads(
+                             slots.Select(s => (s.Id, Alive: s.Process is { HasExited: false })).ToList()))
                 {
-                    continue;
+                    var slot = slots.FirstOrDefault(s => string.Equals(s.Id, moduleId, StringComparison.Ordinal));
+                    if (slot is null)
+                    {
+                        continue;
+                    }
+
+                    HostLog.Info(
+                        "host.module.binary_reload",
+                        $"Module binary changed, restarting: {moduleId}",
+                        new { moduleId });
+                    StopModule(slot, baseDir, clearError: true);
+                    TryStartSlot(slot, childArgs, source: "binary_reload");
                 }
 
-                HostLog.Info(
-                    "host.module.binary_reload",
-                    $"Module binary changed, restarting: {moduleId}",
-                    new { moduleId });
-                StopModule(slot, baseDir, clearError: true);
-                TryStartSlot(slot, childArgs, source: "binary_reload");
+                lastBinaryCheck = now;
             }
 
-            PublishStatus(baseDir, slots, ipc);
+            PublishStatus(baseDir, slots, ipc, desired);
             quit.Wait(ControlPoll);
         }
 
@@ -246,9 +262,12 @@ internal static class Program
         }
     }
 
-    private static void PublishStatus(string agentsDir, List<ModuleSlot> slots, HostIpc ipc)
+    private static void PublishStatus(
+        string agentsDir,
+        List<ModuleSlot> slots,
+        HostIpc ipc,
+        HashSet<string> desired)
     {
-        var desired = ipc.ReadDesiredIds();
         var views = new ModuleSlotView[slots.Count];
         for (var i = 0; i < slots.Count; i++)
         {
@@ -280,7 +299,7 @@ internal static class Program
         var keepIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var module in catalog)
         {
-            var entryPath = AgentsPath.TryResolveModuleEntryPath(agentsDir, module.Id);
+            var entryPath = AgentsPath.TryResolveModuleEntryPath(module);
             if (entryPath is null)
             {
                 HostLog.Error("host.module_entry.invalid", $"Invalid module entry: {module.Id}", new { moduleId = module.Id });
