@@ -1,16 +1,18 @@
 # 仓库脚本工具
 
-`scripts/` 提供版本管理、构建发布、仓库审计和 Windows 部署同步工具。脚本与 CI 共用 `release-manifest.json` 和 Manifest V2 校验逻辑。
+`scripts/` 提供版本管理、构建发布和仓库审计。脚本与 CI 共用 `release-manifest.json` 和 Manifest V2 校验逻辑。
 
 ## 版本与发布
 
 - `bump-version.sh` — 更新 product、Desktop、Agents、API 和数据库 schema 版本
 - `check-version.sh` — 校验发布清单、生成文件和模块版本一致性
 - `export-version.sh` — 按仓根清单写出各产物 `ReleaseManifest.json`、`Version.g.props`、`module.json` 字段与 API 生成代码
-- `release-desktop.sh` — 打包并发布 Desktop（Velopack）产物
+- `release-desktop.sh` — 打包 Desktop（Velopack）产物
 - `release-agents.sh` — 校验并打包 Agents staging，包括 Host 和发布清单中的全部模块
 - `resolve-release-plan.sh` — 解析本地或 CI 使用的发布计划
 - `manifest-v2.sh` — Manifest V2 查询与校验函数库，模块源码目录按 `module.json` 的 ID 解析
+- `prepare-server-release.sh` — 生成组件发布元数据与 SHA-256 校验清单
+- `publish-server-releases.sh` — 在服务器提交三类不可变版本快照并更新通道指针
 
 ## 仓库维护
 
@@ -19,13 +21,6 @@
 ## 本地开发
 
 - `run-desktop-with-agents.sh` — 构建 Desktop 与 Host，在 Desktop 输出目录生成 Agents 安装布局；`--stage-only` 仅生成布局。Windows 上优先用本机 Ahk2Exe 编译模块（见 `scripts/lib/compile-ahk-modules-win.sh`），否则回退 artifacts
-
-## Windows 部署与同步
-
-- `create_sync_task.ps1` — 双网环境下的静默更新同步计划任务
-- `sync_pactoolkits_uu.ps1` — 使用 BITS 将 Stable 与 Beta 更新源同步到本地目录；失败时改用 `Invoke-WebRequest`
-
-同步任务直接执行 `ScriptPath` 指向的文件，不复制脚本。同名任务重复创建时会先注销旧任务再注册新任务；脚本路径不变时，只需替换 `sync_pactoolkits_uu.ps1`，无需重新创建计划任务。Stable 与 Beta 分别同步到 `feed\pactoolkits\stable` 和 `feed\pactoolkits\beta`。
 
 ## Agents 运行约束
 

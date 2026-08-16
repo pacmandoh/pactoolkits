@@ -51,6 +51,8 @@ validate_release_tag_matches_product_version "$release_tag" "$MANIFEST" || exit 
 
 desktop_version="$(manifest_desktop_version "$MANIFEST")"
 product_version="$(manifest_product_version "$MANIFEST")"
+api_version="$(manifest_api_version "$MANIFEST")"
+agents_version="$(manifest_agents_version "$MANIFEST")"
 pack_id="$(manifest_desktop_package_id "$MANIFEST")"
 channel="$(manifest_release_channel "$MANIFEST")"
 
@@ -76,6 +78,8 @@ emit() {
 
 emit desktop_version "$desktop_version"
 emit product_version "$product_version"
+emit api_version "$api_version"
+emit agents_version "$agents_version"
 emit pack_id "$pack_id"
 emit channel "$channel"
 emit desktop_artifact_name "$desktop_artifact_name"

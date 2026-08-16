@@ -59,19 +59,23 @@ API：`components.api` 的 `version`、`contractVersion`、min/maxDbSchema；协
 
 ## CI 工作流（GitHub Actions）
 
-发布流程由 `v*` tag 或 `workflow_dispatch` 触发。
+正式发布由 `v*` tag 或 `workflow_dispatch` 触发。预发布测试由 `build-test-package.yml` 触发。
 
 Stable tag 格式为 `vX.Y.Z`，Beta tag 格式为 `vX.Y.Z-beta.N`。tag 必须与 `product.version` 完全一致；tag、版本、通道或 GitHub prerelease 状态不一致时，发布验证失败。
 
 ```text
-release.yml
-  ├─ validate-release.yml              校验 tag、channel、prerelease、Feed 和数据库策略
-  ├─ resolve-release-plan.yml          读取 manifest，输出 artifact、mainExe 和 icon 等参数
-  ├─ build-agents.yml                  构建 Agents Host 与模块
-  ├─ build-desktop-avalonia.yml        构建唯一的 Avalonia Desktop
-  ├─ package-desktop.yml               接收 resolve 参数，动态打包
+release.yml                         v* tag 或手动；写入 ${FEED_PATH}/pactoolkits
+  ├─ validate-release.yml           校验 tag、channel、prerelease 和数据库策略
+  ├─ resolve-release-plan.yml       读取 manifest，输出 artifact、mainExe 和 icon 等参数
+  ├─ build-agents.yml               构建 Agents Host 与模块
+  ├─ build-desktop-avalonia.yml     构建 Avalonia Desktop
+  ├─ build-api.yml                  构建 PacAPI 发布包
+  ├─ package-desktop.yml            Velopack 打包（安装包内含 Agents）
   ├─ generate-release-notes.yml
-  └─ publish-release.yml
+  └─ publish-release.yml            GitHub Release 与服务器快照
+
+build-test-package.yml              beta、feat/**、fix/**、refactor/** 或手动
+                                    构建相同，写入 ${FEED_PATH}/pactoolkits-test
 ```
 
 本地解析发布计划：
@@ -97,8 +101,9 @@ Windows 发布目标统一为 `win-x64`；Desktop、Agents、测试包与正式�
 
 - Desktop 发布产物：`pactoolkits-desktop-win-x64-<product.version>`
 - Avalonia 内部构建：`pactoolkits-desktop-avalonia-win-x64-<desktop.version>`
+- API 发布包与 CI artifact：`PacToolkits-Api-<api.version>`（文件为 `.tar.gz`）
 - Agents CI artifact：`PacToolkits-Agents-<runtime>-<agents.version>`（不包含 channel）
-- Agents 发布 zip：`PacToolkits-Agents-win-x64-<agents.version>-<channel>.zip`
+- Agents 发布 zip：`PacToolkits-Agents-win-x64-<agents.version>.zip`
 
 **命名规则：**
 
@@ -120,21 +125,19 @@ Windows 发布目标统一为 `win-x64`；Desktop、Agents、测试包与正式�
 
 ```bash
 ./scripts/release-desktop.sh \
-  --vpk-directive win \
-  --upload-target user@host:/var/www/updates/pactoolkits
+  --vpk-directive win
 ```
 
 执行前必须将 Agents 二进制放入 `artifacts/agents/win-x64/`。
 
-Feed 按通道使用 `.../stable/` 和 `.../beta/` 子目录。目录名必须为小写，并与 Velopack `--channel` 及 Setup 文件名一致，例如 `PacToolkits-beta-Setup.exe`。
-Stable 和 Beta Feed 必须完全隔离；Beta GitHub Release 必须标记为 prerelease。
+服务器快照由 CI 写入；本地脚本只生成与校验产物。Beta GitHub Release 必须标记为 prerelease
 
 ### Agents（独立 Artifact）
 
 首先由 Windows CI 的 `build-agents.yml` 生成 staging 布局，然后执行打包：
 
 ```bash
-./scripts/release-agents.sh --artifact-dir artifacts/agents/win-x64 --skip-upload
+./scripts/release-agents.sh --artifact-dir artifacts/agents/win-x64
 ```
 
 Staging 目录必须包含 `Agents.exe` 和 `Modules/<Id>/`。每个模块目录必须包含 `module.json`、`settings.json`、`settings.schema.json` 以及 `entry.win-x64` 指定的可执行文件；目录集合必须与 `components.agents.modules` 完全一致。
@@ -160,7 +163,7 @@ cp scripts/config.example.json scripts/config.json
 
 - `AppUpdateService` 使用 Velopack 已安装版本作为当前版本
 - 启动时对齐配置通道与 Velopack 安装通道：检测到安装通道标记变化时自动同步；尚未记录标记且通道不一致时询问用户，确认后同步通道，取消后仅记录当前安装通道并保留手动选择
-- Feed 可为 HTTP(S) 或内网共享/本地目录；解析为 `{FeedUrl}/stable` 或 `{FeedUrl}/beta`（本地路径用目录分隔符拼接），每通道目录含 `release-manifest.json`
+- Feed 可为 HTTP(S) 或内网共享/本地目录。Desktop 默认 `https://updates.pacdocs.com/feed/pactoolkits/desktop`；Stable 解析为 `{FeedUrl}/current`，Beta 解析为 `{FeedUrl}/beta`，目标目录含 `release-manifest.json` 与 Velopack 产物
 - 更新探测确认目标通道 Feed 能读、`release.channel` 一致、能读出 `product.version`（给 Velopack 对账）
 - 协议由启动后 `IPacApiContractGate` / `ConnectionView` 判定；库由 PacAPI SchemaBounds 判定。未配置 PacAPI 时也可检查并安装更新
 - Stable 切 Beta 时，保存设置前需要风险确认；通道切换只换更新源
@@ -170,6 +173,28 @@ cp scripts/config.example.json scripts/config.json
 - 用户触发立即更新时重新探测 Feed，并下载当时清单上的产品版本；候选版本变化不会重复要求通道风险确认
 - 应用不会预下载更新；只有用户点击顶部更新入口或设置页立即更新后才会下载，并在下载完成后直接重启安装
 - 设置页显示待更新版本、通道、Feed。安装包生命周期由更新服务管理
+
+## 服务器发布与 API 部署
+
+`FEED_PATH` 是站点 `/feed/` 对应的目录。正式发布写到 `${FEED_PATH}/pactoolkits`，预发布测试写到 `${FEED_PATH}/pactoolkits-test`。API、Desktop、Agents 按组件版本保存快照：
+
+```text
+${FEED_PATH}/pactoolkits/<component>/
+├── releases/<version>/
+│   ├── 组件产物
+│   ├── SHA256SUMS
+│   └── release.json
+├── current -> releases/<stable-version>
+└── beta    -> releases/<beta-version>
+```
+
+`release.json` 记录 `version`、`commit`、`ciRun`、`channel` 和 `publishedAt`。正式发布先校验三类产物，再写入尚不存在的版本目录；同版本只校验并复用。Stable 更新 `current`，Beta 更新 `beta`
+
+Desktop 快照是 Velopack 更新源（安装包内含 Agents）。Agents 快照是 Host 与 Modules 的版本压缩包。API 快照是 `PacToolkits-Api-<version>.tar.gz`
+
+发布使用 `FEED_SSH_KEY`、`FEED_SSH_KNOWN_HOSTS`、`FEED_SSH_USER`、`FEED_SSH_HOST`、`FEED_SSH_PORT` 和 `FEED_PATH` Secrets
+
+`build-test-package.yml` 把同样三类快照写到 `${FEED_PATH}/pactoolkits-test`
 
 ## 发布与数据库安全边界
 

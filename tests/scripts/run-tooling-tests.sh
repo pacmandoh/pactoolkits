@@ -36,13 +36,13 @@ run ./scripts/check-version.sh
   extra_module_dir="$(mktemp -d "$ROOT_DIR/runtime/agents/modules/tooling-extra.XXXXXX")"
   trap 'rm -rf "$extra_module_dir"' EXIT
   printf '%s\n' '{"id":"ToolingExtra","version":"0.1.0"}' > "$extra_module_dir/module.json"
-  if ./scripts/check-version.sh >/dev/null 2>&1; then
+  if ./scripts/check-version.sh > /dev/null 2>&1; then
     echo "ERROR: check-version should reject source modules absent from release-manifest.json" >&2
     exit 1
   fi
 )
 bash -n ./scripts/clean-build-artifacts.sh
-./scripts/clean-build-artifacts.sh --dry-run >/dev/null
+./scripts/clean-build-artifacts.sh --dry-run > /dev/null
 
 stable_fixture_manifest="$(mktemp)"
 jq '
@@ -71,7 +71,7 @@ eval "$(./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" | se
 # Desktop 实现标识属于发布协议，未知实现必须在生成发布计划前拒绝
 unknown_impl_manifest="$(mktemp)"
 jq '.components.desktop = {other: .components.desktop.avalonia}' "$ROOT_DIR/release-manifest.json" > "$unknown_impl_manifest"
-if validate_manifest_v2 "$unknown_impl_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$unknown_impl_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should require components.desktop.avalonia" >&2
   exit 1
 fi
@@ -79,7 +79,7 @@ rm -f "$unknown_impl_manifest"
 
 invalid_package_id_manifest="$(mktemp)"
 jq '.components.desktop.avalonia.packageId = "pactoolkits-beta"' "$ROOT_DIR/release-manifest.json" > "$invalid_package_id_manifest"
-if validate_manifest_v2 "$invalid_package_id_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_package_id_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject an unexpected desktop packageId" >&2
   exit 1
 fi
@@ -87,7 +87,7 @@ rm -f "$invalid_package_id_manifest"
 
 invalid_channel_manifest="$(mktemp)"
 jq '.release.channel = "preview"' "$ROOT_DIR/release-manifest.json" > "$invalid_channel_manifest"
-if validate_manifest_v2 "$invalid_channel_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_channel_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject an unsupported release channel" >&2
   exit 1
 fi
@@ -119,7 +119,7 @@ fi
   exit 1
 }
 validate_release_prerelease_flag "$beta_manifest" "true"
-if validate_release_prerelease_flag "$beta_manifest" "false" >/dev/null 2>&1; then
+if validate_release_prerelease_flag "$beta_manifest" "false" > /dev/null 2>&1; then
   echo "ERROR: beta channel should reject prerelease=false" >&2
   exit 1
 fi
@@ -128,51 +128,38 @@ beta_release_channel_plan="$(
     --manifest "$beta_manifest" \
     --tag "v0.17.1-beta.1" \
     --prerelease true \
-    --feed-root /feed/pactoolkits \
-    --feed-target /feed/pactoolkits/beta \
     --dry-run false \
     --confirm true
 )"
-echo "$beta_release_channel_plan" | grep -Fq 'feed=/feed/pactoolkits/beta' || {
-  echo "ERROR: beta release validation should resolve the beta feed" >&2
+echo "$beta_release_channel_plan" | grep -Fq 'channel=beta' || {
+  echo "ERROR: beta release validation should resolve the beta channel" >&2
   exit 1
 }
-if ./scripts/validate-release-channel.sh \
-  --manifest "$beta_manifest" \
-  --tag "v0.17.1-beta.1" \
-  --prerelease true \
-  --feed-root /feed/pactoolkits \
-  --feed-target /feed/pactoolkits/stable \
-  --dry-run false \
-  --confirm true >/dev/null 2>&1; then
-  echo "ERROR: beta release validation should reject the stable feed target" >&2
-  exit 1
-fi
 
 stable_beta_product_manifest="$(mktemp)"
 jq '.release.channel = "stable" | .product.version = "0.17.1-beta.1"' "$stable_fixture_manifest" > "$stable_beta_product_manifest"
-if validate_manifest_v2 "$stable_beta_product_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$stable_beta_product_manifest" > /dev/null 2>&1; then
   echo "ERROR: stable channel should reject beta product.version" >&2
   exit 1
 fi
 
 beta_stable_product_manifest="$(mktemp)"
 jq '.release.channel = "beta"' "$stable_fixture_manifest" > "$beta_stable_product_manifest"
-if validate_manifest_v2 "$beta_stable_product_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$beta_stable_product_manifest" > /dev/null 2>&1; then
   echo "ERROR: beta channel should reject stable-only product.version" >&2
   exit 1
 fi
 
 invalid_min_max_manifest="$(mktemp)"
 jq '.components.api.maxDbSchema = "1.2.21"' "$ROOT_DIR/release-manifest.json" > "$invalid_min_max_manifest"
-if validate_manifest_v2 "$invalid_min_max_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_min_max_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject minDbSchema > maxDbSchema" >&2
   exit 1
 fi
 
 invalid_db_compat_manifest="$(mktemp)"
 jq '.components.database.postgres.version = "9.9.9"' "$ROOT_DIR/release-manifest.json" > "$invalid_db_compat_manifest"
-if validate_manifest_v2 "$invalid_db_compat_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_db_compat_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject database.postgres.version outside component bounds" >&2
   exit 1
 fi
@@ -200,42 +187,74 @@ release_channel_plan="$(
     --manifest "$stable_fixture_manifest" \
     --tag "v$(manifest_product_version "$stable_fixture_manifest")" \
     --prerelease false \
-    --feed-root /feed/pactoolkits \
-    --feed-target /feed/pactoolkits/stable \
     --dry-run false \
     --confirm true
 )"
-echo "$release_channel_plan" | grep -Fq 'feed=/feed/pactoolkits/stable' || {
-  echo "ERROR: stable release validation should resolve the stable feed" >&2
+echo "$release_channel_plan" | grep -Fq 'channel=stable' || {
+  echo "ERROR: stable release validation should resolve the stable channel" >&2
   exit 1
 }
 if ./scripts/validate-release-channel.sh \
   --manifest "$stable_fixture_manifest" \
   --tag "v$(manifest_product_version "$stable_fixture_manifest")" \
   --prerelease false \
-  --feed-root /feed/pactoolkits \
-  --feed-target /feed/pactoolkits/beta \
   --dry-run false \
-  --confirm true >/dev/null 2>&1; then
-  echo "ERROR: stable release validation should reject the beta feed target" >&2
-  exit 1
-fi
-if ./scripts/validate-release-channel.sh \
-  --manifest "$stable_fixture_manifest" \
-  --tag "v$(manifest_product_version "$stable_fixture_manifest")" \
-  --prerelease false \
-  --dry-run false \
-  --confirm false >/dev/null 2>&1; then
+  --confirm false > /dev/null 2>&1; then
   echo "ERROR: formal release validation should require confirm=true" >&2
   exit 1
 fi
+
+server_release_test_root="$(mktemp -d)"
+for component in api desktop agents; do
+  mkdir -p "$server_release_test_root/source/$component"
+  printf '%s\n' "$component payload" > "$server_release_test_root/source/$component/payload.bin"
+done
+export RELEASE_COMMIT="test-commit-1"
+export RELEASE_CI_RUN="test-run-1"
+export RELEASE_PUBLISHED_AT="2026-08-16T00:00:00Z"
+for component in api desktop agents; do
+  ./scripts/prepare-server-release.sh \
+    "$component" "1.2.3-beta.1" beta \
+    "$server_release_test_root/source/$component" \
+    "$server_release_test_root/prepared/$component"
+done
+mkdir -p "$server_release_test_root/server/.incoming/run-1"
+mv "$server_release_test_root/prepared"/* "$server_release_test_root/server/.incoming/run-1/"
+./scripts/publish-server-releases.sh \
+  "$server_release_test_root/server" run-1 beta \
+  1.2.3-beta.1 1.2.3-beta.1 1.2.3-beta.1
+for component in api desktop agents; do
+  [[ "$(readlink "$server_release_test_root/server/$component/beta")" == "releases/1.2.3-beta.1" ]] || {
+    echo "ERROR: $component beta pointer should target its immutable release" >&2
+    exit 1
+  }
+  (cd "$server_release_test_root/server/$component/releases/1.2.3-beta.1" && sha256sum -c SHA256SUMS > /dev/null)
+done
+
+export RELEASE_COMMIT="test-commit-2"
+export RELEASE_CI_RUN="test-run-2"
+mkdir -p "$server_release_test_root/server/.incoming/run-2"
+for component in api desktop agents; do
+  ./scripts/prepare-server-release.sh \
+    "$component" "1.2.3-beta.1" beta \
+    "$server_release_test_root/source/$component" \
+    "$server_release_test_root/server/.incoming/run-2/$component"
+done
+./scripts/publish-server-releases.sh \
+  "$server_release_test_root/server" run-2 beta \
+  1.2.3-beta.1 1.2.3-beta.1 1.2.3-beta.1
+[[ "$(jq -r '.commit' "$server_release_test_root/server/api/releases/1.2.3-beta.1/release.json")" == "test-commit-1" ]] || {
+  echo "ERROR: republishing a component version must not overwrite its release metadata" >&2
+  exit 1
+}
+rm -rf "$server_release_test_root"
 
 database_policy_base_manifest="$(mktemp)"
 cp "$stable_fixture_manifest" "$database_policy_base_manifest"
 ./scripts/validate-database-policy.sh \
   --manifest "$stable_fixture_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" >/dev/null
+  --base-manifest "$database_policy_base_manifest" > /dev/null
 
 beta_db_follow_legacy_manifest="$(mktemp)"
 jq '
@@ -248,7 +267,7 @@ jq '
 ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_follow_legacy_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" >/dev/null
+  --base-manifest "$database_policy_base_manifest" > /dev/null
 
 beta_db_upgrade_manifest="$(mktemp)"
 jq \
@@ -266,7 +285,7 @@ jq \
 ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_upgrade_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" >/dev/null
+  --base-manifest "$database_policy_base_manifest" > /dev/null
 if grep -Fq 'beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props" \
   && grep -Eq '<AssemblyVersion>[^<]*beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"; then
   echo "ERROR: AssemblyVersion must use numeric major.minor.build.revision only" >&2
@@ -291,7 +310,7 @@ if (
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
     --base-ref "$policy_base_ref"
-) >/dev/null 2>&1; then
+) > /dev/null 2>&1; then
   echo "ERROR: database policy should reject modification of an existing migration" >&2
   exit 1
 fi
@@ -324,7 +343,7 @@ git -C "$legacy_reloc_git_dir" commit -qm monorepo-reloc
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
     --base-ref "$legacy_reloc_base_ref"
-) >/dev/null
+) > /dev/null
 rm -rf "$legacy_reloc_git_dir"
 
 beta_new_migration_git_dir="$(mktemp -d)"
@@ -353,7 +372,7 @@ git -C "$beta_new_migration_git_dir" commit -qm add-beta-migration
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
     --base-ref "$beta_new_migration_base_ref"
-) >/dev/null
+) > /dev/null
 rm -rf "$beta_new_migration_git_dir"
 rm -rf "$policy_git_dir"
 rm -f "$database_policy_base_manifest" "$beta_db_follow_legacy_manifest" "$beta_db_upgrade_manifest"
@@ -376,14 +395,14 @@ fi
 
 beta_desktop_on_stable_manifest="$(mktemp)"
 jq '.release.channel = "stable" | .components.desktop.avalonia.version = "0.18.0-beta.1"' "$stable_fixture_manifest" > "$beta_desktop_on_stable_manifest"
-if validate_manifest_v2 "$beta_desktop_on_stable_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$beta_desktop_on_stable_manifest" > /dev/null 2>&1; then
   echo "ERROR: stable channel should reject beta desktop.version" >&2
   exit 1
 fi
 
 stable_desktop_on_beta_manifest="$(mktemp)"
 jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.avalonia.version = "0.16.1"' "$stable_fixture_manifest" > "$stable_desktop_on_beta_manifest"
-if validate_manifest_v2 "$stable_desktop_on_beta_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$stable_desktop_on_beta_manifest" > /dev/null 2>&1; then
   echo "ERROR: beta channel should reject stable-only desktop.version" >&2
   exit 1
 fi
@@ -396,7 +415,7 @@ for bad_version in "01.2.3" "1.02.3" "1.2.03" "1.2.3-beta.01"; do
 done
 leading_zero_manifest="$(mktemp)"
 jq '.product.version = "01.2.3"' "$ROOT_DIR/release-manifest.json" > "$leading_zero_manifest"
-if validate_manifest_v2 "$leading_zero_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$leading_zero_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject leading-zero product.version" >&2
   exit 1
 fi
@@ -432,7 +451,7 @@ next_beta_product="$(resolve_product_auto_version "0.17.1-beta.1" "beta" "patch"
 invalid_manifest="$(mktemp)"
 jq '.components.agents.modules.Injector.version = "not-semver"' \
   "$ROOT_DIR/release-manifest.json" > "$invalid_manifest"
-if validate_manifest_v2 "$invalid_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid agents.modules versions" >&2
   exit 1
 fi
@@ -440,7 +459,7 @@ fi
 invalid_module_contract_half_manifest="$(mktemp)"
 jq 'del(.components.agents.modules.Injector.maxApiContract)' \
   "$ROOT_DIR/release-manifest.json" > "$invalid_module_contract_half_manifest"
-if validate_manifest_v2 "$invalid_module_contract_half_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_module_contract_half_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject half agents.modules api contract bounds" >&2
   exit 1
 fi
@@ -450,7 +469,7 @@ jq '
   .components.agents.modules.Injector.minApiContract = "1.5.0" |
   .components.agents.modules.Injector.maxApiContract = "1.4.0"
 ' "$ROOT_DIR/release-manifest.json" > "$invalid_module_contract_order_manifest"
-if validate_manifest_v2 "$invalid_module_contract_order_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_module_contract_order_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject agents.modules minApiContract > maxApiContract" >&2
   exit 1
 fi
@@ -458,7 +477,7 @@ fi
 invalid_api_contract_manifest="$(mktemp)"
 jq '.components.api.contractVersion = "not-semver"' \
   "$ROOT_DIR/release-manifest.json" > "$invalid_api_contract_manifest"
-if validate_manifest_v2 "$invalid_api_contract_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_api_contract_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid api.contractVersion" >&2
   exit 1
 fi
@@ -468,14 +487,14 @@ invalid_module_id_manifest="$(mktemp)"
 agents_staging_fixture="$(mktemp -d)"
 trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_module_contract_half_manifest" "$invalid_module_contract_order_manifest" "$invalid_api_contract_manifest" "$invalid_bundle_version_manifest" "$invalid_module_id_manifest"; rm -rf "$agents_staging_fixture"' EXIT
 jq '.components["agents"].version = "not-semver"' "$ROOT_DIR/release-manifest.json" > "$invalid_bundle_version_manifest"
-if validate_manifest_v2 "$invalid_bundle_version_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_bundle_version_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid agents host versions" >&2
   exit 1
 fi
 
 jq '.components.agents.modules["../Probe"] = {"version":"1.0.0"}' \
   "$ROOT_DIR/release-manifest.json" > "$invalid_module_id_manifest"
-if validate_manifest_v2 "$invalid_module_id_manifest" >/dev/null 2>&1; then
+if validate_manifest_v2 "$invalid_module_id_manifest" > /dev/null 2>&1; then
   echo "ERROR: manifest validation should reject non-portable module ids" >&2
   exit 1
 fi
@@ -503,7 +522,7 @@ cp "$agents_staging_fixture/Modules/$first_module_id/module.json" \
 jq '.version = "0.0.0"' \
   "$agents_staging_fixture/Modules/$first_module_id/module.json.valid-version" \
   > "$agents_staging_fixture/Modules/$first_module_id/module.json"
-if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 > /dev/null 2>&1; then
   echo "ERROR: validate_agents_staging_layout should reject module version drift" >&2
   exit 1
 fi
@@ -514,20 +533,20 @@ cp "$agents_staging_fixture/Modules/$first_module_id/module.json" \
 jq '.entry["win-x64"] = "../Agents.exe"' \
   "$agents_staging_fixture/Modules/$first_module_id/module.json.valid" \
   > "$agents_staging_fixture/Modules/$first_module_id/module.json"
-if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 > /dev/null 2>&1; then
   echo "ERROR: validate_agents_staging_layout should reject entry path traversal" >&2
   exit 1
 fi
 mv "$agents_staging_fixture/Modules/$first_module_id/module.json.valid" \
   "$agents_staging_fixture/Modules/$first_module_id/module.json"
 mkdir -p "$agents_staging_fixture/Modules/StaleModule"
-if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 > /dev/null 2>&1; then
   echo "ERROR: validate_agents_staging_layout should reject module dirs absent from manifest" >&2
   exit 1
 fi
 rm -rf "$agents_staging_fixture/Modules/StaleModule"
 rm -f "$agents_staging_fixture/Modules/$first_module_id/settings.json"
-if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 > /dev/null 2>&1; then
   echo "ERROR: validate_agents_staging_layout should reject missing settings.json" >&2
   exit 1
 fi
@@ -540,13 +559,13 @@ echo "$agents_plan_out" | grep -Fq "agents.version: $next_agents" || {
   echo "ERROR: dry-run release plan should reflect bumped agents version ($next_agents)" >&2
   exit 1
 }
-echo "$agents_plan_out" | grep -Fq "PacToolkits-Agents-win-x64-${next_agents}-" || {
+echo "$agents_plan_out" | grep -Fq "PacToolkits-Agents-win-x64-${next_agents}.zip" || {
   echo "ERROR: dry-run artifact name should reflect bumped agents version ($next_agents)" >&2
   exit 1
 }
 
 desktop_plan_out="$(with_root_manifest "$stable_fixture_manifest" \
-  ./scripts/release-desktop.sh --bump-desktop 9.9.9 --dry-run --skip-upload 2>&1)" || {
+  ./scripts/release-desktop.sh --bump-desktop 9.9.9 --dry-run 2>&1)" || {
   echo "ERROR: release-desktop dry-run with desktop bump failed" >&2
   echo "$desktop_plan_out" >&2
   exit 1
@@ -581,11 +600,11 @@ else
   echo "ERROR: matching release tag validation should succeed" >&2
   exit 1
 fi
-if validate_release_tag_matches_product_version "v9.9.9" "$ROOT_DIR/release-manifest.json" >/dev/null 2>&1; then
+if validate_release_tag_matches_product_version "v9.9.9" "$ROOT_DIR/release-manifest.json" > /dev/null 2>&1; then
   echo "ERROR: release tag validation should reject manifest mismatch" >&2
   exit 1
 fi
-RELEASE_TAG="v9.9.9" ./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" >/dev/null 2>&1 && {
+RELEASE_TAG="v9.9.9" ./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" > /dev/null 2>&1 && {
   echo "ERROR: resolve-release-plan should reject mismatched RELEASE_TAG" >&2
   exit 1
 }
@@ -746,8 +765,20 @@ if grep -Fq "pg_try_advisory_lock" database/postgres/scripts/lib/common.sh; then
   echo "ERROR: Bash deploy lock must survive separate psql processes" >&2
   exit 1
 fi
-grep -Fq 'cp release-manifest.json dist/release-manifest.json' .github/workflows/publish-release.yml || {
-  echo "ERROR: release feed must publish channel release-manifest.json" >&2
+grep -Fq 'scripts/prepare-server-release.sh' .github/workflows/publish-release.yml || {
+  echo "ERROR: formal release must prepare immutable server snapshots" >&2
+  exit 1
+}
+grep -Fq 'FEED_PATH: ${{ secrets.FEED_PATH }}' .github/workflows/publish-release.yml || {
+  echo "ERROR: server publishing must use the FEED_PATH secret" >&2
+  exit 1
+}
+grep -Fq 'release_root="$feed_path/pactoolkits"' .github/workflows/publish-release.yml || {
+  echo "ERROR: formal releases must publish below FEED_PATH/pactoolkits" >&2
+  exit 1
+}
+grep -Fq 'release_root="$feed_path/pactoolkits-test"' .github/workflows/publish-release.yml || {
+  echo "ERROR: test releases must publish below FEED_PATH/pactoolkits-test" >&2
   exit 1
 }
 dry_run_publish_guards="$(grep -Fc "github.event_name != 'workflow_dispatch' || inputs.dry_run == false" .github/workflows/release.yml)"
@@ -820,23 +851,6 @@ if [[ -z "$staging_create_line" || -z "$manifest_copy_line" || "$staging_create_
   echo "ERROR: Agents staging directory must exist before copying the Host release manifest" >&2
   exit 1
 fi
-
-grep -Fq '$Channels = @('\''stable'\'', '\''beta'\'')' scripts/sync_pactoolkits_uu.ps1 || {
-  echo "ERROR: update sync must include Stable and Beta channels" >&2
-  exit 1
-}
-grep -Fq '$destination = Join-Path $FeedDestRoot $Channel' scripts/sync_pactoolkits_uu.ps1 || {
-  echo "ERROR: update sync channels must use separate destination directories" >&2
-  exit 1
-}
-grep -Fq 'Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false' scripts/create_sync_task.ps1 || {
-  echo "ERROR: sync task recreation must remove the previous same-name task" >&2
-  exit 1
-}
-grep -Fq -- '-File `"$ScriptPath`"' scripts/create_sync_task.ps1 || {
-  echo "ERROR: sync task must execute the configured script path directly" >&2
-  exit 1
-}
 
 gen_secrets="${ROOT_DIR}/apps/api-asp/scripts/gen-dev-secrets.sh"
 bash -n "$gen_secrets"

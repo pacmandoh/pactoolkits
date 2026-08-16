@@ -14,8 +14,6 @@ Options:
   --manifest PATH          Manifest V2 file (default: release-manifest.json).
   --tag TAG                Release tag. Required for a formal release.
   --prerelease BOOL        Actual/planned GitHub prerelease flag.
-  --feed-root PATH         Feed root before the channel suffix.
-  --feed-target PATH       Exact channel feed target to validate.
   --dry-run BOOL           true/false (default: true).
   --confirm BOOL           true/false (default: false).
   -h, --help               Show this help.
@@ -34,21 +32,9 @@ normalize_bool() {
   esac
 }
 
-resolve_feed_target() {
-  local root="${1%/}"
-  local channel="$2"
-  [[ -n "$root" ]] || die "feed root is empty"
-  case "$root" in
-    */stable | */beta) die "feed root must not include a channel suffix: $root" ;;
-  esac
-  printf '%s/%s' "$root" "$channel"
-}
-
 MANIFEST="$ROOT_DIR/release-manifest.json"
 TAG=""
 PRERELEASE=""
-FEED_ROOT="/feed/pactoolkits"
-FEED_TARGET=""
 DRY_RUN="true"
 CONFIRM="false"
 
@@ -64,14 +50,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prerelease)
       PRERELEASE="$2"
-      shift 2
-      ;;
-    --feed-root)
-      FEED_ROOT="$2"
-      shift 2
-      ;;
-    --feed-target)
-      FEED_TARGET="$2"
       shift 2
       ;;
     --dry-run)
@@ -100,7 +78,6 @@ validate_manifest_v2 "$MANIFEST"
 channel="$(manifest_release_channel "$MANIFEST")"
 version="$(manifest_product_version "$MANIFEST")"
 expected_prerelease="$(expected_release_prerelease "$MANIFEST")"
-expected_feed_target="$(resolve_feed_target "$FEED_ROOT" "$channel")"
 
 if [[ -n "$TAG" ]]; then
   validate_release_tag_matches_product_version "$TAG" "$MANIFEST"
@@ -112,17 +89,6 @@ elif [[ "$DRY_RUN" == "false" ]]; then
   die "formal release validation requires --prerelease"
 fi
 
-if [[ -z "$FEED_TARGET" ]]; then
-  FEED_TARGET="$expected_feed_target"
-fi
-[[ "${FEED_TARGET%/}" == "$expected_feed_target" ]] \
-  || die "feed target must be the exact $channel channel directory: expected $expected_feed_target, got $FEED_TARGET"
-
-case "${FEED_TARGET%/}" in
-  */stable | */beta) ;;
-  *) die "feed target must end with /stable or /beta: $FEED_TARGET" ;;
-esac
-
 if [[ "$DRY_RUN" == "false" ]]; then
   [[ "$CONFIRM" == "true" ]] || die "formal release requires confirm=true"
   [[ -n "$TAG" ]] || die "formal release requires a tag"
@@ -130,7 +96,6 @@ fi
 
 printf 'channel=%s\n' "$channel"
 printf 'version=%s\n' "$version"
-printf 'feed=%s\n' "$expected_feed_target"
 printf 'prerelease=%s\n' "$expected_prerelease"
 printf 'dryRun=%s\n' "$DRY_RUN"
 printf 'confirmed=%s\n' "$CONFIRM"

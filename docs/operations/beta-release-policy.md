@@ -9,10 +9,10 @@
 - Git tag 必须使用 `vX.Y.Z-beta.N` 格式，并与 `product.version` 完全一致
 - GitHub Release 必须标记为预发布版本
 - `packId` 必须保持为 `PacToolkits`，不得通过更换 package ID 绕过兼容性检查
-- Beta 产物只能发布到 `.../beta/` Feed，禁止写入 `.../stable/`
+- Beta 产物只更新组件目录的 `beta` 指针，不得更新 Stable 使用的 `current`
 - Desktop 组件固定使用 `components.desktop.avalonia`
 
-CI 通过 `validate-release.yml`、`validate-release-channel.sh` 和 `validate-database-policy.sh` 拒绝 tag、版本、通道、预发布标记、Feed 或数据库边界不一致的发布。
+CI 通过 `validate-release.yml`、`validate-release-channel.sh` 和 `validate-database-policy.sh` 拒绝 tag、版本、通道、预发布标记或数据库边界不一致的发布。
 
 ## 数据库限制
 
