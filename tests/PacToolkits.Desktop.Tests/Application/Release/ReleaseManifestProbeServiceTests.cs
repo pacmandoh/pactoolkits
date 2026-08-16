@@ -13,7 +13,7 @@ public sealed class ReleaseManifestProbeServiceTests
         var service = CreateService(Manifest("beta"));
 
         var result = await service.ProbeAsync(
-            "https://updates.example/feed/pactoolkits/stable",
+            "https://updates.example/feed/pactoolkits/current",
             "beta",
             CancellationToken.None);
 
@@ -41,12 +41,12 @@ public sealed class ReleaseManifestProbeServiceTests
     }
 
     [Theory]
-    [InlineData("stable", "https://updates.example/feed/pactoolkits/stable/release-manifest.json")]
+    [InlineData("stable", "https://updates.example/feed/pactoolkits/current/release-manifest.json")]
     [InlineData("beta", "https://updates.example/feed/pactoolkits/beta/release-manifest.json")]
     public void ResolveChannelManifestUrl_accepts_supported_channels(string channel, string expected)
     {
         var url = ReleaseManifestProbeService.ResolveChannelManifestUrl(
-            "https://updates.example/feed/pactoolkits/stable",
+            "https://updates.example/feed/pactoolkits/current",
             channel);
 
         Assert.Equal(expected, url);

@@ -86,6 +86,7 @@ public static class AppUpdatePolicy
     public static string ResolveFeedUrl(string? baseFeedUrl, string channel)
     {
         channel = NormalizeChannel(channel);
+        var releasePointer = channel == "stable" ? "current" : "beta";
         if (string.IsNullOrWhiteSpace(baseFeedUrl))
         {
             return string.Empty;
@@ -94,7 +95,7 @@ public static class AppUpdatePolicy
         if (TryGetLocalFeedPath(baseFeedUrl, out var localRoot))
         {
             localRoot = StripChannelSuffix(localRoot);
-            return localRoot.Length == 0 ? string.Empty : Path.Combine(localRoot, channel);
+            return localRoot.Length == 0 ? string.Empty : Path.Combine(localRoot, releasePointer);
         }
 
         var normalizedBase = baseFeedUrl.Trim().TrimEnd('/');
@@ -104,7 +105,7 @@ public static class AppUpdatePolicy
         }
 
         normalizedBase = StripChannelSuffix(normalizedBase, httpStyle: true);
-        return $"{normalizedBase}/{channel}";
+        return $"{normalizedBase}/{releasePointer}";
     }
 
     public static string BuildSource(UpdateOptions options)
@@ -252,7 +253,7 @@ public static class AppUpdatePolicy
     {
         if (httpStyle)
         {
-            if (feedRoot.EndsWith("/stable", StringComparison.OrdinalIgnoreCase)
+            if (feedRoot.EndsWith("/current", StringComparison.OrdinalIgnoreCase)
                 || feedRoot.EndsWith("/beta", StringComparison.OrdinalIgnoreCase))
             {
                 var lastSlash = feedRoot.LastIndexOf('/');
@@ -265,7 +266,7 @@ public static class AppUpdatePolicy
             return feedRoot;
         }
 
-        foreach (var name in new[] { "stable", "beta" })
+        foreach (var name in new[] { "current", "beta" })
         {
             foreach (var sep in new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, '/', '\\' })
             {

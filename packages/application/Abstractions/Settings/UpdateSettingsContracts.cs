@@ -5,7 +5,7 @@ public sealed class UpdateOptions
 {
     public bool AutoCheckOnStartup { get; set; } = true;
     public string Channel { get; set; } = "stable";
-    public string FeedUrl { get; set; } = "https://updates.pacdocs.com/feed/pactoolkits";
+    public string FeedUrl { get; set; } = "https://updates.pacdocs.com/feed/pactoolkits/desktop";
     public int AutoCheckIntervalMinutes { get; set; }
     public string IgnoredVersion { get; set; } = string.Empty;
 
