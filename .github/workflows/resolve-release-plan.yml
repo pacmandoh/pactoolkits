@@ -9,6 +9,12 @@ on:
       product_version:
         description: product.version
         value: ${{ jobs.resolve_release_plan.outputs.product_version }}
+      api_version:
+        description: components.api.version
+        value: ${{ jobs.resolve_release_plan.outputs.api_version }}
+      agents_version:
+        description: components.agents.version
+        value: ${{ jobs.resolve_release_plan.outputs.agents_version }}
       pack_id:
         description: Velopack packId
         value: ${{ jobs.resolve_release_plan.outputs.pack_id }}
@@ -41,6 +47,8 @@ jobs:
     outputs:
       desktop_version: ${{ steps.plan.outputs.desktop_version }}
       product_version: ${{ steps.plan.outputs.product_version }}
+      api_version: ${{ steps.plan.outputs.api_version }}
+      agents_version: ${{ steps.plan.outputs.agents_version }}
       pack_id: ${{ steps.plan.outputs.pack_id }}
       channel: ${{ steps.plan.outputs.channel }}
       desktop_artifact_name: ${{ steps.plan.outputs.desktop_artifact_name }}

@@ -28,7 +28,7 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 | 项       | 说明                                                                                                                                         |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Clients  | `Auth:Clients:<id>`：`ApiKeyHash`（SHA-256 hex）、`Enabled`、`Scopes`；ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白 |
-| Unlock   | `Auth:UnlockPasswordHash`（SHA-256 hex）；Desktop 敏感操作口令；明文不进服务端配置 |
+| Unlock   | `Auth:UnlockPasswordHash`（SHA-256 hex）；Desktop 敏感操作口令；明文不进服务端配置                                                           |
 | Key      | 明文只在客户端；服务端只比散列；同一散列不得分给多个 ClientId                                                                                |
 | JWT      | HMAC-SHA256；`Auth:Jwt:SigningKey` ≥32；**改密钥须重启**                                                                                     |
 | Policy   | `read` / `write` / `system.status`（配置未知 scope 则启动失败）                                                                              |
@@ -47,16 +47,16 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 
 `.env.asp` 含：
 
-| 键                                                               | 用途                                                     |
-| ---------------------------------------------------------------- | -------------------------------------------------------- |
-| `PAC_API_KEY`                                                    | Desktop 换票明文（API 进程不读明文，只读散列）           |
+| 键                                                               | 用途                                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `PAC_API_KEY`                                                    | Desktop 换票明文（API 进程不读明文，只读散列）                           |
 | `PAC_AGENTS_API_KEY`                                             | Agents 换票明文；填 Desktop「Agents 密钥」（API 进程不读明文，只读散列） |
-| `PAC_UNLOCK_PASSWORD`                                            | 本地敏感操作口令明文（API 只读 `Auth__UnlockPasswordHash`） |
-| `Auth__Clients__dev__ApiKeyHash`                                 | Desktop 客户端 Key 散列                                  |
-| `Auth__Clients__agents__ApiKeyHash`                              | Agents 客户端 Key 散列                                   |
-| `Auth__UnlockPasswordHash`                                       | 敏感操作口令散列                                         |
-| `Auth__Jwt__SigningKey`                                          | JWT HMAC                                                 |
-| `Postgres__Host` / `Port` / `Database` / `Username` / `Password` | 覆盖 `appsettings` 的 Postgres 节；`Password` 须本机手填 |
+| `PAC_UNLOCK_PASSWORD`                                            | 本地敏感操作口令明文（API 只读 `Auth__UnlockPasswordHash`）              |
+| `Auth__Clients__dev__ApiKeyHash`                                 | Desktop 客户端 Key 散列                                                  |
+| `Auth__Clients__agents__ApiKeyHash`                              | Agents 客户端 Key 散列                                                   |
+| `Auth__UnlockPasswordHash`                                       | 敏感操作口令散列                                                         |
+| `Auth__Jwt__SigningKey`                                          | JWT HMAC                                                                 |
+| `Postgres__Host` / `Port` / `Database` / `Username` / `Password` | 覆盖 `appsettings` 的 Postgres 节；`Password` 须本机手填                 |
 
 `gen-dev-secrets.sh` 与 `wire-local.sh` 会复用已有 Auth，并补齐缺省 Postgres（与 `appsettings.json` 对齐）；`--force` 只换 Auth，Postgres 手改仍保留。
 配置覆盖顺序：`appsettings.json`，再 `appsettings.{Environment}.json`，再环境变量。
@@ -64,9 +64,7 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 
 ## 生产部署
 
-```bash
-dotnet publish apps/api-asp/src/PacToolkits.Api.csproj -c Release -o /opt/pactoolkits/api --no-restore
-```
+正式发布将 API 包保存到 `${FEED_PATH}/pactoolkits/api/releases/<version>/`，预发布测试保存到 `${FEED_PATH}/pactoolkits-test/api/releases/<version>/`。只落包，不切换正在运行的服务；数据库连接和鉴权密钥不进入发布产物
 
 生产密钥：**`/etc/pactoolkits/.env.asp`**（`chmod 600`），systemd `EnvironmentFile=`。
 公网只走 Nginx HTTPS 反代本机 5080；勿把明文 Key 写进服务端配置

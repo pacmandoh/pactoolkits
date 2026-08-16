@@ -110,6 +110,13 @@ jobs:
     uses: ./.github/workflows/build-desktop-avalonia.yml
     secrets: inherit
 
+  build_api:
+    needs:
+      - release_gate
+      - resolve_release_plan
+    if: needs.release_gate.outputs.should_run == 'true'
+    uses: ./.github/workflows/build-api.yml
+
   package_desktop:
     needs:
       - release_gate
@@ -139,12 +146,14 @@ jobs:
       always() &&
       needs.release_gate.outputs.should_run == 'true' &&
       needs.package_desktop.result == 'success' &&
+      needs.build_api.result == 'success' &&
       (github.event_name != 'workflow_dispatch' || inputs.dry_run == false) &&
       startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/generate-release-notes.yml
     needs:
       - release_gate
       - package_desktop
+      - build_api
     secrets: inherit
 
   publish_release:
@@ -152,12 +161,21 @@ jobs:
       always() &&
       needs.release_gate.outputs.should_run == 'true' &&
       needs.package_desktop.result == 'success' &&
+      needs.build_api.result == 'success' &&
       needs.generate_release_notes.result == 'success' &&
       (github.event_name != 'workflow_dispatch' || inputs.dry_run == false) &&
       startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/publish-release.yml
     needs:
       - release_gate
+      - resolve_release_plan
       - package_desktop
+      - build_api
       - generate_release_notes
+    with:
+      product_version: ${{ needs.resolve_release_plan.outputs.product_version }}
+      desktop_version: ${{ needs.resolve_release_plan.outputs.desktop_version }}
+      api_version: ${{ needs.resolve_release_plan.outputs.api_version }}
+      agents_version: ${{ needs.resolve_release_plan.outputs.agents_version }}
+      channel: ${{ needs.resolve_release_plan.outputs.channel }}
     secrets: inherit

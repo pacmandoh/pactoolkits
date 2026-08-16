@@ -1,0 +1,83 @@
+name: Build API
+
+on:
+  workflow_call:
+    inputs:
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_api:
+    name: Build API
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.sln', '**/*.csproj', '**/Directory.Packages.props', '**/NuGet.Config', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Export version artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/export-version.sh
+          ./scripts/check-version.sh
+
+      - name: Read API version
+        shell: bash
+        run: |
+          set -euo pipefail
+          # shellcheck source=manifest-v2.sh
+          source scripts/manifest-v2.sh
+          validate_manifest_v2 release-manifest.json
+          echo "API_VERSION=$(manifest_api_version release-manifest.json)" >> "$GITHUB_ENV"
+
+      - name: Publish API
+        shell: bash
+        run: |
+          set -euo pipefail
+          project="apps/api-asp/src/PacToolkits.Api.csproj"
+          dotnet restore "$project" --locked-mode
+          dotnet publish "$project" \
+            -c Release \
+            --no-restore \
+            --self-contained false \
+            -o _api_publish
+
+      - name: Pack API release
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -f _api_publish/PacToolkits.Api.dll ]] || {
+            echo "API publish output missing: PacToolkits.Api.dll" >&2
+            exit 1
+          }
+          tar -C _api_publish -czf "PacToolkits-Api-${API_VERSION}.tar.gz" .
+
+      - name: Upload API artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: PacToolkits-Api-${{ env.API_VERSION }}
+          path: PacToolkits-Api-${{ env.API_VERSION }}.tar.gz
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days || 3 }}

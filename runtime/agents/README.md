@@ -87,7 +87,6 @@ Windows 若有 `Ahk2Exe` / `AutoHotkey64` 会真编译 AHK（`AHK2EXE_PATH` / `A
 ```bash
 ./scripts/release-agents.sh \
   --artifact-dir artifacts/agents/win-x64 \
-  --skip-upload \
   --dry-run
 ```
 

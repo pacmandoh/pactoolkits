@@ -20,7 +20,6 @@ Options:
   --bump-db X.Y.Z            Optional: bump components.database.postgres.version.
   --bump-channel C           Optional: bump release.channel (stable|beta).
   --pack-version X.Y.Z       Optional: vpk pack version (default: manifest product.version).
-  --channel C                Optional: vpk channel (default: manifest release.channel).
   --framework TFM            Target framework (default: net10.0).
   --configuration CFG        Build configuration (default: Release).
   --self-contained true|false   dotnet publish self-contained (default: false).
@@ -29,9 +28,6 @@ Options:
   --main-exe FILE            main exe for vpk (default: PacToolkits.Desktop.exe).
   --icon FILE                icon for setup package (default: Assets/app.ico).
   --vpk-directive NAME       optional vpk target directive (e.g. win).
-  --upload-target TARGET     Optional rsync target, e.g. user@host:/path/feed/pactoolkits
-  --no-delete                upload without rsync --delete.
-  --skip-upload              do not upload.
   --dry-run                  print commands only.
   -h, --help                 show help.
 
@@ -41,10 +37,9 @@ Notes:
 
 Examples:
   ./scripts/release-desktop.sh --bump-desktop 0.4.2 \
-    --vpk-directive win \
-    --upload-target user@host:/var/www/updates/pactoolkits
+    --vpk-directive win
 
-  ./scripts/release-desktop.sh --channel stable --dry-run
+  ./scripts/release-desktop.sh --dry-run
 USAGE
 }
 
@@ -75,7 +70,6 @@ BUMP_AGENTS=""
 BUMP_DB=""
 BUMP_CHANNEL=""
 PACK_VERSION=""
-CHANNEL=""
 RUNTIME="win-x64"
 FRAMEWORK="net10.0"
 CONFIGURATION="Release"
@@ -85,9 +79,6 @@ PACK_DIR=""
 MAIN_EXE="PacToolkits.Desktop.exe"
 ICON_FILE="$DESKTOP_PROJECT_DIR/Assets/app.ico"
 VPK_DIRECTIVE=""
-UPLOAD_TARGET=""
-RSYNC_DELETE="true"
-SKIP_UPLOAD="false"
 DRY_RUN="false"
 PLAN_MANIFEST_TMP=""
 
@@ -115,10 +106,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --pack-version)
       PACK_VERSION="${2:-}"
-      shift 2
-      ;;
-    --channel)
-      CHANNEL="${2:-}"
       shift 2
       ;;
     --framework)
@@ -152,18 +139,6 @@ while [[ $# -gt 0 ]]; do
     --vpk-directive)
       VPK_DIRECTIVE="${2:-}"
       shift 2
-      ;;
-    --upload-target)
-      UPLOAD_TARGET="${2:-}"
-      shift 2
-      ;;
-    --no-delete)
-      RSYNC_DELETE="false"
-      shift
-      ;;
-    --skip-upload)
-      SKIP_UPLOAD="true"
-      shift
       ;;
     --dry-run)
       DRY_RUN="true"
@@ -216,16 +191,6 @@ fi
   echo "ERROR: invalid --pack-version" >&2
   exit 1
 }
-
-if [[ -n "$CHANNEL" ]]; then
-  case "$CHANNEL" in
-    stable | beta) ;;
-    *)
-      echo "ERROR: --channel must be stable|beta" >&2
-      exit 1
-      ;;
-  esac
-fi
 
 if [[ -n "$BUMP_CHANNEL" ]]; then
   case "$BUMP_CHANNEL" in
@@ -294,9 +259,7 @@ manifest_pack_id="$(manifest_desktop_package_id "$MANIFEST_FOR_PLAN")"
 if [[ -z "$PACK_VERSION" ]]; then
   PACK_VERSION="$manifest_product"
 fi
-if [[ -z "$CHANNEL" ]]; then
-  CHANNEL="$manifest_channel"
-fi
+CHANNEL="$manifest_channel"
 
 if [[ "$PACK_VERSION" != "$manifest_product" ]]; then
   echo "ERROR: --pack-version ($PACK_VERSION) != manifest product.version ($manifest_product)" >&2
@@ -338,7 +301,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
   done < <(manifest_agents_module_ids "$MANIFEST_FOR_PLAN")
 else
   validate_agents_staging_layout "$AGENT_SRC_DIR" "$MANIFEST_FOR_PLAN" "$AGENT_MIN_BYTES" || {
-    echo "Build agent first, e.g.: ./scripts/release-agents.sh --artifact-dir ... --skip-upload" >&2
+    echo "Build agent first, e.g.: ./scripts/release-agents.sh --artifact-dir ..." >&2
     exit 1
   }
 
@@ -409,24 +372,4 @@ vpk_args+=(pack
   --noPortable
   -i "$ICON_FILE")
 run_cmd "${vpk_args[@]}"
-
-if [[ "$SKIP_UPLOAD" == "true" ]]; then
-  echo "Skip upload."
-  exit 0
-fi
-
-if [[ -z "$UPLOAD_TARGET" ]]; then
-  echo "No upload target provided. Package completed locally at: $OUTPUT_DIR"
-  exit 0
-fi
-
-if [[ "$DRY_RUN" != "true" ]]; then
-  require_cmd rsync
-fi
-upload_target="${UPLOAD_TARGET%/}/$CHANNEL/"
-rsync_args=(rsync -avz)
-[[ "$RSYNC_DELETE" == "true" ]] && rsync_args+=(--delete)
-rsync_args+=("$OUTPUT_DIR/" "$upload_target")
-run_cmd "${rsync_args[@]}"
-
-echo "Release upload done: $upload_target"
+echo "Package completed locally at: $OUTPUT_DIR"

@@ -2,6 +2,30 @@ name: Publish Release
 
 on:
   workflow_call:
+    inputs:
+      product_version:
+        required: true
+        type: string
+      desktop_version:
+        required: true
+        type: string
+      api_version:
+        required: true
+        type: string
+      agents_version:
+        required: true
+        type: string
+      channel:
+        required: true
+        type: string
+      release_tag:
+        required: false
+        type: string
+        default: ''
+      test_release:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -10,82 +34,155 @@ jobs:
   publish_release:
     name: Publish Release
     runs-on: ubuntu-latest
+    env:
+      PRODUCT_VERSION: ${{ inputs.product_version }}
+      DESKTOP_VERSION: ${{ inputs.desktop_version }}
+      API_VERSION: ${{ inputs.api_version }}
+      AGENTS_VERSION: ${{ inputs.agents_version }}
+      RELEASE_CHANNEL: ${{ inputs.channel }}
+      RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+      TEST_RELEASE: ${{ inputs.test_release }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Read release manifest
+      - name: Validate release inputs
+        shell: bash
         run: |
           set -euo pipefail
           # shellcheck source=manifest-v2.sh
           source scripts/manifest-v2.sh
           validate_manifest_v2 release-manifest.json
-          channel="$(manifest_release_channel release-manifest.json)"
-          product_version="$(manifest_product_version release-manifest.json)"
-          prerelease="$(expected_release_prerelease release-manifest.json)"
-          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
-            validate_release_tag_matches_product_version "${GITHUB_REF_NAME:-}" release-manifest.json
+          [[ "$PRODUCT_VERSION" == "$(manifest_product_version release-manifest.json)" ]]
+          [[ "$DESKTOP_VERSION" == "$(manifest_desktop_version release-manifest.json)" ]]
+          [[ "$API_VERSION" == "$(manifest_api_version release-manifest.json)" ]]
+          [[ "$AGENTS_VERSION" == "$(manifest_agents_version release-manifest.json)" ]]
+          [[ "$RELEASE_CHANNEL" == "$(manifest_release_channel release-manifest.json)" ]]
+          if [[ "$TEST_RELEASE" == "true" ]]; then
+            [[ "$RELEASE_TAG" =~ ^test-v ]] || {
+              echo "Test release tag must start with test-v: $RELEASE_TAG" >&2
+              exit 1
+            }
+          else
+            [[ "${GITHUB_REF:-}" == refs/tags/v* ]] || {
+              echo "Formal release requires a v* tag; got: ${GITHUB_REF:-<empty>}" >&2
+              exit 1
+            }
+            validate_release_tag_matches_product_version "$RELEASE_TAG" release-manifest.json
           fi
-          case "$channel" in
-            stable|beta) ;;
-            *) echo "Unsupported release channel: ${channel:-<empty>}"; exit 1 ;;
-          esac
-          echo "RELEASE_CHANNEL=$channel" >> "$GITHUB_ENV"
-          echo "PRODUCT_VERSION=$product_version" >> "$GITHUB_ENV"
-          echo "EXPECTED_PRERELEASE=$prerelease" >> "$GITHUB_ENV"
-          echo "Release plan: channel=$channel version=$product_version desktop=avalonia"
 
-      - name: Download desktop release artifact
+      - name: Download Desktop release artifact
         uses: actions/download-artifact@v8
         with:
           name: pactoolkits-desktop-win-x64-${{ env.PRODUCT_VERSION }}
-          path: dist
+          path: _release_download/desktop
 
-      - name: Add channel release metadata
-        run: cp release-manifest.json dist/release-manifest.json
+      - name: Download API release artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: PacToolkits-Api-${{ env.API_VERSION }}
+          path: _release_download/api
+
+      - name: Prepare release snapshots
+        shell: bash
+        env:
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_CI_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          RELEASE_PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          export RELEASE_PUBLISHED_AT
+          chmod +x scripts/prepare-server-release.sh
+
+          agents_archive="PacToolkits-Agents-win-x64-${AGENTS_VERSION}.zip"
+          [[ -f "_release_download/desktop/$agents_archive" ]] || {
+            echo "Agents release archive missing: $agents_archive" >&2
+            exit 1
+          }
+          [[ -f "_release_download/api/PacToolkits-Api-${API_VERSION}.tar.gz" ]] || {
+            echo "API release archive missing for version $API_VERSION" >&2
+            exit 1
+          }
+
+          mkdir -p _server_source/desktop _server_source/agents
+          cp release-manifest.json _release_download/desktop/release-manifest.json
+          cp -R _release_download/desktop/. _server_source/desktop/
+          mv "_server_source/desktop/$agents_archive" _server_source/agents/
+
+          scripts/prepare-server-release.sh \
+            api "$API_VERSION" "$RELEASE_CHANNEL" \
+            _release_download/api _server_release/api
+          scripts/prepare-server-release.sh \
+            desktop "$DESKTOP_VERSION" "$RELEASE_CHANNEL" \
+            _server_source/desktop _server_release/desktop
+          scripts/prepare-server-release.sh \
+            agents "$AGENTS_VERSION" "$RELEASE_CHANNEL" \
+            _server_source/agents _server_release/agents
 
       - name: Upload assets to GitHub Release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_REF:-}" != refs/tags/v* ]]; then
-            echo "This job only supports tag refs like refs/tags/v*; got: ${GITHUB_REF:-<empty>}"
-            exit 1
-          fi
           shopt -s nullglob
           assets=()
-          for path in dist/*; do
-            if [[ -d "$path" ]]; then
-              echo "Release assets must be files; found directory: $path" >&2
+          for path in _release_download/desktop/* _release_download/api/*; do
+            [[ -e "$path" ]] || continue
+            [[ -f "$path" ]] || {
+              echo "Release assets must be files: $path" >&2
               exit 1
-            fi
-            [[ -f "$path" ]] || continue
+            }
             assets+=("$path")
           done
-          if [ ${#assets[@]} -eq 0 ]; then
-            echo "No release assets found."
+          [[ ${#assets[@]} -gt 0 ]] || {
+            echo "No release assets found" >&2
             exit 1
+          }
+          if [[ "$TEST_RELEASE" == "true" ]] && ! gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --target "${GITHUB_SHA}" \
+              --title "PacToolkits ${PRODUCT_VERSION} test (win-x64)" \
+              --notes "Automated pre-release test package from build-test-package." \
+              --prerelease
           fi
-          gh release upload "${GITHUB_REF_NAME}" "${assets[@]}" --clobber
 
-      - name: Prepare SSH for rsync
+          declare -A published_assets=()
+          while IFS= read -r name; do
+            [[ -z "$name" ]] || published_assets["$name"]=true
+          done < <(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+
+          pending_assets=()
+          for path in "${assets[@]}"; do
+            name="$(basename "$path")"
+            if [[ "${published_assets[$name]:-false}" == "true" ]]; then
+              echo "GitHub Release asset already exists: $name"
+            else
+              pending_assets+=("$path")
+            fi
+          done
+          if [[ ${#pending_assets[@]} -gt 0 ]]; then
+            gh release upload "$RELEASE_TAG" "${pending_assets[@]}"
+          fi
+
+      - name: Prepare SSH
+        shell: bash
         env:
           FEED_SSH_KEY: ${{ secrets.FEED_SSH_KEY }}
           FEED_SSH_KNOWN_HOSTS: ${{ secrets.FEED_SSH_KNOWN_HOSTS }}
           FEED_SSH_USER: ${{ secrets.FEED_SSH_USER }}
           FEED_SSH_HOST: ${{ secrets.FEED_SSH_HOST }}
           FEED_SSH_PORT: ${{ secrets.FEED_SSH_PORT }}
-          FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
+          FEED_PATH: ${{ secrets.FEED_PATH }}
         run: |
           set -euo pipefail
-          required_vars=(FEED_SSH_KEY FEED_SSH_KNOWN_HOSTS FEED_SSH_USER FEED_SSH_HOST FEED_SSH_PORT FEED_RSYNC_PATH)
+          required_vars=(FEED_SSH_KEY FEED_SSH_KNOWN_HOSTS FEED_SSH_USER FEED_SSH_HOST FEED_SSH_PORT FEED_PATH)
           for name in "${required_vars[@]}"; do
-            if [ -z "${!name:-}" ]; then
-              echo "Missing required secret: $name"
+            [[ -n "${!name:-}" ]] || {
+              echo "Missing required secret: $name" >&2
               exit 1
-            fi
+            }
           done
           install -m 700 -d ~/.ssh
           printf '%s\n' "$FEED_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
@@ -94,36 +191,50 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
           ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
 
-      - name: Rsync release feed
+      - name: Publish immutable server snapshots
+        shell: bash
         env:
           FEED_SSH_USER: ${{ secrets.FEED_SSH_USER }}
           FEED_SSH_HOST: ${{ secrets.FEED_SSH_HOST }}
           FEED_SSH_PORT: ${{ secrets.FEED_SSH_PORT }}
-          FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
+          FEED_PATH: ${{ secrets.FEED_PATH }}
         run: |
           set -euo pipefail
-          ssh_rsh="ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=10 -p ${FEED_SSH_PORT}"
-          target_path="${FEED_RSYNC_PATH%/}/${RELEASE_CHANNEL}"
-          scripts/validate-release-channel.sh \
-            --manifest release-manifest.json \
-            --tag "${GITHUB_REF_NAME}" \
-            --prerelease "${EXPECTED_PRERELEASE}" \
-            --feed-root "${FEED_RSYNC_PATH%/}" \
-            --feed-target "$target_path" \
-            --dry-run false \
-            --confirm true
-          $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "mkdir -p '${target_path}'"
-          max_attempts=3
-          delay=10
-          for attempt in $(seq 1 "$max_attempts"); do
-            if rsync -a --delete --timeout=60 --rsh "$ssh_rsh" dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${target_path}/"; then
+          incoming_id="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          feed_path="${FEED_PATH%/}"
+          [[ "$feed_path" =~ ^/[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$ ]] || {
+            echo "FEED_PATH must be a scoped absolute path" >&2
+            exit 1
+          }
+          if [[ "$TEST_RELEASE" == "true" ]]; then
+            release_root="$feed_path/pactoolkits-test"
+          else
+            release_root="$feed_path/pactoolkits"
+          fi
+          ssh_args=(
+            -i "$HOME/.ssh/id_ed25519"
+            -o "UserKnownHostsFile=$HOME/.ssh/known_hosts"
+            -o StrictHostKeyChecking=yes
+            -o BatchMode=yes
+            -o ConnectTimeout=10
+            -p "$FEED_SSH_PORT"
+          )
+          remote="${FEED_SSH_USER}@${FEED_SSH_HOST}"
+          incoming_path="$release_root/.incoming/$incoming_id"
+
+          ssh "${ssh_args[@]}" "$remote" "mkdir -p '$release_root' '$incoming_path'"
+          for attempt in 1 2 3; do
+            if rsync -a --timeout=60 \
+              --rsh "ssh ${ssh_args[*]}" \
+              _server_release/ "$remote:$incoming_path/"; then
               break
             fi
-            if [ "$attempt" -eq "$max_attempts" ]; then
-              echo "rsync failed after $max_attempts attempts"
+            [[ "$attempt" -lt 3 ]] || {
+              echo "Release upload failed after 3 attempts" >&2
               exit 1
-            fi
-            echo "rsync attempt $attempt failed; retrying in ${delay}s..."
-            sleep "$delay"
-            delay=$((delay * 2))
+            }
+            sleep $((attempt * 10))
           done
+          ssh "${ssh_args[@]}" "$remote" \
+            "bash -s -- '$release_root' '$incoming_id' '$RELEASE_CHANNEL' '$API_VERSION' '$DESKTOP_VERSION' '$AGENTS_VERSION'" \
+            < scripts/publish-server-releases.sh

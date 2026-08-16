@@ -1,20 +1,24 @@
-name: Build Windows Test Package
+name: Build Test Package
 
 on:
   push:
     branches:
       - beta
-      # 功能分支推送时生成 Windows 冒烟测试包，不要求更新发布清单版本
+      - 'feat/**'
+      - 'fix/**'
       - 'refactor/**'
     paths:
       - 'release-manifest.json'
+      - 'apps/api-asp/**'
       - 'apps/desktop-avalonia/**'
       - 'packages/**'
       - 'runtime/agents/**'
-      - '.github/workflows/build-windows-test-package.yml'
+      - '.github/workflows/build-test-package.yml'
       - '.github/workflows/build-agents.yml'
+      - '.github/workflows/build-api.yml'
       - '.github/workflows/build-desktop-avalonia.yml'
       - '.github/workflows/package-desktop.yml'
+      - '.github/workflows/publish-release.yml'
       - '.github/workflows/resolve-release-plan.yml'
       - 'PacToolkits.sln'
       - 'scripts/**'
@@ -24,7 +28,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: windows-test-package-${{ github.ref_name }}
+  group: test-package-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -46,6 +50,13 @@ jobs:
     with:
       artifact_retention_days: 1
     secrets: inherit
+
+  build_api:
+    needs:
+      - resolve_release_plan
+    uses: ./.github/workflows/build-api.yml
+    with:
+      artifact_retention_days: 1
 
   package_desktop:
     needs:
@@ -74,9 +85,15 @@ jobs:
     needs:
       - resolve_release_plan
       - package_desktop
-    if: needs.package_desktop.result == 'success'
-    uses: ./.github/workflows/publish-test-release.yml
+      - build_api
+    if: needs.package_desktop.result == 'success' && needs.build_api.result == 'success'
+    uses: ./.github/workflows/publish-release.yml
     with:
       product_version: ${{ needs.resolve_release_plan.outputs.product_version }}
+      desktop_version: ${{ needs.resolve_release_plan.outputs.desktop_version }}
+      api_version: ${{ needs.resolve_release_plan.outputs.api_version }}
+      agents_version: ${{ needs.resolve_release_plan.outputs.agents_version }}
+      channel: ${{ needs.resolve_release_plan.outputs.channel }}
       release_tag: test-v${{ needs.resolve_release_plan.outputs.product_version }}-win-x64
+      test_release: true
     secrets: inherit

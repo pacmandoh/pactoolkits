@@ -22,11 +22,8 @@ Options:
   --bump-db X.Y.Z            Optional: bump components.database.postgres.version.
   --bump-channel C           Optional: bump release.channel (stable|beta).
   --artifact-dir DIR         Prebuilt host+modules dir (default: artifacts/agents/win-x64).
-  --channel C                Optional: package channel tag (default: manifest release.channel).
   --output-dir DIR           Output directory (default: artifacts/agents/Releases).
-  --upload-target TARGET     Optional rsync target, e.g. user@host:/var/www/updates/pactoolkits-agents/
   --dry-run                  Print commands only.
-  --skip-upload              Do not upload.
   -h, --help                 Show help.
 
 Notes:
@@ -107,10 +104,7 @@ validate_bump_conflicts() {
 }
 
 DRY_RUN="false"
-SKIP_UPLOAD="false"
-UPLOAD_TARGET=""
 OUTPUT_DIR="$RELEASES_DIR"
-CHANNEL=""
 BUMP_AGENTS=""
 BUMP_COMPONENT=""
 BUMP_PRODUCT=""
@@ -149,24 +143,12 @@ while [[ $# -gt 0 ]]; do
       ARTIFACT_DIR="${2:-}"
       shift 2
       ;;
-    --channel)
-      CHANNEL="${2:-}"
-      shift 2
-      ;;
     --output-dir)
       OUTPUT_DIR="${2:-}"
       shift 2
       ;;
-    --upload-target)
-      UPLOAD_TARGET="${2:-}"
-      shift 2
-      ;;
     --dry-run)
       DRY_RUN="true"
-      shift
-      ;;
-    --skip-upload)
-      SKIP_UPLOAD="true"
       shift
       ;;
     -h | --help)
@@ -241,12 +223,7 @@ fi
 run_cmd "$ROOT_DIR/scripts/check-version.sh"
 
 agent_version="$(manifest_agents_version "$MANIFEST_FOR_PLAN")"
-manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN")"
-if [[ -z "$CHANNEL" ]]; then
-  CHANNEL="$manifest_channel"
-fi
-
-artifact_name="PacToolkits-Agents-win-x64-${agent_version}-${CHANNEL}.zip"
+artifact_name="PacToolkits-Agents-win-x64-${agent_version}.zip"
 artifact_path="$OUTPUT_DIR/$artifact_name"
 
 echo "Release plan:"
@@ -266,7 +243,6 @@ done < <(manifest_agents_module_ids "$MANIFEST_FOR_PLAN")
   echo "ERROR: release-manifest.json has no components.agents.modules entries" >&2
   exit 1
 }
-echo "- channel: $CHANNEL"
 echo "- artifact-dir: $ARTIFACT_DIR"
 echo "- output: $artifact_path"
 
@@ -287,19 +263,3 @@ else
 fi
 
 echo "Package ready: $artifact_path"
-
-if [[ "$SKIP_UPLOAD" == "true" ]]; then
-  echo "Skip upload."
-  exit 0
-fi
-
-if [[ -z "$UPLOAD_TARGET" ]]; then
-  echo "No upload target provided."
-  exit 0
-fi
-
-if [[ "$DRY_RUN" != "true" ]]; then
-  require_cmd rsync
-fi
-run_cmd rsync -avz "$artifact_path" "$UPLOAD_TARGET"
-echo "Upload done: $UPLOAD_TARGET"

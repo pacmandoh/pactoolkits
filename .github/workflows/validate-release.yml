@@ -62,7 +62,6 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x scripts/validate-release-channel.sh scripts/validate-database-policy.sh
-          channel="$(jq -r '.release.channel' release-manifest.json)"
           tag=""
           if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             tag="${GITHUB_REF_NAME}"
@@ -72,8 +71,6 @@ jobs:
             --manifest release-manifest.json \
             --tag "$tag" \
             --prerelease "$prerelease" \
-            --feed-root /feed/pactoolkits \
-            --feed-target "/feed/pactoolkits/$channel" \
             --dry-run "$DRY_RUN" \
             --confirm "$CONFIRM"
 
