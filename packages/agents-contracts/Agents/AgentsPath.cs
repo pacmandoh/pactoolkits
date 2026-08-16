@@ -58,6 +58,18 @@ public static class AgentsPath
         }
     }
 
+    /// <summary>用描述中的入口文件名拼路径</summary>
+    public static string? TryResolveModuleEntryPath(ModuleDescriptor module)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+        if (string.IsNullOrWhiteSpace(module.EntryWinX64) || !IsSafeFileName(module.EntryWinX64))
+        {
+            return null;
+        }
+
+        return ResolveRelativePath(module.EntryWinX64, module.Directory);
+    }
+
     public static string? TryReadModuleVersion(string manifestPath)
     {
         if (string.IsNullOrWhiteSpace(manifestPath) || !File.Exists(manifestPath))
@@ -191,13 +203,31 @@ public static class AgentsPath
 
         for (var i = 0; i < left.Count; i++)
         {
-            if (left[i] != right[i])
+            if (!DescriptorEquals(left[i], right[i]))
             {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private static bool DescriptorEquals(ModuleDescriptor? left, ModuleDescriptor? right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        if (left is null || right is null)
+        {
+            return false;
+        }
+
+        return left with { RequiredApiScopes = null } == right with { RequiredApiScopes = null }
+            && (left.RequiredApiScopes ?? []).SequenceEqual(
+                right.RequiredApiScopes ?? [],
+                StringComparer.Ordinal);
     }
 
     /// <summary>

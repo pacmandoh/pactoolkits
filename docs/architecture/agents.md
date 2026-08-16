@@ -46,6 +46,8 @@ Agents/
 **实时控制走命名管道**（`desired` / `quit` / status 推送 / `moduleFailed`）。  
 `host.desired.json` / `host.status.json` / `module.ready` 是协议文件镜像，不是 Desktop 与 Host 的双写控制协议。协议不含 `host.control` / `module.control`，也不使用 status schema v1。
 
+Host 控制环负责进程监管，catalog 和状态镜像按各自节奏更新；运行态变化通过管道主动通知。Desktop 仅在配置内容变化时同步，并合并重复的文件事件。
+
 ## 控制与观测
 
 ```mermaid
@@ -66,7 +68,7 @@ flowchart LR
 | ----------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | 控制        | 管道 `desired` / `quit`；文件只镜像                                                                             | 管道服务；未收过 IPC 时可用 desired 文件种子       |
 | Snapshot    | 管道缓存优先；文件观测镜像；本地 CreateProcess 失败优先 Failed                                                  | 合成 state / LastError / catalog，schema **仅 v2** |
-| catalog     | 只吃 Snapshot；不轮询扫盘                                                                                       | 扫 `Modules/*/module.json` 并入 Snapshot           |
+| catalog     | 只吃 Snapshot；不轮询扫盘                                                                                       | 秒级扫 `Modules/*/module.json` 并入 Snapshot       |
 | 启模块      | **先门禁**再 `desired` 加入 id（仅可挂集合）                                                                    | reconcile 启动；ready/失败写入 Snapshot            |
 | 停模块      | desired 去掉 id                                                                                                 | reconcile 停止                                     |
 | 停 Host     | desired=[] 再 quit；超时 **Kill Host 进程树**                                                                   | quit 后 StopAll 子模块                             |

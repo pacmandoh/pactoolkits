@@ -8,6 +8,10 @@ namespace PacToolkits.Agents.Host;
 /// </summary>
 internal static class HostStatus
 {
+    private static readonly TimeSpan FileHeartbeatInterval = TimeSpan.FromSeconds(1);
+    private static AgentsStatus? _lastWritten;
+    private static DateTimeOffset _lastWriteUtc = DateTimeOffset.MinValue;
+
     public static AgentsStatus? Publish(
         string agentsDir,
         IReadOnlyList<ModuleSlotView> slots,
@@ -49,7 +53,15 @@ internal static class HostStatus
             }
 
             var status = AgentsStatus.Create(Environment.ProcessId, modules);
-            AgentsStatus.Write(agentsDir, status);
+            var now = DateTimeOffset.UtcNow;
+            if (!AgentsStatus.ContentEquals(_lastWritten, status)
+                || now - _lastWriteUtc >= FileHeartbeatInterval)
+            {
+                AgentsStatus.Write(agentsDir, status);
+                _lastWritten = status;
+                _lastWriteUtc = now;
+            }
+
             return status;
         }
         catch (Exception ex)

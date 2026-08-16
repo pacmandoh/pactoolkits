@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Text.Json;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Models;
 
@@ -28,12 +27,24 @@ internal static class AgentsOptionsModel
     public static AgentsOptions Clone(AgentsOptions src) => Normalize(src);
 
     public static bool Same(AgentsOptions a, AgentsOptions b)
-        => string.Equals(a.ExecutablePath, b.ExecutablePath, StringComparison.Ordinal)
-           && string.Equals(a.ProcessName, b.ProcessName, StringComparison.Ordinal)
-           && string.Equals(
-               JsonSerializer.Serialize(a.Modules),
-               JsonSerializer.Serialize(b.Modules),
-               StringComparison.Ordinal);
+    {
+        if (!string.Equals(a.ExecutablePath, b.ExecutablePath, StringComparison.Ordinal)
+            || !string.Equals(a.ProcessName, b.ProcessName, StringComparison.Ordinal)
+            || a.Modules.Count != b.Modules.Count)
+        {
+            return false;
+        }
+
+        foreach (var (id, left) in a.Modules)
+        {
+            if (!b.Modules.TryGetValue(id, out var right) || left.Enabled != right.Enabled)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public static AgentsOptions FromResolution(
         AgentsOptions agents,

@@ -426,6 +426,25 @@ public sealed partial class AgentsRuntime
                 return;
             }
 
+            lock (_gate)
+            {
+                var known = _options.Modules;
+                var needsSeed = false;
+                foreach (var module in modules)
+                {
+                    if (!known.ContainsKey(module.Id))
+                    {
+                        needsSeed = true;
+                        break;
+                    }
+                }
+
+                if (!needsSeed)
+                {
+                    return;
+                }
+            }
+
             _configStore.Update(root =>
             {
                 root.Agents ??= new AgentsOptions();

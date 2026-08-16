@@ -92,4 +92,20 @@ public sealed class AgentsIpcTests
         Assert.Equal(AgentsRunState.Running, m.State);
         Assert.Equal("1.0.0", m.Version);
     }
+
+    [Fact]
+    public async Task ReadAsync_keeps_second_frame_in_buffer()
+    {
+        var first = AgentsIpc.Ping("a");
+        var second = AgentsIpc.Pong("a");
+        var payload = AgentsIpc.Serialize(first) + "\n" + AgentsIpc.Serialize(second) + "\n";
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(payload));
+        var buffer = new AgentsIpcReadBuffer();
+        var readFirst = await AgentsIpcStream.ReadAsync(stream, buffer, TestContext.Current.CancellationToken);
+        var readSecond = await AgentsIpcStream.ReadAsync(stream, buffer, TestContext.Current.CancellationToken);
+        Assert.NotNull(readFirst);
+        Assert.NotNull(readSecond);
+        Assert.Equal(AgentsIpcOps.Ping, readFirst.Op);
+        Assert.Equal(AgentsIpcEvs.Pong, readSecond.Ev);
+    }
 }

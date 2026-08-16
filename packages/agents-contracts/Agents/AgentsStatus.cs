@@ -110,6 +110,101 @@ public sealed class AgentsStatus
         }
     }
 
+    /// <summary>比较运行态，不含 Ts</summary>
+    public static bool ContentEquals(AgentsStatus? left, AgentsStatus? right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        if (left is null || right is null)
+        {
+            return false;
+        }
+
+        if (left.SchemaVersion != right.SchemaVersion
+            || left.HostPid != right.HostPid
+            || left.HostState != right.HostState
+            || left.Modules.Count != right.Modules.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Modules.Count; i++)
+        {
+            if (!ModuleContentEquals(left.Modules[i], right.Modules[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public AgentsStatus Clone()
+    {
+        var modules = new List<AgentsStatusModule>(Modules.Count);
+        foreach (var module in Modules)
+        {
+            modules.Add(CloneModule(module));
+        }
+
+        return new AgentsStatus
+        {
+            SchemaVersion = SchemaVersion,
+            Ts = Ts,
+            HostPid = HostPid,
+            HostState = HostState,
+            Modules = modules,
+        };
+    }
+
+    private static bool ModuleContentEquals(AgentsStatusModule left, AgentsStatusModule right)
+        => left.Pid == right.Pid
+           && left.Ready == right.Ready
+           && left.State == right.State
+           && left.BottomStatusBar == right.BottomStatusBar
+           && left.TopStatusPills == right.TopStatusPills
+           && left.Order == right.Order
+           && string.Equals(left.Id, right.Id, StringComparison.Ordinal)
+           && string.Equals(left.LastError, right.LastError, StringComparison.Ordinal)
+           && string.Equals(left.Version, right.Version, StringComparison.Ordinal)
+           && string.Equals(left.DisplayName, right.DisplayName, StringComparison.Ordinal)
+           && string.Equals(left.Runtime, right.Runtime, StringComparison.Ordinal)
+           && string.Equals(left.EntryWinX64, right.EntryWinX64, StringComparison.Ordinal)
+           && string.Equals(left.MinApiContract, right.MinApiContract, StringComparison.Ordinal)
+           && string.Equals(left.MaxApiContract, right.MaxApiContract, StringComparison.Ordinal)
+           && string.Equals(left.IconActive, right.IconActive, StringComparison.Ordinal)
+           && string.Equals(left.IconInactive, right.IconInactive, StringComparison.Ordinal)
+           && (left.RequiredApiScopes ?? []).SequenceEqual(
+               right.RequiredApiScopes ?? [],
+               StringComparer.Ordinal);
+
+    private static AgentsStatusModule CloneModule(AgentsStatusModule source)
+        => new()
+        {
+            Id = source.Id,
+            Pid = source.Pid,
+            Ready = source.Ready,
+            State = source.State,
+            LastError = source.LastError,
+            Version = source.Version,
+            DisplayName = source.DisplayName,
+            Runtime = source.Runtime,
+            EntryWinX64 = source.EntryWinX64,
+            MinApiContract = source.MinApiContract,
+            MaxApiContract = source.MaxApiContract,
+            RequiredApiScopes = source.RequiredApiScopes is null
+                ? null
+                : [.. source.RequiredApiScopes],
+            IconActive = source.IconActive,
+            IconInactive = source.IconInactive,
+            BottomStatusBar = source.BottomStatusBar,
+            TopStatusPills = source.TopStatusPills,
+            Order = source.Order,
+        };
+
     public static void TryDelete(string? agentsDir)
     {
         if (string.IsNullOrWhiteSpace(agentsDir))

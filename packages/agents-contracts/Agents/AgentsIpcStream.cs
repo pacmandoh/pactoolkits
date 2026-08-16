@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text;
-using System.Text.Json;
 
 namespace PacToolkits.Agents.Contracts.Agents;
 
@@ -20,53 +19,75 @@ public static class AgentsIpcStream
         await stream.FlushAsync(ct).ConfigureAwait(false);
     }
 
-    public static async Task<AgentsIpcMessage?> ReadAsync(Stream stream, CancellationToken ct)
+    public static async Task<AgentsIpcMessage?> ReadAsync(
+        Stream stream,
+        AgentsIpcReadBuffer buffer,
+        CancellationToken ct)
     {
-        var buffer = new ArrayBufferWriter<byte>(512);
-        var one = new byte[1];
+        ArgumentNullException.ThrowIfNull(buffer);
+
         while (true)
         {
             ct.ThrowIfCancellationRequested();
-            var read = await stream.ReadAsync(one.AsMemory(0, 1), ct).ConfigureAwait(false);
+            if (buffer.TryTakeLine(out var line))
+            {
+                return line.Length == 0 ? null : AgentsIpc.TryDeserialize(line);
+            }
+
+            var memory = buffer.Chunk.AsMemory();
+            var read = await stream.ReadAsync(memory, ct).ConfigureAwait(false);
             if (read == 0)
             {
                 return null;
             }
 
-            if (one[0] == (byte)'\n')
-            {
-                break;
-            }
-
-            if (one[0] == (byte)'\r')
-            {
-                continue;
-            }
-
-            buffer.Write(one);
-            if (buffer.WrittenCount > 1_000_000)
-            {
-                throw new InvalidOperationException("IPC frame too large");
-            }
+            buffer.Append(memory.Span[..read]);
         }
+    }
+}
 
-        if (buffer.WrittenCount == 0)
+/// <summary>维护跨次读取的 IPC 帧边界</summary>
+public sealed class AgentsIpcReadBuffer
+{
+    internal readonly byte[] Chunk = new byte[4096];
+    private readonly ArrayBufferWriter<byte> _pending = new(512);
+
+    internal void Append(ReadOnlySpan<byte> bytes)
+    {
+        if (_pending.WrittenCount + bytes.Length > 1_000_000)
         {
-            return null;
+            throw new InvalidOperationException("IPC frame too large");
         }
 
-        var line = Encoding.UTF8.GetString(buffer.WrittenSpan);
-        return AgentsIpc.TryDeserialize(line);
+        _pending.Write(bytes);
     }
 
-    public static AgentsStatus? CloneStatus(AgentsStatus? source)
+    internal bool TryTakeLine(out string line)
     {
-        if (source is null)
+        var span = _pending.WrittenSpan;
+        var newline = span.IndexOf((byte)'\n');
+        if (newline < 0)
         {
-            return null;
+            line = string.Empty;
+            return false;
         }
 
-        var json = JsonSerializer.Serialize(source, AgentsJson.Options);
-        return JsonSerializer.Deserialize<AgentsStatus>(json, AgentsJson.Options);
+        var payload = span[..newline];
+        if (payload.Length > 0 && payload[^1] == (byte)'\r')
+        {
+            payload = payload[..^1];
+        }
+
+        line = Encoding.UTF8.GetString(payload);
+        var restStart = newline + 1;
+        var restLen = span.Length - restStart;
+        byte[]? rest = restLen > 0 ? span[restStart..].ToArray() : null;
+        _pending.Clear();
+        if (rest is { Length: > 0 })
+        {
+            _pending.Write(rest);
+        }
+
+        return true;
     }
 }

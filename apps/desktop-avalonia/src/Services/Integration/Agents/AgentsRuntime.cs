@@ -32,6 +32,8 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
     private readonly SemaphoreSlim _commandGate = new(1, 1);
     private readonly Timer _pollTimer;
     private static readonly TimeSpan HostCommandCooldown = TimeSpan.FromMilliseconds(1200);
+    private static readonly TimeSpan ConnectedPollInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan DisconnectedPollInterval = TimeSpan.FromSeconds(1);
 
     private readonly AgentsLink _link = new();
     private readonly AgentsHostLauncher _host;
@@ -86,7 +88,7 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
 
         Reload();
 
-        _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(1));
+        _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), Timeout.InfiniteTimeSpan);
         _link.SnapshotChanged += OnIpcStatusArrived;
         _link.ModuleFailed += OnModuleFailed;
         _availability?.Changed += OnApiAvailabilityChanged;
@@ -277,6 +279,17 @@ public sealed partial class AgentsRuntime : IAgentsRuntime
         finally
         {
             Volatile.Write(ref _polling, 0);
+            if (!_disposed)
+            {
+                var due = _link.IsLinkConnected ? ConnectedPollInterval : DisconnectedPollInterval;
+                try
+                {
+                    _pollTimer.Change(due, Timeout.InfiniteTimeSpan);
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
         }
     }
 
