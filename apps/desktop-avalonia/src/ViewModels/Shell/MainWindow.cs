@@ -81,6 +81,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly string _configDir;
     private readonly string _configFile;
     private FileSystemWatcher? _configWatcher;
+    private CancellationTokenSource? _configWatchCts;
     private string? _lastSeenConfigJson;
 
     private readonly TimeSpan _autoRefreshDebounce = TimeSpan.FromMilliseconds(180);
@@ -1253,6 +1254,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             _configWatcher = null;
         }
+
+        SafeExecute(() =>
+        {
+            var configWatchCts = Interlocked.Exchange(ref _configWatchCts, null);
+            configWatchCts?.Cancel();
+        });
 
         SafeExecute(() =>
         {

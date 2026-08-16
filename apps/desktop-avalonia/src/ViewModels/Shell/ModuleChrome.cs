@@ -1,3 +1,4 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
@@ -31,14 +32,34 @@ public sealed partial class ModuleChrome : ObservableObject
 
     public void ApplyDescriptor(ModuleDescriptor module)
     {
-        Id = module.Id;
-        DisplayName = module.DisplayName;
-        ActiveIcon = module.Desktop.Icons.Active;
-        InactiveIcon = module.Desktop.Icons.Inactive;
-        OnPropertyChanged(nameof(Id));
-        OnPropertyChanged(nameof(DisplayName));
-        OnPropertyChanged(nameof(ActiveIcon));
-        OnPropertyChanged(nameof(InactiveIcon));
+        var id = module.Id;
+        var displayName = module.DisplayName;
+        var activeIcon = module.Desktop.Icons.Active;
+        var inactiveIcon = module.Desktop.Icons.Inactive;
+
+        if (!string.Equals(Id, id, StringComparison.Ordinal))
+        {
+            Id = id;
+            OnPropertyChanged(nameof(Id));
+        }
+
+        if (!string.Equals(DisplayName, displayName, StringComparison.Ordinal))
+        {
+            DisplayName = displayName;
+            OnPropertyChanged(nameof(DisplayName));
+        }
+
+        if (!string.Equals(ActiveIcon, activeIcon, StringComparison.Ordinal))
+        {
+            ActiveIcon = activeIcon;
+            OnPropertyChanged(nameof(ActiveIcon));
+        }
+
+        if (!string.Equals(InactiveIcon, inactiveIcon, StringComparison.Ordinal))
+        {
+            InactiveIcon = inactiveIcon;
+            OnPropertyChanged(nameof(InactiveIcon));
+        }
     }
 
     public void Apply(AgentsRunState state)

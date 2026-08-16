@@ -85,6 +85,43 @@ public sealed class AppConfigStoreTests
     }
 
     [Fact]
+    public void Update_skips_write_when_mutator_makes_no_change()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "pactoolkits-config-unchanged-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(dir);
+            var store = new AppConfigStore(dir);
+            store.Update(root =>
+            {
+                root.Agents ??= new AgentsOptions();
+                root.Agents.Modules["Injector"] = new ModuleOptions { Enabled = true };
+            });
+
+            var unchangedWriteTime = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+            File.SetLastWriteTimeUtc(store.ConfigPath, unchangedWriteTime);
+
+            store.Update(root =>
+            {
+                root.Agents ??= new AgentsOptions();
+                if (!root.Agents.Modules.ContainsKey("Injector"))
+                {
+                    root.Agents.Modules["Injector"] = new ModuleOptions { Enabled = true };
+                }
+            });
+
+            Assert.Equal(unchangedWriteTime, File.GetLastWriteTimeUtc(store.ConfigPath));
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Keeps_module_flags_when_host_exists_but_catalog_is_temporarily_empty()
     {
         var rootDir = Path.Combine(Path.GetTempPath(), "pactoolkits-appconfig-empty-" + Guid.NewGuid().ToString("N"));
