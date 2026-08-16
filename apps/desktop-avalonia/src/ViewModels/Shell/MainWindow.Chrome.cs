@@ -23,6 +23,7 @@ public partial class MainWindowViewModel
 
     private readonly Dictionary<string, ModuleChrome> _moduleChromeById = new(StringComparer.Ordinal);
     private DateTimeOffset _lastAgentsTopToastAt = DateTimeOffset.MinValue;
+    private string? _agentsChromeKey;
 
     private IAgentsRuntime Agents => _agentsManager.GetRequired(AgentsIds.Agents);
 
@@ -689,6 +690,13 @@ public partial class MainWindowViewModel
             return;
         }
 
+        var key = BuildAgentsChromeKey(Agents.HostState, Agents.Modules, Agents.GetModuleState);
+        if (string.Equals(key, _agentsChromeKey, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _agentsChromeKey = key;
         SyncModuleChrome();
         OnPropertyChanged(nameof(IsHostMenuChecked));
         OnPropertyChanged(nameof(HostVisualState));
@@ -697,6 +705,28 @@ public partial class MainWindowViewModel
         OnPropertyChanged(nameof(CanControlAgents));
         NotifyAgentsCommands();
         AgentsChromeUpdated?.Invoke();
+    }
+
+    internal static string BuildAgentsChromeKey(
+        AgentsRunState host,
+        IEnumerable<ModuleDescriptor> modules,
+        Func<string, AgentsRunState> moduleState)
+    {
+        var listed = modules
+            .Where(m => m.Desktop.TopStatusPills || m.Desktop.BottomStatusBar)
+            .OrderBy(m => m.Desktop.Order)
+            .ThenBy(m => m.Id, StringComparer.Ordinal);
+        var parts = listed.Select(m =>
+            string.Join(
+                '\t',
+                m.Id,
+                m.DisplayName,
+                m.Desktop.Icons.Active,
+                m.Desktop.Icons.Inactive,
+                m.Desktop.TopStatusPills ? "1" : "0",
+                m.Desktop.BottomStatusBar ? "1" : "0",
+                moduleState(m.Id).ToString()));
+        return string.Join('\n', new[] { host.ToString() }.Concat(parts));
     }
 
     private void SyncModuleChrome()

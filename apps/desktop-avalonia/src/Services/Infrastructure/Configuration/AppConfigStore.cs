@@ -87,8 +87,7 @@ public sealed class AppConfigStore : IAppConfigStore
         try
         {
             var normalized = Normalize(config);
-            var json = SerializeDesktopConfig(normalized);
-            AtomicFile.WriteAllText(ConfigPath, json);
+            PersistIfChanged(normalized);
         }
         finally
         {
@@ -103,8 +102,7 @@ public sealed class AppConfigStore : IAppConfigStore
         {
             ct.ThrowIfCancellationRequested();
             var normalized = Normalize(config);
-            var json = SerializeDesktopConfig(normalized);
-            await AtomicFile.WriteAllTextAsync(ConfigPath, json, ct).ConfigureAwait(false);
+            await PersistIfChangedAsync(normalized, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -123,8 +121,7 @@ public sealed class AppConfigStore : IAppConfigStore
             var cfg = Normalize(raw);
             mutator(cfg);
             var normalized = Normalize(cfg);
-            var json = SerializeDesktopConfig(normalized);
-            AtomicFile.WriteAllText(ConfigPath, json);
+            PersistIfChanged(normalized);
         }
         finally
         {
@@ -144,8 +141,7 @@ public sealed class AppConfigStore : IAppConfigStore
             var cfg = Normalize(raw);
             mutator(cfg);
             var normalized = Normalize(cfg);
-            var json = SerializeDesktopConfig(normalized);
-            await AtomicFile.WriteAllTextAsync(ConfigPath, json, ct).ConfigureAwait(false);
+            await PersistIfChangedAsync(normalized, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -341,6 +337,38 @@ public sealed class AppConfigStore : IAppConfigStore
         }
 
         AtomicFile.WriteAllText(ConfigPath, json);
+    }
+
+    private async Task PersistIfChangedAsync(AppConfigRoot normalized, CancellationToken ct)
+    {
+        var json = SerializeDesktopConfig(normalized);
+        if (!File.Exists(ConfigPath))
+        {
+            await AtomicFile.WriteAllTextAsync(ConfigPath, json, ct).ConfigureAwait(false);
+            return;
+        }
+
+        string existing;
+        try
+        {
+            existing = await File.ReadAllTextAsync(ConfigPath, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            await AtomicFile.WriteAllTextAsync(ConfigPath, json, ct).ConfigureAwait(false);
+            return;
+        }
+
+        if (string.Equals(existing, json, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        await AtomicFile.WriteAllTextAsync(ConfigPath, json, ct).ConfigureAwait(false);
     }
 
     private string SerializeDesktopConfig(AppConfigRoot normalized)

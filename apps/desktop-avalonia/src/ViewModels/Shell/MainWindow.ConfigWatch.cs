@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
@@ -70,35 +71,32 @@ public partial class MainWindowViewModel
         }
     }
 
-    private async Task OnConfigChangedAsync()
+    private async Task OnConfigChangedAsync(CancellationToken ct)
     {
         if (_disposed)
         {
             return;
         }
 
-        // 编辑器连写会触发 watcher 连发，先 debounce
-        await Task.Delay(350).ConfigureAwait(false);
+        try
+        {
+            await Task.Delay(350, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
 
         if (!File.Exists(_configPath))
         {
             return;
         }
 
-        try
-        {
-            await _agentsManager.SyncConfigAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn("MainWindowVM", "config.agent_sync_fail", "Failed to synchronize agent configuration", ex);
-        }
-
         AppConfigRoot? loaded;
         string? json;
         try
         {
-            json = await File.ReadAllTextAsync(_configPath).ConfigureAwait(false);
+            json = await File.ReadAllTextAsync(_configPath, ct).ConfigureAwait(false);
 
             if (string.Equals(json, _lastSeenConfigJson, StringComparison.Ordinal))
             {
@@ -106,6 +104,10 @@ public partial class MainWindowViewModel
             }
 
             loaded = JsonSerializer.Deserialize<AppConfigRoot>(json);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
         }
         catch (Exception ex)
         {
@@ -119,9 +121,34 @@ public partial class MainWindowViewModel
             return;
         }
 
-        _lastSeenConfigJson = json;
+        try
+        {
+            await _agentsManager.SyncConfigAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "config.agent_sync_fail", "Failed to synchronize agent configuration", ex);
+        }
 
+        _lastSeenConfigJson = json;
         ApplySafeConfigHotReload(loaded);
+    }
+
+    private async Task RunConfigWatchAsync(CancellationTokenSource source)
+    {
+        try
+        {
+            await OnConfigChangedAsync(source.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            Interlocked.CompareExchange(ref _configWatchCts, null, source);
+            source.Dispose();
+        }
     }
 
     private void ApplySafeConfigHotReload(AppConfigRoot cfg)
@@ -142,8 +169,29 @@ public partial class MainWindowViewModel
     }
 
     private void OnConfigWatcherChanged(object? sender, FileSystemEventArgs e)
-        => ObserveDetached(OnConfigChangedAsync(), "config.watch.detached.fail");
+        => ScheduleConfigWatch();
 
     private void OnConfigWatcherRenamed(object? sender, RenamedEventArgs e)
-        => ObserveDetached(OnConfigChangedAsync(), "config.watch.detached.fail");
+        => ScheduleConfigWatch();
+
+    private void ScheduleConfigWatch()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        // 连发的文件事件合并为一次延迟处理
+        var next = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _configWatchCts, next);
+        try
+        {
+            previous?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        ObserveDetached(RunConfigWatchAsync(next), "config.watch.detached.fail");
+    }
 }
