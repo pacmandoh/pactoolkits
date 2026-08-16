@@ -61,7 +61,14 @@ PacApi_Init(root := "") {
 }
 
 PacApi_NewCommandId() {
-	return Trim(ComObject("Scriptlet.TypeLib").GUID, "{}")
+	; Scriptlet.TypeLib 会给出空 GUID
+	buf := Buffer(16)
+	if DllCall("ole32\CoCreateGuid", "ptr", buf, "uint")
+		throw Error("CoCreateGuid failed")
+	str := Buffer(80)
+	if !DllCall("ole32\StringFromGUID2", "ptr", buf, "ptr", str, "int", 40)
+		throw Error("StringFromGUID2 failed")
+	return Trim(StrGet(str, "UTF-16"), "{}")
 }
 
 PacApi_UrlEncode(v) {
