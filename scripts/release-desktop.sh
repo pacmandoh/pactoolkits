@@ -21,12 +21,11 @@ Options:
   --bump-channel C           Optional: bump release.channel (stable|beta).
   --pack-version X.Y.Z       Optional: vpk pack version (default: manifest product.version).
   --channel C                Optional: vpk channel (default: manifest release.channel).
-  --runtime RID              Runtime for publish/pack (default: win-arm64).
   --framework TFM            Target framework (default: net10.0).
   --configuration CFG        Build configuration (default: Release).
   --self-contained true|false   dotnet publish self-contained (default: false).
   --output-dir DIR           vpk output directory (default: desktop Releases directory).
-  --pack-dir DIR             publish output directory for vpk (default: bin/<cfg>/<tfm>/<rid>/publish).
+  --pack-dir DIR             publish output directory for vpk (default: bin/<cfg>/<tfm>/win-x64/publish).
   --main-exe FILE            main exe for vpk (default: PacToolkits.Desktop.exe).
   --icon FILE                icon for setup package (default: Assets/app.ico).
   --vpk-directive NAME       optional vpk target directive (e.g. win).
@@ -42,10 +41,10 @@ Notes:
 
 Examples:
   ./scripts/release-desktop.sh --bump-desktop 0.4.2 \
-    --runtime win-arm64 --vpk-directive win \
+    --vpk-directive win \
     --upload-target user@host:/var/www/updates/pactoolkits
 
-  ./scripts/release-desktop.sh --channel stable --runtime win-x64 --dry-run
+  ./scripts/release-desktop.sh --channel stable --dry-run
 USAGE
 }
 
@@ -77,7 +76,7 @@ BUMP_DB=""
 BUMP_CHANNEL=""
 PACK_VERSION=""
 CHANNEL=""
-RUNTIME="win-arm64"
+RUNTIME="win-x64"
 FRAMEWORK="net10.0"
 CONFIGURATION="Release"
 SELF_CONTAINED="false"
@@ -120,10 +119,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --channel)
       CHANNEL="${2:-}"
-      shift 2
-      ;;
-    --runtime)
-      RUNTIME="${2:-}"
       shift 2
       ;;
     --framework)

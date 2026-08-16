@@ -6,9 +6,6 @@ on:
       product_version:
         required: true
         type: string
-      runtime:
-        required: true
-        type: string
       release_tag:
         required: true
         type: string
@@ -17,11 +14,10 @@ permissions:
 
 jobs:
   publish_test_release:
-    name: Publish Test Release (${{ inputs.runtime }})
+    name: Publish Test Release (win-x64)
     runs-on: ubuntu-latest
     env:
       PRODUCT_VERSION: ${{ inputs.product_version }}
-      RUNTIME: ${{ inputs.runtime }}
       RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
       - name: Checkout
@@ -43,7 +39,7 @@ jobs:
       - name: Download desktop release artifact
         uses: actions/download-artifact@v8
         with:
-          name: pactoolkits-desktop-${{ inputs.runtime }}-${{ inputs.product_version }}
+          name: pactoolkits-desktop-win-x64-${{ inputs.product_version }}
           path: dist
 
       - name: Add release metadata
@@ -74,7 +70,7 @@ jobs:
           else
             gh release create "$RELEASE_TAG" \
               --target "${GITHUB_SHA}" \
-              --title "PacToolkits ${PRODUCT_VERSION} test (${RUNTIME})" \
+              --title "PacToolkits ${PRODUCT_VERSION} test (win-x64)" \
               --notes "Automated Windows test package from build-windows-test-package. This is not a formal release tag." \
               --prerelease
           fi

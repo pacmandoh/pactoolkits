@@ -27,10 +27,6 @@ on:
       channel:
         required: true
         type: string
-      runtime:
-        required: false
-        type: string
-        default: win-x64
       artifact_retention_days:
         required: false
         type: number
@@ -52,8 +48,7 @@ jobs:
       PRODUCT_VERSION: ${{ inputs.product_version }}
       DESKTOP_VERSION: ${{ inputs.desktop_version }}
       CHANNEL: ${{ inputs.channel }}
-      RUNTIME: ${{ inputs.runtime || 'win-x64' }}
-      AGENTS_RUNTIME: win-x64
+      RUNTIME: win-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -91,10 +86,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          case "$RUNTIME" in
-            win-x64|win-arm64) ;;
-            *) echo "Unsupported runtime: $RUNTIME" >&2; exit 1 ;;
-          esac
           semver_re='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.(0|[1-9][0-9]*))?$'
           [[ "$PRODUCT_VERSION" =~ $semver_re ]] || { echo "Invalid product_version: $PRODUCT_VERSION" >&2; exit 1; }
           [[ "$DESKTOP_VERSION" =~ $semver_re ]] || { echo "Invalid desktop_version: $DESKTOP_VERSION" >&2; exit 1; }
@@ -118,7 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           version="$(jq -r '.components.agents.version' release-manifest.json)"
-          name="PacToolkits-Agents-${AGENTS_RUNTIME}-${version}"
+          name="PacToolkits-Agents-${RUNTIME}-${version}"
           echo "name=${name}" >> "$GITHUB_OUTPUT"
           echo "dir=_agents_artifacts/${name}" >> "$GITHUB_OUTPUT"
 
@@ -143,7 +134,7 @@ jobs:
             fi
             source="$(resolve_bundled_agents_source "$exe_name" "$version" || true)"
             [[ -n "$source" ]] || {
-              echo "Bundled Agents source missing for $bundle_id ($exe_name, version=$version, runtime=$AGENTS_RUNTIME)" >&2
+              echo "Bundled Agents source missing for $bundle_id ($exe_name, version=$version, runtime=$RUNTIME)" >&2
               echo "Downloaded Agents artifact tree:" >&2
               find "_agents_artifacts" -type f 2>/dev/null | sed 's/^/  /' || echo "  (empty)" >&2
               exit 1
@@ -211,7 +202,7 @@ jobs:
               mkdir -p "$agents_dist/Modules"
               cp -R "$source_dir/Modules/." "$agents_dist/Modules/"
             fi
-            agents_zip="$dist/PacToolkits-Agents-${AGENTS_RUNTIME}-${version}.zip"
+            agents_zip="$dist/PacToolkits-Agents-${RUNTIME}-${version}.zip"
             (cd "$dist" && zip -r "$(basename "$agents_zip")" Agents)
             rm -rf "$agents_dist"
             echo "Collected Agents zip -> $agents_zip"

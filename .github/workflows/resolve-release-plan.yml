@@ -2,11 +2,6 @@ name: Resolve Release Plan
 
 on:
   workflow_call:
-    inputs:
-      runtime:
-        required: false
-        type: string
-        default: win-x64
     outputs:
       desktop_version:
         description: components.desktop.avalonia.version
@@ -35,9 +30,6 @@ on:
       publish_subdir:
         description: Expected desktop publish directory relative to repo root
         value: ${{ jobs.resolve_release_plan.outputs.publish_subdir }}
-      runtime:
-        description: Windows runtime identifier
-        value: ${{ jobs.resolve_release_plan.outputs.runtime }}
 
 permissions:
   contents: read
@@ -56,7 +48,6 @@ jobs:
       icon_path: ${{ steps.plan.outputs.icon_path }}
       releases_dir: ${{ steps.plan.outputs.releases_dir }}
       publish_subdir: ${{ steps.plan.outputs.publish_subdir }}
-      runtime: ${{ steps.plan.outputs.runtime }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -67,4 +58,4 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x scripts/resolve-release-plan.sh scripts/manifest-v2.sh
-          ./scripts/resolve-release-plan.sh --github-output --runtime "${{ inputs.runtime || 'win-x64' }}" release-manifest.json
+          ./scripts/resolve-release-plan.sh --github-output release-manifest.json

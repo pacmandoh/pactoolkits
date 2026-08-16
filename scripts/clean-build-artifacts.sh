@@ -4,12 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DRY_RUN="false"
 ALL_DOTNET="false"
-RUNTIME_FILTER=""
 
 usage() {
   cat << 'USAGE'
 Usage:
-  clean-build-artifacts.sh [--dry-run] [--all-dotnet] [--runtime win-x64|win-arm64]
+  clean-build-artifacts.sh [--dry-run] [--all-dotnet]
 
 Removes local build/package outputs produced by release and test-package workflows.
 
@@ -17,11 +16,10 @@ Default scope:
   - artifacts/agents
   - artifacts/desktop
   - desktop + Agents Releases directories
-  - Avalonia publish output for win-x64 and win-arm64
+  - Avalonia win-x64 publish output
 
 Options:
   --dry-run              Print paths that would be removed.
-  --runtime RID          Limit Avalonia publish cleanup to one RID.
   --all-dotnet           Also remove all bin/ and obj/ directories in the repo.
   -h, --help             Show this help.
 USAGE
@@ -37,10 +35,6 @@ while [[ $# -gt 0 ]]; do
       ALL_DOTNET="true"
       shift
       ;;
-    --runtime)
-      RUNTIME_FILTER="${2:-}"
-      shift 2
-      ;;
     -h | --help)
       usage
       exit 0
@@ -52,14 +46,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-case "$RUNTIME_FILTER" in
-  "" | win-x64 | win-arm64) ;;
-  *)
-    echo "ERROR: --runtime must be win-x64 or win-arm64" >&2
-    exit 1
-    ;;
-esac
 
 remove_path() {
   local rel="$1"
@@ -97,19 +83,10 @@ for module_dir in "$ROOT_DIR/runtime/agents/modules"/*; do
   paths+=("${module_dir#"$ROOT_DIR/"}/Releases")
 done
 
-if [[ -n "$RUNTIME_FILTER" ]]; then
-  paths+=(
-    "apps/desktop-avalonia/src/bin/Release/net10.0/$RUNTIME_FILTER"
-    "apps/desktop-avalonia/src/obj/Release/net10.0/$RUNTIME_FILTER"
-  )
-else
-  paths+=(
-    "apps/desktop-avalonia/src/bin/Release/net10.0/win-x64"
-    "apps/desktop-avalonia/src/bin/Release/net10.0/win-arm64"
-    "apps/desktop-avalonia/src/obj/Release/net10.0/win-x64"
-    "apps/desktop-avalonia/src/obj/Release/net10.0/win-arm64"
-  )
-fi
+paths+=(
+  "apps/desktop-avalonia/src/bin/Release/net10.0/win-x64"
+  "apps/desktop-avalonia/src/obj/Release/net10.0/win-x64"
+)
 
 if [[ "$ALL_DOTNET" == "true" ]]; then
   while IFS= read -r dir; do

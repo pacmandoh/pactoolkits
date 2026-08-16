@@ -3,10 +3,6 @@ name: Build Agents
 on:
   workflow_call:
     inputs:
-      runtime:
-        required: false
-        type: string
-        default: win-x64
       artifact_retention_days:
         required: false
         type: number
@@ -21,7 +17,7 @@ jobs:
     name: Build Agents host and AHK modules
     runs-on: windows-latest
     env:
-      RUNTIME: ${{ inputs.runtime || 'win-x64' }}
+      RUNTIME: win-x64
       AUTOHOTKEY_VERSION: 2.0.19
       AHK2EXE_TAG: Ahk2Exe1.1.37.02a2
       AHK2EXE_ZIP_SHA256: c29b8c3a5124850d79fc9e66e2ca79677c377d7f31631ad3022ba159c5d9e3be
@@ -49,9 +45,6 @@ jobs:
         id: versions
         shell: pwsh
         run: |
-          if ($env:RUNTIME -ne "win-x64") {
-            throw "Agents currently supports runtime=win-x64 only; got $env:RUNTIME"
-          }
           $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
           $agentsVersion = $manifest.components.'agents'.version
           if ($agentsVersion -notmatch '^\d+\.\d+\.\d+$') {

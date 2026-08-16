@@ -82,6 +82,8 @@ release.yml
 
 **路径约定（monorepo）：**
 
+Windows 发布目标统一为 `win-x64`；Desktop、Agents、测试包与正式安装包不提供其它 Windows 架构产物。
+
 | 产物              | 路径                                                                             |
 | ----------------- | -------------------------------------------------------------------------------- |
 | Desktop 项目      | `apps/desktop-avalonia/src/`                                                     |
@@ -118,7 +120,6 @@ release.yml
 
 ```bash
 ./scripts/release-desktop.sh \
-  --runtime win-x64 \
   --vpk-directive win \
   --upload-target user@host:/var/www/updates/pactoolkits
 ```
