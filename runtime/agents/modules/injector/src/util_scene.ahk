@@ -43,19 +43,28 @@ Util_HotIf_TargetApp() {
 		return false
 
 	; 使用固定窗口句柄完成整次判断，避免中途切换活动窗口
-	ctx := Util_CaptureWin("A")
-	if (!ctx["hwnd"])
+	hwnd := 0
+	try hwnd := WinGetID("A")
+	catch
 		return false
+	if (!hwnd)
+		return false
+	if Util_HotIf_CacheHit(hwnd, &cached)
+		return cached
+
+	ctx := Util_CaptureWin("ahk_id " hwnd)
+	if (!ctx["hwnd"])
+		return Util_HotIf_Remember(hwnd, false)
 
 	; 进程白名单是窗口识别的第一层安全边界
 	try exe := WinGetProcessName(ctx["win"])
 	catch
-		return false
+		return Util_HotIf_Remember(ctx["hwnd"], false)
 
 	exeName := Cfg["APP_WIN"]
 	if !exeName.Has(exe) {
 		; 仅键按下时记 Debug，避免 HotIf 轮询刷屏
-		if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) {
+		if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) && Log_ShouldWrite("Debug") {
 			MouseGetPos(, , , &ctrlHwnd, 2)
 			ptrNn := ""
 			try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
@@ -63,15 +72,15 @@ Util_HotIf_TargetApp() {
 				"exe", exe, "cls", ctx["cls"], "ttl", ctx["ttl"], "ptrNn", ptrNn
 			))
 		}
-		return false
+		return Util_HotIf_Remember(ctx["hwnd"], false)
 	}
 
 	; 窗口类是第二层安全边界，仓库模式仅适用于住院或仓库窗口
 	cls := ctx["cls"]
 	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
 		if (cls = Cfg["IPT_WINDOW_CLASS"])
-			return true
-		if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) {
+			return Util_HotIf_Remember(ctx["hwnd"], true)
+		if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) && Log_ShouldWrite("Debug") {
 			MouseGetPos(, , , &ctrlHwnd, 2)
 			ptrNn := ""
 			try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
@@ -80,11 +89,11 @@ Util_HotIf_TargetApp() {
 				"need", Cfg["IPT_WINDOW_CLASS"], "ptrNn", ptrNn
 			))
 		}
-		return false
+		return Util_HotIf_Remember(ctx["hwnd"], false)
 	}
 	if (cls = Cfg["OPT_WINDOW_CLASS"] || cls = Cfg["IPT_WINDOW_CLASS"])
-		return true
-	if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) {
+		return Util_HotIf_Remember(ctx["hwnd"], true)
+	if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) && Log_ShouldWrite("Debug") {
 		MouseGetPos(, , , &ctrlHwnd, 2)
 		ptrNn := ""
 		try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
@@ -93,7 +102,25 @@ Util_HotIf_TargetApp() {
 			"needOpt", Cfg["OPT_WINDOW_CLASS"], "needIpt", Cfg["IPT_WINDOW_CLASS"]
 		))
 	}
-	return false
+	return Util_HotIf_Remember(ctx["hwnd"], false)
+}
+
+Util_HotIf_CacheHit(hwnd, &ok) {
+	global _HotIfCacheTick, _HotIfCacheHwnd, _HotIfCacheOk
+	if !IsSet(_HotIfCacheTick)
+		return false
+	if (_HotIfCacheHwnd != hwnd || (DllCall("GetTickCount64", "UInt64") - _HotIfCacheTick) >= 40)
+		return false
+	ok := _HotIfCacheOk
+	return true
+}
+
+Util_HotIf_Remember(hwnd, ok) {
+	global _HotIfCacheTick, _HotIfCacheHwnd, _HotIfCacheOk
+	_HotIfCacheTick := DllCall("GetTickCount64", "UInt64")
+	_HotIfCacheHwnd := hwnd
+	_HotIfCacheOk := ok
+	return ok
 }
 
 Util_DetectScene(win := "A") {
