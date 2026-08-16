@@ -576,9 +576,9 @@ UI_RestoreGridClick(anchor, classNN, win := "A") {
 	return Map("ok", true, "reason", "ok", "hwnd", hwndSite, "cx", clickX, "cy", cy, "clientW", curW, "clientH", curH)
 }
 
-UI_MouseOnClassNN(targetNN, win := "A") {
-	win := Util_NormalizeWin(win)
-	MouseGetPos(, , &winHwnd, &ctrlHwnd, 2)
+UI_MouseOnClassNN(targetNN, &hitHwnd) {
+	hitHwnd := 0
+	MouseGetPos(, , , &ctrlHwnd, 2)
 
 	; (3) 命中：优先 AHK 指针下控件 HWND，再父链比完整 ClassNN
 	h0 := ctrlHwnd
@@ -592,5 +592,6 @@ UI_MouseOnClassNN(targetNN, win := "A") {
 	if !h0
 		return false
 
+	hitHwnd := h0
 	return !!UI_FindAncestorByClassNN(h0, targetNN)
 }

@@ -115,26 +115,45 @@ global _LAST_RUN := 0
 {
 	t0 := A_TickCount
 	ctx := Util_CaptureWin("A")
-	MouseGetPos(, , , &ctrlHwnd, 2)
-	ptrNn := ""
-	try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
 	parseGridClassNN := (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
-	Log_Debug("hot.rbutton", "右键入口", Map(
-		"cls", ctx["cls"], "ttl", ctx["ttl"],
-		"needNn", parseGridClassNN, "ptrNn", ptrNn
-	))
-	if !UI_MouseOnClassNN(parseGridClassNN) {
-		Log_Debug("hot.rbutton.miss_grid", "右键未落在解析网格", Map(
-			"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - t0
+	hitHwnd := 0
+	isOnGrid := UI_MouseOnClassNN(parseGridClassNN, &hitHwnd)
+	warehouseMode := (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
+	clickAnchor := ""
+	if (isOnGrid && !warehouseMode && ctx["cls"] = Cfg["OPT_WINDOW_CLASS"])
+		clickAnchor := UI_CaptureGridClickAnchor(parseGridClassNN, hitHwnd)
+	debugEnabled := Log_ShouldWrite("Debug")
+	if debugEnabled {
+		ptrNn := ""
+		try ptrNn := hitHwnd ? ControlGetClassNN(hitHwnd) : ""
+		Log_Debug("hot.rbutton", "右键入口", Map(
+			"cls", ctx["cls"], "ttl", ctx["ttl"],
+			"needNn", parseGridClassNN, "ptrNn", ptrNn
 		))
+	}
+	if !isOnGrid {
+		if debugEnabled {
+			Log_Debug("hot.rbutton.miss_grid", "右键未落在解析网格", Map(
+				"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - t0
+			))
+		}
 		return
 	}
 
-	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
-		ck := Util_WarehouseSoftCheck(ctx["win"])
-		Log_Debug("hot.rbutton.warehouse_check", ck["ok"] ? "仓库特征通过" : "仓库特征失败", Map(
-			"ok", ck["ok"], "message", ck.Has("message") ? ck["message"] : ""
+	if (IsObject(clickAnchor) && debugEnabled) {
+		Log_Debug("hot.rbutton.anchor", "点击锚点已采集", Map(
+			"ok", clickAnchor.Has("ok") && clickAnchor["ok"],
+			"restoreOk", clickAnchor.Has("restoreOk") && clickAnchor["restoreOk"]
 		))
+	}
+
+	if warehouseMode {
+		ck := Util_WarehouseSoftCheck(ctx["win"])
+		if debugEnabled {
+			Log_Debug("hot.rbutton.warehouse_check", ck["ok"] ? "仓库特征通过" : "仓库特征失败", Map(
+				"ok", ck["ok"], "message", ck.Has("message") ? ck["message"] : ""
+			))
+		}
 		if !ck["ok"] {
 			UI_Fail("warehouse.check_fail", ck["message"], Module_UiTitle())
 			return
@@ -144,15 +163,6 @@ global _LAST_RUN := 0
 	}
 
 	; 右键：全量注入（整盒+拆零）；仓库模式不在此路径
-	clickAnchor := ""
-	if (ctx["cls"] = Cfg["OPT_WINDOW_CLASS"]) {
-		clickAnchor := UI_CaptureGridClickAnchor(parseGridClassNN, ctrlHwnd)
-		Log_Debug("hot.rbutton.anchor", "点击锚点已采集", Map(
-			"ok", IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"],
-			"restoreOk", IsObject(clickAnchor) && clickAnchor.Has("restoreOk") && clickAnchor["restoreOk"]
-		))
-	}
-
 	Critical
 	KeyWait("RButton")
 	Injector_RunSemi("full", clickAnchor, t0)
@@ -167,34 +177,40 @@ global _LAST_RUN := 0
 	catch
 		activeCls := ""
 	parseGridClassNN := (activeCls = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
-	MouseGetPos(, , , &ctrlHwnd, 2)
-	ptrNn := ""
-	try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
-
-	Log_Debug("hot.lbutton", "左键入口", Map(
-		"activeCls", activeCls, "needNn", parseGridClassNN, "ptrNn", ptrNn
-	))
-	if !UI_MouseOnClassNN(parseGridClassNN) {
-		Log_Debug("hot.lbutton.miss_grid", "左键未落在解析网格", Map(
-			"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - hookT0
-		))
-		return
-	}
-
-	clickAnchor := ""
 	warehouseMode := (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
 	; 仅仓库防重 / 门诊点回需要锚点；住院半自动不采集
 	needAnchor := warehouseMode || (activeCls = Cfg["OPT_WINDOW_CLASS"])
-	if needAnchor {
-		clickAnchor := UI_CaptureGridClickAnchor(parseGridClassNN, ctrlHwnd)
+	hitHwnd := 0
+	isOnGrid := UI_MouseOnClassNN(parseGridClassNN, &hitHwnd)
+	clickAnchor := ""
+	if (isOnGrid && needAnchor)
+		clickAnchor := UI_CaptureGridClickAnchor(parseGridClassNN, hitHwnd)
+	debugEnabled := Log_ShouldWrite("Debug")
+	if debugEnabled {
+		ptrNn := ""
+		try ptrNn := hitHwnd ? ControlGetClassNN(hitHwnd) : ""
+		Log_Debug("hot.lbutton", "左键入口", Map(
+			"activeCls", activeCls, "needNn", parseGridClassNN, "ptrNn", ptrNn
+		))
+	}
+	if !isOnGrid {
+		if debugEnabled {
+			Log_Debug("hot.lbutton.miss_grid", "左键未落在解析网格", Map(
+				"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - hookT0
+			))
+		}
+		return
+	}
+
+	if (IsObject(clickAnchor) && debugEnabled) {
 		Log_Debug("hot.lbutton.anchor", "点击锚点已采集", Map(
-			"ok", IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"],
-			"restoreOk", IsObject(clickAnchor) && clickAnchor.Has("restoreOk") && clickAnchor["restoreOk"],
-			"cx", IsObject(clickAnchor) && clickAnchor.Has("clientX") ? clickAnchor["clientX"] : "",
-			"cy", IsObject(clickAnchor) && clickAnchor.Has("clientY") ? clickAnchor["clientY"] : "",
-			"sx", IsObject(clickAnchor) && clickAnchor.Has("screenX") ? clickAnchor["screenX"] : "",
-			"sy", IsObject(clickAnchor) && clickAnchor.Has("screenY") ? clickAnchor["screenY"] : "",
-			"rowSlot", IsObject(clickAnchor) && clickAnchor.Has("rowSlot") ? clickAnchor["rowSlot"] : "",
+			"ok", clickAnchor.Has("ok") && clickAnchor["ok"],
+			"restoreOk", clickAnchor.Has("restoreOk") && clickAnchor["restoreOk"],
+			"cx", clickAnchor.Has("clientX") ? clickAnchor["clientX"] : "",
+			"cy", clickAnchor.Has("clientY") ? clickAnchor["clientY"] : "",
+			"sx", clickAnchor.Has("screenX") ? clickAnchor["screenX"] : "",
+			"sy", clickAnchor.Has("screenY") ? clickAnchor["screenY"] : "",
+			"rowSlot", clickAnchor.Has("rowSlot") ? clickAnchor["rowSlot"] : "",
 			"warehouse", warehouseMode
 		))
 	}
