@@ -18,7 +18,7 @@ public sealed class AppUpdatePolicyTests
         var options = new UpdateOptions
         {
             Channel = "beta",
-            FeedUrl = "https://updates.example/pactoolkits/stable/"
+            FeedUrl = "https://updates.example/pactoolkits/current/"
         };
 
         Assert.Equal(
@@ -29,7 +29,7 @@ public sealed class AppUpdatePolicyTests
     [Fact]
     public void Feed_url_normalizes_unsupported_channel_to_stable()
         => Assert.Equal(
-            "https://updates.example/pactoolkits/stable",
+            "https://updates.example/pactoolkits/current",
             AppUpdatePolicy.ResolveFeedUrl("https://updates.example/pactoolkits", "nightly"));
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class AppUpdatePolicyTests
     [Fact]
     public void Local_feed_strips_existing_channel_suffix()
     {
-        var root = Path.Combine(Path.GetTempPath(), "pactoolkits-feed", "stable");
+        var root = Path.Combine(Path.GetTempPath(), "pactoolkits-feed", "current");
         var resolved = AppUpdatePolicy.ResolveFeedUrl(root, "beta");
         Assert.Equal(
             Path.Combine(Path.Combine(Path.GetTempPath(), "pactoolkits-feed"), "beta"),
@@ -59,7 +59,7 @@ public sealed class AppUpdatePolicyTests
             ).AbsoluteUri.TrimEnd('/');
         Assert.True(AppUpdatePolicy.TryGetLocalFeedPath(uri, out _));
         Assert.Equal(
-            Path.Combine(dir.TrimEnd('/', '\\'), "stable"),
+            Path.Combine(dir.TrimEnd('/', '\\'), "current"),
             AppUpdatePolicy.ResolveFeedUrl(uri, "stable"));
     }
 
@@ -113,7 +113,7 @@ public sealed class AppUpdatePolicyTests
         var previous = new UpdateOptions
         {
             Channel = "stable",
-            FeedUrl = "https://updates.example/feed/pactoolkits/stable/"
+            FeedUrl = "https://updates.example/feed/pactoolkits/current/"
         };
         var current = new UpdateOptions
         {
