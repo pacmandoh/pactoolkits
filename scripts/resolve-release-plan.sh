@@ -3,8 +3,8 @@ set -euo pipefail
 
 # 从 release-manifest.json（schema v2）解析 Desktop 发布参数
 # Usage:
-#   resolve-release-plan.sh [--runtime RID] [manifest-path]
-#   resolve-release-plan.sh --github-output [--runtime RID] [manifest-path]
+#   resolve-release-plan.sh [manifest-path]
+#   resolve-release-plan.sh --github-output [manifest-path]
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=manifest-v2.sh
@@ -20,14 +20,10 @@ while [[ $# -gt 0 ]]; do
       GITHUB_OUTPUT_MODE="true"
       shift
       ;;
-    --runtime)
-      RUNTIME="${2:-}"
-      shift 2
-      ;;
     -h | --help)
       cat << 'USAGE'
 Usage:
-  resolve-release-plan.sh [--github-output] [--runtime RID] [manifest-path]
+  resolve-release-plan.sh [--github-output] [manifest-path]
 
 Prints shell assignments or GitHub Actions output pairs for the formal desktop release plan.
 USAGE
@@ -46,14 +42,6 @@ done
 }
 
 validate_manifest_v2 "$MANIFEST"
-
-case "$RUNTIME" in
-  win-x64 | win-arm64) ;;
-  *)
-    echo "ERROR: unsupported runtime: $RUNTIME" >&2
-    exit 1
-    ;;
-esac
 
 release_tag="${RELEASE_TAG:-}"
 if [[ -z "$release_tag" && "${GITHUB_REF:-}" == refs/tags/v* ]]; then
@@ -95,4 +83,3 @@ emit main_exe "$main_exe"
 emit icon_path "$icon_path"
 emit releases_dir "$releases_dir"
 emit publish_subdir "$publish_subdir"
-emit runtime "$RUNTIME"

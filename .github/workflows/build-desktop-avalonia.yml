@@ -3,36 +3,23 @@ name: Build Desktop Avalonia
 on:
   workflow_call:
     inputs:
-      runtime:
-        required: false
-        type: string
-        default: win-x64
       artifact_retention_days:
         required: false
         type: number
         default: 3
   workflow_dispatch:
-    inputs:
-      runtime:
-        description: Windows runtime identifier
-        required: true
-        type: choice
-        default: win-x64
-        options:
-          - win-x64
-          - win-arm64
 
 permissions:
   contents: read
 
 jobs:
   build_desktop_avalonia:
-    name: Build Desktop Avalonia (${{ inputs.runtime || 'win-x64' }})
+    name: Build Desktop Avalonia (win-x64)
     runs-on: ubuntu-latest
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
-      RUNTIME: ${{ inputs.runtime || 'win-x64' }}
+      RUNTIME: win-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -70,10 +57,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          case "$RUNTIME" in
-            win-x64|win-arm64) ;;
-            *) echo "Unsupported runtime: $RUNTIME" >&2; exit 1 ;;
-          esac
           project="apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj"
           dotnet restore "$project" --locked-mode
           dotnet publish "$project" -c Release -f net10.0 -r "$RUNTIME" --self-contained false
