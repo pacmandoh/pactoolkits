@@ -12,7 +12,7 @@ public sealed class JsonLogWriterTests
         var dir = Directory.CreateTempSubdirectory("pactoolkits-jsonlog-").FullName;
         try
         {
-            var writer = new JsonLogWriter();
+            using var writer = new JsonLogWriter();
             var day = new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.Zero);
             writer.Write(
                 dir,
@@ -54,7 +54,7 @@ public sealed class JsonLogWriterTests
         var dir = Directory.CreateTempSubdirectory("pactoolkits-jsonlog-").FullName;
         try
         {
-            var writer = new JsonLogWriter();
+            using var writer = new JsonLogWriter();
             writer.Write(
                 dir,
                 new JsonLogRecord

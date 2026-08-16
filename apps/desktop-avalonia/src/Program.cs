@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Velopack;
@@ -44,7 +45,19 @@ internal sealed class Program
     }
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            .LogToTrace();
+    {
+        var builder = AppBuilder.Configure<App>()
+            .UsePlatformDetect();
+
+        if (Debugger.IsAttached
+            || string.Equals(
+                Environment.GetEnvironmentVariable("PACTOOLKITS_AVALONIA_TRACE"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            builder = builder.LogToTrace();
+        }
+
+        return builder;
+    }
 }

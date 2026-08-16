@@ -179,11 +179,16 @@ Log_LevelRank(level) {
 	}
 }
 
+Log_ShouldWrite(level) {
+	global Log_Enabled, Log_MinLevel
+	if !Log_Enabled
+		return false
+	return Log_LevelRank(level) >= Log_LevelRank(Log_MinLevel)
+}
+
 Log_Write(level, event, message, context := unset, exception := unset) {
 	global Log_Enabled, Log_MinLevel, Log_MaxFileSizeMb
-	if !Log_Enabled
-		return
-	if (Log_LevelRank(level) < Log_LevelRank(Log_MinLevel))
+	if !Log_ShouldWrite(level)
 		return
 
 	dir := Log_Dir()
@@ -279,6 +284,8 @@ Log_CleanupExpired(dir, retentionDays) {
 }
 
 Log_Debug(event, message, context := unset) {
+	if !Log_ShouldWrite("Debug")
+		return
 	if IsSet(context)
 		Log_Write("Debug", event, message, context)
 	else
