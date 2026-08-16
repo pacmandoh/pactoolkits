@@ -357,6 +357,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
         {
             _workerCts.Dispose();
             _ioGate.Dispose();
+            _writer.Dispose();
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -7,7 +8,7 @@ namespace PacToolkits.Logger;
 /// <summary>
 /// 统一 JSON Lines 落盘：级别门控、按日滚动、保留清理
 /// </summary>
-public sealed class JsonLogWriter
+public sealed class JsonLogWriter : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -19,6 +20,8 @@ public sealed class JsonLogWriter
 
     private readonly object _gate = new();
     private DateTimeOffset _lastCleanupAt = DateTimeOffset.MinValue;
+    private string? _openPath;
+    private StreamWriter? _writer;
 
     public void Write(string directory, JsonLogRecord record, JsonLogWriteOptions options)
     {
@@ -62,12 +65,15 @@ public sealed class JsonLogWriter
                     directory,
                     normalized.Ts,
                     LogFiles.ResolveSuffix(directory, normalized.Ts, options.MaxFileSizeMb));
-                File.AppendAllText(path, line + Environment.NewLine);
+                EnsureWriter(path);
+                _writer!.WriteLine(line);
+                _writer.Flush();
 
                 var now = DateTimeOffset.Now;
                 if (options.CleanupPatterns.Count > 0
                     && now - _lastCleanupAt > options.CleanupInterval)
                 {
+                    CloseWriter();
                     LogFiles.CleanupExpired(directory, options.CleanupPatterns, options.RetentionDays);
                     _lastCleanupAt = now;
                 }
@@ -75,7 +81,44 @@ public sealed class JsonLogWriter
             catch
             {
                 // 日志失败不得拖垮调用方
+                CloseWriter();
             }
         }
+    }
+
+    public void Dispose()
+    {
+        lock (_gate)
+        {
+            CloseWriter();
+        }
+    }
+
+    private void EnsureWriter(string path)
+    {
+        if (_writer is not null && string.Equals(_openPath, path, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        CloseWriter();
+        _writer = new StreamWriter(
+            new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        _openPath = path;
+    }
+
+    private void CloseWriter()
+    {
+        try
+        {
+            _writer?.Dispose();
+        }
+        catch
+        {
+        }
+
+        _writer = null;
+        _openPath = null;
     }
 }

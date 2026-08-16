@@ -64,6 +64,11 @@ internal static class HostLog
             options = _options;
         }
 
+        if (!options.Enabled || !LogLevel.ShouldWrite(level, options.MinimumLevel))
+        {
+            return;
+        }
+
         Writer.Write(
             dir,
             new JsonLogRecord
