@@ -17,6 +17,12 @@ public sealed class AgentsIpcTests
             Assert.Equal(a, b);
             Assert.StartsWith(AgentsIpc.PipeNamePrefix, a, StringComparison.Ordinal);
             Assert.NotEqual(a, AgentsIpc.PipeName(Path.Combine(dir, "other")));
+            Assert.Equal(a, AgentsIpc.PipeName(dir + Path.DirectorySeparatorChar));
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Equal(a, AgentsIpc.PipeName(dir.ToLowerInvariant()));
+                Assert.Equal(a, AgentsIpc.PipeName(dir.ToUpperInvariant()));
+            }
         }
         finally
         {

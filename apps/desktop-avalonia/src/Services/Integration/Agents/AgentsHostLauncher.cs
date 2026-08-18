@@ -189,7 +189,7 @@ internal sealed class AgentsHostLauncher
             _logger.Warn(
                 "Agents",
                 "agents.ipc.connect_fail",
-                "Failed to attach Agents IPC; will retry; file mirrors only until connected");
+                "Failed to attach Agents IPC");
         }
     }
 }
