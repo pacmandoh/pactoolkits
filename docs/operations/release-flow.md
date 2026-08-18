@@ -76,6 +76,7 @@ release.yml                         v* tag 或手动；写入 ${FEED_PATH}/pacto
 
 build-test-package.yml              beta、feat/**、fix/**、refactor/** 或手动
                                     构建相同，写入 ${FEED_PATH}/pactoolkits-test
+                                    GitHub Release（test-v*）每次覆盖同名资源
 ```
 
 本地解析发布计划：

@@ -140,30 +140,36 @@ jobs:
             echo "No release assets found" >&2
             exit 1
           }
-          if [[ "$TEST_RELEASE" == "true" ]] && ! gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" \
-              --target "${GITHUB_SHA}" \
-              --title "PacToolkits ${PRODUCT_VERSION} test (win-x64)" \
-              --notes "Automated pre-release test package from build-test-package." \
-              --prerelease
-          fi
-
-          declare -A published_assets=()
-          while IFS= read -r name; do
-            [[ -z "$name" ]] || published_assets["$name"]=true
-          done < <(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
-
-          pending_assets=()
-          for path in "${assets[@]}"; do
-            name="$(basename "$path")"
-            if [[ "${published_assets[$name]:-false}" == "true" ]]; then
-              echo "GitHub Release asset already exists: $name"
+          # 测试 Release 覆盖同名资源；正式 Release 不覆盖
+          if [[ "$TEST_RELEASE" == "true" ]]; then
+            if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+              gh release edit "$RELEASE_TAG" --target "${GITHUB_SHA}"
             else
-              pending_assets+=("$path")
+              gh release create "$RELEASE_TAG" \
+                --target "${GITHUB_SHA}" \
+                --title "PacToolkits ${PRODUCT_VERSION} test (win-x64)" \
+                --notes "Automated pre-release test package from build-test-package." \
+                --prerelease
             fi
-          done
-          if [[ ${#pending_assets[@]} -gt 0 ]]; then
-            gh release upload "$RELEASE_TAG" "${pending_assets[@]}"
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            declare -A published_assets=()
+            while IFS= read -r name; do
+              [[ -z "$name" ]] || published_assets["$name"]=true
+            done < <(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+
+            pending_assets=()
+            for path in "${assets[@]}"; do
+              name="$(basename "$path")"
+              if [[ "${published_assets[$name]:-false}" == "true" ]]; then
+                echo "GitHub Release asset already exists: $name"
+              else
+                pending_assets+=("$path")
+              fi
+            done
+            if [[ ${#pending_assets[@]} -gt 0 ]]; then
+              gh release upload "$RELEASE_TAG" "${pending_assets[@]}"
+            fi
           fi
 
       - name: Prepare SSH
