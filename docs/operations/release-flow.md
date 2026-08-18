@@ -188,7 +188,7 @@ ${FEED_PATH}/pactoolkits/<component>/
 └── beta    -> releases/<beta-version>
 ```
 
-`release.json` 记录 `version`、`commit`、`ciRun`、`channel` 和 `publishedAt`。正式发布先校验三类产物，再写入尚不存在的版本目录；同版本只校验并复用。Stable 更新 `current`，Beta 更新 `beta`
+`release.json` 记录 `version`、`commit`、`ciRun`、`channel` 和 `publishedAt`。缺的版本目录才上传，已有的只校验并复用。Stable 更新 `current`，Beta 更新 `beta`
 
 Desktop 快照是 Velopack 更新源（安装包内含 Agents）。Agents 快照是 Host 与 Modules 的版本压缩包。API 快照是 `PacToolkits-Api-<version>.tar.gz`
 
