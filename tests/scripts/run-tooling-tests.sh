@@ -247,6 +247,52 @@ done
   echo "ERROR: republishing a component version must not overwrite its release metadata" >&2
   exit 1
 }
+
+probe_all="$(./scripts/probe-server-releases.sh \
+  "$server_release_test_root/server" 1.2.3-beta.1 1.2.3-beta.1 1.2.3-beta.1)"
+[[ -z "$probe_all" ]] || {
+  echo "ERROR: probe should list no components when all snapshots exist" >&2
+  exit 1
+}
+
+./scripts/publish-server-releases.sh \
+  "$server_release_test_root/server" run-empty beta \
+  1.2.3-beta.1 1.2.3-beta.1 1.2.3-beta.1
+[[ "$(jq -r '.commit' "$server_release_test_root/server/api/releases/1.2.3-beta.1/release.json")" == "test-commit-1" ]] || {
+  echo "ERROR: pointer-only publish must not overwrite release metadata" >&2
+  exit 1
+}
+[[ "$(readlink "$server_release_test_root/server/api/beta")" == "releases/1.2.3-beta.1" ]] || {
+  echo "ERROR: pointer-only publish should keep the beta pointer" >&2
+  exit 1
+}
+
+rm -rf "$server_release_test_root/server/agents/releases/1.2.3-beta.1"
+probe_agents="$(./scripts/probe-server-releases.sh \
+  "$server_release_test_root/server" 1.2.3-beta.1 1.2.3-beta.1 1.2.3-beta.1)"
+[[ "$probe_agents" == "agents" ]] || {
+  echo "ERROR: probe should list only the missing agents snapshot" >&2
+  exit 1
+}
+
+export RELEASE_COMMIT="test-commit-3"
+export RELEASE_CI_RUN="test-run-3"
+mkdir -p "$server_release_test_root/server/.incoming/run-3"
+./scripts/prepare-server-release.sh \
+  agents "1.2.3-beta.1" beta \
+  "$server_release_test_root/source/agents" \
+  "$server_release_test_root/server/.incoming/run-3/agents"
+./scripts/publish-server-releases.sh \
+  "$server_release_test_root/server" run-3 beta \
+  1.2.3-beta.1 1.2.3-beta.1 1.2.3-beta.1
+[[ "$(jq -r '.commit' "$server_release_test_root/server/api/releases/1.2.3-beta.1/release.json")" == "test-commit-1" ]] || {
+  echo "ERROR: partial publish must not overwrite existing api metadata" >&2
+  exit 1
+}
+[[ "$(jq -r '.commit' "$server_release_test_root/server/agents/releases/1.2.3-beta.1/release.json")" == "test-commit-3" ]] || {
+  echo "ERROR: partial publish should commit the missing agents snapshot" >&2
+  exit 1
+}
 rm -rf "$server_release_test_root"
 
 database_policy_base_manifest="$(mktemp)"

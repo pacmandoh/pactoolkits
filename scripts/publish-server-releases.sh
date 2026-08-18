@@ -39,16 +39,17 @@ for index in "${!components[@]}"; do
     || die "invalid $component version: $version"
   source_dir="$incoming_root/$component"
   target_dir="$release_root/$component/releases/$version"
-  [[ -d "$source_dir" ]] || die "incoming $component release not found: $source_dir"
-  [[ -f "$source_dir/SHA256SUMS" ]] || die "$component SHA256SUMS not found"
-  [[ -f "$source_dir/release.json" ]] || die "$component release.json not found"
-  (cd "$source_dir" && sha256sum -c SHA256SUMS)
-  jq -e \
-    --arg version "$version" \
-    --arg channel "$channel" \
-    '.version == $version and .channel == $channel' \
-    "$source_dir/release.json" > /dev/null \
-    || die "incoming $component release metadata does not match version and channel"
+  if [[ -d "$source_dir" ]]; then
+    [[ -f "$source_dir/SHA256SUMS" ]] || die "$component SHA256SUMS not found"
+    [[ -f "$source_dir/release.json" ]] || die "$component release.json not found"
+    (cd "$source_dir" && sha256sum -c SHA256SUMS)
+    jq -e \
+      --arg version "$version" \
+      --arg channel "$channel" \
+      '.version == $version and .channel == $channel' \
+      "$source_dir/release.json" > /dev/null \
+      || die "incoming $component release metadata does not match version and channel"
+  fi
 
   if [[ -d "$target_dir" ]]; then
     [[ -f "$target_dir/SHA256SUMS" && -f "$target_dir/release.json" ]] \
@@ -63,8 +64,10 @@ for index in "${!components[@]}"; do
     publish_new+=(false)
   elif [[ -e "$target_dir" ]]; then
     die "$component release path is not a directory: $target_dir"
-  else
+  elif [[ -d "$source_dir" ]]; then
     publish_new+=(true)
+  else
+    die "incoming $component release not found: $source_dir"
   fi
 
   component_root="$release_root/$component"
@@ -135,9 +138,11 @@ for index in "${!components[@]}"; do
 done
 
 trap - ERR
-for index in "${!components[@]}"; do
-  if [[ "${publish_new[$index]}" == "false" ]]; then
-    rm -rf "$incoming_root/${components[$index]}"
-  fi
-done
-rmdir "$incoming_root"
+if [[ -d "$incoming_root" ]]; then
+  for index in "${!components[@]}"; do
+    if [[ "${publish_new[$index]}" == "false" ]]; then
+      rm -rf "$incoming_root/${components[$index]}"
+    fi
+  done
+  rmdir "$incoming_root"
+fi

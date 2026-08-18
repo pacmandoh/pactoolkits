@@ -12,6 +12,7 @@
 - `resolve-release-plan.sh` — 解析本地或 CI 使用的发布计划
 - `manifest-v2.sh` — Manifest V2 查询与校验函数库，模块源码目录按 `module.json` 的 ID 解析
 - `prepare-server-release.sh` — 生成组件发布元数据与 SHA-256 校验清单
+- `probe-server-releases.sh` — 列出尚未落盘的组件版本目录
 - `publish-server-releases.sh` — 在服务器提交三类不可变版本快照并更新通道指针
 
 ## 仓库维护

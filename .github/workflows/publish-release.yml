@@ -222,19 +222,50 @@ jobs:
           remote="${FEED_SSH_USER}@${FEED_SSH_HOST}"
           incoming_path="$release_root/.incoming/$incoming_id"
 
-          ssh "${ssh_args[@]}" "$remote" "mkdir -p '$release_root' '$incoming_path'"
-          for attempt in 1 2 3; do
-            if rsync -a --timeout=60 \
-              --rsh "ssh ${ssh_args[*]}" \
-              _server_release/ "$remote:$incoming_path/"; then
-              break
-            fi
-            [[ "$attempt" -lt 3 ]] || {
-              echo "Release upload failed after 3 attempts" >&2
-              exit 1
-            }
-            sleep $((attempt * 10))
-          done
+          ssh "${ssh_args[@]}" "$remote" "mkdir -p '$release_root'"
+          missing_out="$(
+            ssh "${ssh_args[@]}" "$remote" \
+              "bash -s -- '$release_root' '$API_VERSION' '$DESKTOP_VERSION' '$AGENTS_VERSION'" \
+              < scripts/probe-server-releases.sh
+          )"
+          missing=()
+          if [[ -n "$missing_out" ]]; then
+            mapfile -t missing <<< "$missing_out"
+          fi
+          if [[ ${#missing[@]} -eq 0 ]]; then
+            echo "All component snapshots already exist; skip upload"
+          else
+            for component in "${missing[@]}"; do
+              case "$component" in
+                api | desktop | agents) ;;
+                *)
+                  echo "Unexpected probe component: $component" >&2
+                  exit 1
+                  ;;
+              esac
+            done
+            echo "Uploading missing snapshots: ${missing[*]}"
+            ssh "${ssh_args[@]}" "$remote" "mkdir -p '$incoming_path'"
+            for attempt in 1 2 3; do
+              uploaded=true
+              for component in "${missing[@]}"; do
+                if ! rsync -a --timeout=60 \
+                  --rsh "ssh ${ssh_args[*]}" \
+                  "_server_release/$component/" "$remote:$incoming_path/$component/"; then
+                  uploaded=false
+                  break
+                fi
+              done
+              if [[ "$uploaded" == "true" ]]; then
+                break
+              fi
+              [[ "$attempt" -lt 3 ]] || {
+                echo "Release upload failed after 3 attempts" >&2
+                exit 1
+              }
+              sleep $((attempt * 10))
+            done
+          fi
           ssh "${ssh_args[@]}" "$remote" \
             "bash -s -- '$release_root' '$incoming_id' '$RELEASE_CHANNEL' '$API_VERSION' '$DESKTOP_VERSION' '$AGENTS_VERSION'" \
             < scripts/publish-server-releases.sh
