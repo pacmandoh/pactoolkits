@@ -142,6 +142,11 @@ jobs:
             mkdir -p "$agents_target_dir"
             cp "$source" "$agents_target_dir/$exe_name"
             source_dir="$(dirname "$source")"
+            [[ -f "$source_dir/ReleaseManifest.json" ]] || {
+              echo "ERROR: missing Agents ReleaseManifest.json: $source_dir/ReleaseManifest.json" >&2
+              exit 1
+            }
+            cp "$source_dir/ReleaseManifest.json" "$agents_target_dir/ReleaseManifest.json"
             if [[ -d "$source_dir/Modules" ]]; then
               mkdir -p "$agents_target_dir/Modules"
               cp -R "$source_dir/Modules/." "$agents_target_dir/Modules/"
@@ -198,6 +203,11 @@ jobs:
             mkdir -p "$agents_dist"
             cp "$source" "$agents_dist/$exe_name"
             source_dir="$(dirname "$source")"
+            [[ -f "$source_dir/ReleaseManifest.json" ]] || {
+              echo "ERROR: missing Agents ReleaseManifest.json: $source_dir/ReleaseManifest.json" >&2
+              exit 1
+            }
+            cp "$source_dir/ReleaseManifest.json" "$agents_dist/ReleaseManifest.json"
             if [[ -d "$source_dir/Modules" ]]; then
               mkdir -p "$agents_dist/Modules"
               cp -R "$source_dir/Modules/." "$agents_dist/Modules/"
