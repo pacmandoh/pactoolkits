@@ -847,6 +847,16 @@ if sed -n '/name: Cache dotnet global tools/,/name: Install vpk/p' .github/workf
   echo "ERROR: unrelated workflow changes must not invalidate the VPK cache" >&2
   exit 1
 fi
+bundle_agents_block="$(sed -n '/name: Bundle agents into desktop publish output/,/name: Pack with vpk/p' .github/workflows/package-desktop.yml)"
+collect_agents_block="$(sed -n '/name: Collect desktop release assets/,/name: Upload desktop release artifact/p' .github/workflows/package-desktop.yml)"
+grep -Fq 'cp "$source_dir/ReleaseManifest.json"' <<< "$bundle_agents_block" || {
+  echo "ERROR: package-desktop must copy Agents ReleaseManifest.json into the Velopack pack tree" >&2
+  exit 1
+}
+grep -Fq 'cp "$source_dir/ReleaseManifest.json"' <<< "$collect_agents_block" || {
+  echo "ERROR: package-desktop must include Agents ReleaseManifest.json in the Agents zip" >&2
+  exit 1
+}
 grep -Fq 'key: ${{ runner.os }}-ahk2exe-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}' .github/workflows/build-agents.yml || {
   echo "ERROR: Ahk2Exe cache identity must use the pinned tag and executable SHA256" >&2
   exit 1
