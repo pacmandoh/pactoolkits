@@ -43,7 +43,7 @@ Agents/
       <Entry>.exe
 ```
 
-**实时控制走命名管道**（`desired` / `quit` / status 推送 / `moduleFailed`）。  
+**实时控制走命名管道**（`desired` / `quit` / status 推送 / `moduleFailed`）；管道名由安装目录唯一确定。  
 `host.desired.json` / `host.status.json` / `module.ready` 是协议文件镜像，不是 Desktop 与 Host 的双写控制协议。协议不含 `host.control` / `module.control`，也不使用 status schema v1。
 
 Host 控制环负责进程监管，catalog 和状态镜像按各自节奏更新；运行态变化通过管道主动通知。Desktop 仅在配置内容变化时同步，并合并重复的文件事件。

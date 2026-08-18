@@ -25,7 +25,13 @@ public static class AgentsIpc
     public static string PipeName(string agentsDir)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentsDir);
-        var full = Path.GetFullPath(agentsDir);
+        // 同一安装目录的不同字符串写法必须得到同一管道名
+        var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(agentsDir));
+        if (OperatingSystem.IsWindows())
+        {
+            full = full.ToUpperInvariant();
+        }
+
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(full));
         return PipeNamePrefix + Convert.ToHexString(hash.AsSpan(0, 8));
     }

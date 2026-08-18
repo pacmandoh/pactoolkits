@@ -159,6 +159,10 @@ public sealed partial class AgentsRuntime
 
                 await _host.AttachLinkAsync(_link, ResolveAgentsDir(options), TimeSpan.FromSeconds(3), linked.Token)
                     .ConfigureAwait(false);
+                if (!_link.IsLinkConnected)
+                {
+                    return SetHostError("无法连接 Agents 管道");
+                }
 
                 // 启用集与门禁以 Attach 后 Host Snapshot catalog 为准
                 IReadOnlyList<ModuleDescriptor> modules;
