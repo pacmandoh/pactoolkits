@@ -320,8 +320,13 @@ public sealed partial class AgentsRuntime
                     : boot;
             }
 
-            await _host.AttachLinkAsync(_link, ResolveAgentsDir(options), TimeSpan.FromSeconds(2), ct)
-                .ConfigureAwait(false);
+            // Attach 会拆现有会话
+            if (!_link.IsLinkConnected)
+            {
+                await _host.AttachLinkAsync(_link, ResolveAgentsDir(options), TimeSpan.FromSeconds(2), ct)
+                    .ConfigureAwait(false);
+            }
+
             var mount = await MountModuleAsync(options, moduleId, ct).ConfigureAwait(false);
             if (!mount.Ok)
             {

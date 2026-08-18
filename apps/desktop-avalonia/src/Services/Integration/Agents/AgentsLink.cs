@@ -159,7 +159,7 @@ internal sealed class AgentsLink : IAgentsClient
         }
         catch
         {
-            DisposeLink();
+            DisposeLink(pipe);
             return false;
         }
     }
@@ -210,7 +210,7 @@ internal sealed class AgentsLink : IAgentsClient
         }
         finally
         {
-            DisposeLink();
+            DisposeLink(pipe);
         }
     }
 
@@ -242,13 +242,19 @@ internal sealed class AgentsLink : IAgentsClient
         }
     }
 
-    private void DisposeLink()
+    private void DisposeLink(NamedPipeClientStream? owned = null)
     {
         CancellationTokenSource? cts;
         Task? loop;
         NamedPipeClientStream? pipe;
         lock (_gate)
         {
+            // 旧会话退出时不得清新连接
+            if (owned is not null && !ReferenceEquals(_pipe, owned))
+            {
+                return;
+            }
+
             cts = _cts;
             loop = _readLoop;
             pipe = _pipe;
