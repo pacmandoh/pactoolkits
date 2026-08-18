@@ -224,7 +224,7 @@ public sealed partial class AgentsRuntime
 
                 foreach (var moduleId in planned)
                 {
-                    var ready = await WaitUntilModuleReadyAsync(options, moduleId, TimeSpan.FromSeconds(15), linked.Token)
+                    var ready = await WaitUntilModuleReadyAsync(options, moduleId, linked.Token)
                         .ConfigureAwait(false);
                     if (!ready)
                     {

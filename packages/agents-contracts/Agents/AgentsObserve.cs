@@ -7,6 +7,9 @@ namespace PacToolkits.Agents.Contracts.Agents;
 /// </summary>
 public static class AgentsObserve
 {
+    /// <summary>Host 等 module.ready 的上限；超时标 Failed</summary>
+    public static readonly TimeSpan ModuleReadyTimeout = TimeSpan.FromSeconds(12);
+
     /// <param name="processAlive">Host 进程仍在（Host 发布 status 时恒真）</param>
     /// <param name="launching">Desktop 正在启动 Host、尚无首帧 Snapshot</param>
     /// <param name="stickyFailed">Desktop 侧 CreateProcess/门禁失败、Host 未起来</param>

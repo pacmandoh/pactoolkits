@@ -69,8 +69,8 @@ flowchart LR
 | 控制        | 管道 `desired` / `quit`；文件只镜像                                                                             | 管道服务；未收过 IPC 时可用 desired 文件种子       |
 | Snapshot    | 管道缓存优先；文件观测镜像；本地 CreateProcess 失败优先 Failed                                                  | 合成 state / LastError / catalog，schema **仅 v2** |
 | catalog     | 只吃 Snapshot；不轮询扫盘                                                                                       | 秒级扫 `Modules/*/module.json` 并入 Snapshot       |
-| 启模块      | **先门禁**再 `desired` 加入 id（仅可挂集合）                                                                    | reconcile 启动；ready/失败写入 Snapshot            |
-| 停模块      | desired 去掉 id                                                                                                 | reconcile 停止                                     |
+| 启模块      | **先门禁**再 `desired` 加入 id（仅可挂集合）；等 Snapshot Running/Failed；已连接则不重连                        | reconcile 启动；超时或失败写入 Snapshot            |
+| 停模块      | desired 去掉 id；等 Snapshot Stopped                                                                            | reconcile 停止                                     |
 | 停 Host     | desired=[] 再 quit；超时 **Kill Host 进程树**                                                                   | quit 后 StopAll 子模块                             |
 | 模块 PID    | **运行时监管无**；**Host 启停闸门**可按入口路径清残留（防双实例）                                               | 子进程树 Kill / 热更重启                           |
 | PacAPI 协议 | **Application** `IAgentsAdmitService` 用探测到的 `contractVersion` 与模块区间 Classify 后，仅可挂 id 进 desired | 只跟 desired                                       |
