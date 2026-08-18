@@ -13,7 +13,6 @@ internal static class Program
     private static readonly TimeSpan ControlPoll = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan CatalogScanPeriod = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan BinaryCheckPeriod = TimeSpan.FromSeconds(1);
-    private static readonly TimeSpan ModuleReadyTimeout = TimeSpan.FromSeconds(12);
 
     private sealed class ModuleSlot
     {
@@ -175,7 +174,7 @@ internal static class Program
                 continue;
             }
 
-            if (now - slot.LaunchUtc < ModuleReadyTimeout)
+            if (now - slot.LaunchUtc < AgentsObserve.ModuleReadyTimeout)
             {
                 continue;
             }
@@ -185,7 +184,7 @@ internal static class Program
             HostLog.Error(
                 "host.module.ready_timeout",
                 slot.LastError,
-                new { moduleId = slot.Id, timeoutSec = ModuleReadyTimeout.TotalSeconds });
+                new { moduleId = slot.Id, timeoutSec = AgentsObserve.ModuleReadyTimeout.TotalSeconds });
             StopModule(slot, agentsDir, clearError: false);
         }
     }

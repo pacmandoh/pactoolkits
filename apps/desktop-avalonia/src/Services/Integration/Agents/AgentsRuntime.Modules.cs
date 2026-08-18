@@ -377,6 +377,7 @@ public sealed partial class AgentsRuntime
             return SetModuleError(moduleId, $"模块 settings 准备失败：{ex.Message}");
         }
 
+        // 先撤 desired，Host 清 StartFailed
         if (!await EnsureModuleStoppedAsync(options, moduleId, ct).ConfigureAwait(false))
         {
             return SetModuleError(moduleId, $"重启失败：{moduleId} 进程仍在运行");
@@ -392,14 +393,12 @@ public sealed partial class AgentsRuntime
         bool ready;
         try
         {
-            ready = await WaitUntilModuleReadyAsync(options, moduleId, TimeSpan.FromSeconds(15), ct)
-                .ConfigureAwait(false);
+            ready = await WaitUntilModuleReadyAsync(options, moduleId, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             _desired.Remove(moduleId);
             PublishDesired(options);
-            await EnsureModuleStoppedAsync(options, moduleId, CancellationToken.None).ConfigureAwait(false);
             throw;
         }
 
@@ -484,10 +483,10 @@ public sealed partial class AgentsRuntime
     private async Task<bool> WaitUntilModuleReadyAsync(
         AgentsOptions options,
         string moduleId,
-        TimeSpan timeout,
         CancellationToken ct)
     {
-        var end = DateTimeOffset.UtcNow + timeout;
+        // Host 写完 Failed 后再走一拍 IPC
+        var end = DateTimeOffset.UtcNow + AgentsObserve.ModuleReadyTimeout + TimeSpan.FromSeconds(1);
 
         while (DateTimeOffset.UtcNow < end)
         {
@@ -496,7 +495,7 @@ public sealed partial class AgentsRuntime
             var wire = ReadHostStatus(options)?.FindModule(moduleId);
             if (wire is not null)
             {
-                if (wire.State == AgentsRunState.Running || wire.Ready)
+                if (wire.State == AgentsRunState.Running)
                 {
                     return true;
                 }
@@ -516,7 +515,7 @@ public sealed partial class AgentsRuntime
         }
 
         var last = ReadHostStatus(options)?.FindModule(moduleId);
-        return last is { State: AgentsRunState.Running } or { Ready: true };
+        return last is { State: AgentsRunState.Running };
     }
 
     private async Task<bool> EnsureModuleStoppedAsync(AgentsOptions options, string moduleId, CancellationToken ct)
@@ -530,7 +529,7 @@ public sealed partial class AgentsRuntime
             return true;
         }
 
-        return await WaitUntilModuleStoppedAsync(options, moduleId, TimeSpan.FromSeconds(12), ct)
+        return await WaitUntilModuleStoppedAsync(options, moduleId, AgentsObserve.ModuleReadyTimeout, ct)
             .ConfigureAwait(false);
     }
 
