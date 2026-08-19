@@ -193,6 +193,8 @@ ${FEED_PATH}/pactoolkits/<component>/
 
 Desktop 快照是 Velopack 更新源（安装包内含 Agents）。Agents 快照是 Host 与 Modules 的版本压缩包。API 快照是 `PacToolkits-Api-<version>.tar.gz`
 
+`publish-release.yml` 只更新 Feed 指针，不重启 PacAPI。进程切换在 API 机上用 `apps/api-asp/scripts/deploy.sh`。密钥不进 Feed；库升级走 `database/postgres/scripts/deploy.sh`
+
 发布使用 `FEED_SSH_KEY`、`FEED_SSH_KNOWN_HOSTS`、`FEED_SSH_USER`、`FEED_SSH_HOST`、`FEED_SSH_PORT` 和 `FEED_PATH` Secrets
 
 `build-test-package.yml` 把同样三类快照写到 `${FEED_PATH}/pactoolkits-test`
@@ -236,5 +238,6 @@ Desktop 启动 Host：`--config <AppConfig 绝对路径>`；Host 转发给模块
 - [数据库兼容与回退规则](database-compatibility-policy.md)
 - [脚本工具](../../scripts/docs/tooling.md)
 - [Desktop](../../apps/desktop-avalonia/README.md)
+- [API](../../apps/api-asp/README.md)
 - [Agents](../../runtime/agents/README.md)
 - [PostgreSQL 运维](../../database/postgres/README.md)

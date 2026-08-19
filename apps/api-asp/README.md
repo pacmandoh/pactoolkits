@@ -9,7 +9,8 @@
 ```text
 apps/api-asp/
   README.md
-  scripts/          # 本地密钥与启动脚本（不进发布物）
+  deploy/           # unit 与反代模板
+  scripts/          # 本机启动与进程切换
   src/              # 工程与源码
 ```
 
@@ -64,7 +65,18 @@ GET  /health          匿名探活；仅 status；200=可用、503=不可用
 
 ## 生产部署
 
-正式发布将 API 包保存到 `${FEED_PATH}/pactoolkits/api/releases/<version>/`，预发布测试保存到 `${FEED_PATH}/pactoolkits-test/api/releases/<version>/`。只落包，不切换正在运行的服务；数据库连接和鉴权密钥不进入发布产物
+正式发布将 API 包保存到 `${FEED_PATH}/pactoolkits/api/releases/<version>/`，预发布测试保存到 `${FEED_PATH}/pactoolkits-test/api/releases/<version>/`。发布只落包，密钥不进产物。API 机上的进程由 `apps/api-asp/scripts/deploy.sh` 切换，失败拨回 `previous`。库走 `database/postgres/scripts/deploy.sh`。
+
+安装树默认 `/opt/pactoolkits/api`：
+
+```text
+/opt/pactoolkits/api/
+  releases/<api.version>/
+  current -> releases/<api.version>
+  previous -> releases/<先前版本>
+```
+
+systemd unit 指向 `current`，密钥走 EnvironmentFile。同机第二套用另一套安装树、独立密钥和 5081，Feed 为 `pactoolkits-test`。
 
 生产密钥：**`/etc/pactoolkits/.env.asp`**（`chmod 600`），systemd `EnvironmentFile=`。
 公网只走 Nginx HTTPS 反代本机 5080；勿把明文 Key 写进服务端配置
@@ -90,17 +102,7 @@ Postgres__Password=<secret>
 
 生成散列：`printf '%s' "$PLAINTEXT_KEY" | openssl dgst -sha256 -hex`
 
-换票限流按 `RemoteIpAddress`（30 次/分钟）。多终端走同一台机器转发或 NAT 时共用额度。Nginx 用 `$remote_addr` **覆盖**转发头（勿用 `$proxy_add_x_forwarded_for`）。API 默认只信任环回代理；Nginx 不在本机时须把其地址配进 `KnownProxies` / `KnownIPNetworks`
-
-```nginx
-# 反代到本机 API（片段）；X-Forwarded-For 必须覆盖，禁止追加客户端原值
-location / {
-    proxy_pass http://127.0.0.1:5080;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-```
+换票限流按 `RemoteIpAddress`（30 次/分钟）。多终端走同一台机器转发或 NAT 时共用额度。Nginx 用 `$remote_addr` **覆盖**转发头（勿用 `$proxy_add_x_forwarded_for`）。API 默认只信任环回代理；Nginx 不在本机时须把其地址配进 `KnownProxies` / `KnownIPNetworks`。
 
 上线前在真实中转拓扑手工验证：
 
