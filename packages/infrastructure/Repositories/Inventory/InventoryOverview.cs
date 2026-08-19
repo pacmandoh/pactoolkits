@@ -308,16 +308,18 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             }
 
             // version 由 trg_trace_pool_bump_version 自增；WHERE 校验 expected
+            // remain 不得超过 qty（表 CHECK）；越界拒绝写入
             const string sql = """
                 update trace_pool
                 set
                   trace_code = case when @has_trace then @new_trace else trace_code end,
                   remain = case
-                    when @has_remain then least(@remain, greatest(qty, 0))
+                    when @has_remain then @remain
                     else remain
                   end
                 where trace_code = @match_trace
                   and version = @expected_version
+                  and (not @has_remain or @remain <= qty)
                 returning version
                 """;
 
@@ -353,6 +355,13 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             if (current is null)
             {
                 throw new InvalidOperationException("更新失败：未找到对应追溯码记录");
+            }
+
+            if (current.Version == expectedVersion
+                && newRemain is { } requestedRemain
+                && requestedRemain > current.Qty)
+            {
+                throw new ArgumentException("剩余不能大于数量", nameof(newRemain));
             }
 
             throw new TracePoolConcurrencyException("该记录已被其他终端修改，请刷新后重试", current);

@@ -190,6 +190,12 @@ public partial class InventoryOverview : UserControl
                 return;
             }
 
+            if (string.Equals(header, "剩余", StringComparison.Ordinal) && row.HasRemainValidationError)
+            {
+                e.Cancel = true;
+                return;
+            }
+
             await vm.CommitStockCellEditAsync(row);
         }
         catch (Exception ex)

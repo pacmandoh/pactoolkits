@@ -279,6 +279,12 @@ public sealed partial class InventoryOverview : AppPageBase
                 return;
             }
 
+            if (StockRows.Any(static row => row.HasRemainValidationError))
+            {
+                _toast.Warn("库存明细编辑", "请先修正剩余数量");
+                return;
+            }
+
             CollectStockEdits();
             var savedCount = 0;
             var failedCount = 0;

@@ -60,6 +60,9 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRo
         => _traceCodeEditValidationEnabled
            && GetErrors(nameof(TraceCode)).Cast<string>().Any();
 
+    public bool HasRemainValidationError
+        => GetErrors(nameof(Remain)).Cast<string>().Any();
+
     bool INotifyDataErrorInfo.HasErrors => _errors.Count > 0;
 
     public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
@@ -79,8 +82,14 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRo
     partial void OnTraceCodeChanged(string value)
         => ValidateTraceCodeEdit();
 
+    partial void OnQtyChanged(int value)
+        => ValidateRemain();
+
     partial void OnRemainChanged(int value)
-        => OnPropertyChanged(nameof(RowTone));
+    {
+        OnPropertyChanged(nameof(RowTone));
+        ValidateRemain();
+    }
 
     public void EnableTraceCodeEditValidation(TraceCodeValidationRule rule)
     {
@@ -130,6 +139,7 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRo
             {
                 ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(propertyName));
                 OnPropertyChanged(nameof(HasTraceCodeValidationError));
+                OnPropertyChanged(nameof(HasRemainValidationError));
             }
 
             return;
@@ -138,6 +148,24 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRo
         _errors[propertyName] = [error];
         ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(propertyName));
         OnPropertyChanged(nameof(HasTraceCodeValidationError));
+        OnPropertyChanged(nameof(HasRemainValidationError));
+    }
+
+    private void ValidateRemain()
+    {
+        if (Remain < 0)
+        {
+            SetValidationError(nameof(Remain), "剩余必须为大于等于 0 的整数");
+            return;
+        }
+
+        if (Remain > Qty)
+        {
+            SetValidationError(nameof(Remain), "剩余不能大于数量");
+            return;
+        }
+
+        SetValidationError(nameof(Remain), null);
     }
 }
 
