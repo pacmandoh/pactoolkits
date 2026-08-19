@@ -6,6 +6,30 @@ die() {
   exit 1
 }
 
+atomic_link() {
+  local target="$1"
+  local link="$2"
+  local tmp="$3"
+  local old="${tmp}.old"
+
+  ln -s "$target" "$tmp" || return 1
+  # 已有 symlink 若指向目录，mv 会跟进目录；先挪走旧 symlink
+  if [[ -L "$link" || -e "$link" ]]; then
+    mv -f "$link" "$old" || {
+      rm -f "$tmp"
+      return 1
+    }
+    if ! mv -f "$tmp" "$link"; then
+      mv -f "$old" "$link"
+      rm -f "$tmp"
+      return 1
+    fi
+    rm -f "$old"
+  else
+    mv -f "$tmp" "$link" || return 1
+  fi
+}
+
 [[ $# -eq 6 ]] || die "usage: publish-server-releases.sh ROOT INCOMING CHANNEL API_VERSION DESKTOP_VERSION AGENTS_VERSION"
 
 release_root="${1%/}"
@@ -95,8 +119,7 @@ rollback() {
     component_root="$release_root/$component"
     if [[ "${pointer_existed[$index]}" == "true" ]]; then
       restore_pointer="$component_root/.${pointer}.restore.${incoming_id}"
-      ln -s "${pointer_previous[$index]}" "$restore_pointer"
-      mv -f "$restore_pointer" "$component_root/$pointer"
+      atomic_link "${pointer_previous[$index]}" "$component_root/$pointer" "$restore_pointer"
     else
       rm -f "$component_root/$pointer"
     fi
@@ -127,15 +150,28 @@ for index in "${!components[@]}"; do
   fi
 done
 
+pointers_current=true
 for index in "${!components[@]}"; do
   component="${components[$index]}"
   version="${versions[$index]}"
   component_root="$release_root/$component"
-  temporary_pointer="$component_root/.${pointer}.${incoming_id}"
-  ln -s "releases/$version" "$temporary_pointer"
-  mv -f "$temporary_pointer" "$component_root/$pointer"
-  pointers_updated=$((pointers_updated + 1))
+  if [[ "$(readlink "$component_root/$pointer" 2> /dev/null)" != "releases/$version" ]]; then
+    pointers_current=false
+    break
+  fi
 done
+
+if [[ "$pointers_current" == "false" ]]; then
+  for index in "${!components[@]}"; do
+    component="${components[$index]}"
+    version="${versions[$index]}"
+    component_root="$release_root/$component"
+    temporary_pointer="$component_root/.${pointer}.${incoming_id}"
+    expected="releases/$version"
+    atomic_link "$expected" "$component_root/$pointer" "$temporary_pointer"
+    pointers_updated=$((pointers_updated + 1))
+  done
+fi
 
 trap - ERR
 if [[ -d "$incoming_root" ]]; then
