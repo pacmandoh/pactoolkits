@@ -113,10 +113,11 @@ Pg NOTIFY
 
 - Kestrel 默认只听本机或受控内网（如 `127.0.0.1:5080`）
 - 公网只走 **HTTPS** 反向代理；Forwarded Headers 仅信任环回（或部署时显式写入的 `KnownProxies` / `KnownIPNetworks`）
+- 进程切换在 API 机上用 `apps/api-asp/scripts/deploy.sh`；发布 CI 不重启服务
 - Nginx 必须用 `$remote_addr` **覆盖** `X-Forwarded-For`，禁止 `$proxy_add_x_forwarded_for`（否则客户端可伪造来源 IP，绕过按来源聚合的限流）
 - 代理与应用日志均不记录认证头
 
-本地密钥、Nginx 片段与换票限流手工验证见 [API README](../../apps/api-asp/README.md)
+本地密钥与 Nginx 模板见 [API README](../../apps/api-asp/README.md)
 
 ## 约束
 
