@@ -293,6 +293,25 @@ mkdir -p "$server_release_test_root/server/.incoming/run-3"
   echo "ERROR: partial publish should commit the missing agents snapshot" >&2
   exit 1
 }
+
+export RELEASE_COMMIT="test-commit-4"
+export RELEASE_CI_RUN="test-run-4"
+mkdir -p "$server_release_test_root/server/.incoming/run-4"
+for component in api desktop agents; do
+  ./scripts/prepare-server-release.sh \
+    "$component" "1.2.4-beta.1" beta \
+    "$server_release_test_root/source/$component" \
+    "$server_release_test_root/server/.incoming/run-4/$component"
+done
+./scripts/publish-server-releases.sh \
+  "$server_release_test_root/server" run-4 beta \
+  1.2.4-beta.1 1.2.4-beta.1 1.2.4-beta.1
+for component in api desktop agents; do
+  [[ "$(readlink "$server_release_test_root/server/$component/beta")" == "releases/1.2.4-beta.1" ]] || {
+    echo "ERROR: $component beta pointer should switch to the new immutable release" >&2
+    exit 1
+  }
+done
 rm -rf "$server_release_test_root"
 
 make_api_snapshot() {
