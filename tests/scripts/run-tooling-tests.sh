@@ -295,6 +295,109 @@ mkdir -p "$server_release_test_root/server/.incoming/run-3"
 }
 rm -rf "$server_release_test_root"
 
+make_api_snapshot() {
+  local version="$1"
+  local dest="$2"
+  local payload="$3"
+  local pack source
+  pack="$(mktemp -d)"
+  source="$(mktemp -d)"
+  printf '%s\n' "$payload" > "$pack/PacToolkits.Api.dll"
+  tar -C "$pack" -czf "$source/PacToolkits-Api-${version}.tar.gz" .
+  RELEASE_COMMIT="deploy-api-$version" \
+    RELEASE_CI_RUN="deploy-api-run" \
+    RELEASE_PUBLISHED_AT="2026-08-19T00:00:00Z" \
+    ./scripts/prepare-server-release.sh api "$version" stable "$source" "$dest"
+  rm -rf "$pack" "$source"
+}
+
+api_deploy_root="$(mktemp -d)"
+make_api_snapshot 0.1.0 "$api_deploy_root/snap-0.1.0" v1
+make_api_snapshot 0.1.1 "$api_deploy_root/snap-0.1.1" v2
+api_install="$(mktemp -d)"
+./apps/api-asp/scripts/deploy.sh apply \
+  --snapshot "$api_deploy_root/snap-0.1.0" \
+  --root "$api_install" \
+  --skip-service \
+  --dry-run
+[[ ! -e "$api_install/current" ]] || {
+  echo "ERROR: api deploy.sh dry-run must not create current" >&2
+  exit 1
+}
+./apps/api-asp/scripts/deploy.sh apply \
+  --snapshot "$api_deploy_root/snap-0.1.0" \
+  --root "$api_install" \
+  --skip-service
+[[ "$(readlink "$api_install/current")" == "releases/0.1.0" ]] || {
+  echo "ERROR: api deploy.sh apply should point current at releases/0.1.0" >&2
+  exit 1
+}
+grep -Fq v1 "$api_install/releases/0.1.0/PacToolkits.Api.dll" || {
+  echo "ERROR: api deploy.sh apply should extract PacToolkits.Api.dll" >&2
+  exit 1
+}
+if ./apps/api-asp/scripts/deploy.sh rollback --root "$api_install" --skip-service > /dev/null 2>&1; then
+  echo "ERROR: api deploy.sh rollback should fail without previous" >&2
+  exit 1
+fi
+./apps/api-asp/scripts/deploy.sh apply \
+  --snapshot "$api_deploy_root/snap-0.1.1" \
+  --root "$api_install" \
+  --skip-service
+[[ "$(readlink "$api_install/current")" == "releases/0.1.1" ]] || {
+  echo "ERROR: api deploy.sh apply should switch current to releases/0.1.1" >&2
+  exit 1
+}
+[[ "$(readlink "$api_install/previous")" == "releases/0.1.0" ]] || {
+  echo "ERROR: api deploy.sh apply should record previous as releases/0.1.0" >&2
+  exit 1
+}
+./apps/api-asp/scripts/deploy.sh rollback --root "$api_install" --skip-service
+[[ "$(readlink "$api_install/current")" == "releases/0.1.0" ]] || {
+  echo "ERROR: api deploy.sh rollback should restore releases/0.1.0" >&2
+  exit 1
+}
+[[ "$(readlink "$api_install/previous")" == "releases/0.1.1" ]] || {
+  echo "ERROR: api deploy.sh rollback should swap previous to the rolled-off release" >&2
+  exit 1
+}
+mkdir -p "$api_deploy_root/feed/api/releases"
+cp -R "$api_deploy_root/snap-0.1.0" "$api_deploy_root/feed/api/releases/0.1.0"
+ln -s "releases/0.1.0" "$api_deploy_root/feed/api/current"
+api_feed_install="$(mktemp -d)"
+./apps/api-asp/scripts/deploy.sh apply \
+  --feed "$api_deploy_root/feed" \
+  --channel current \
+  --root "$api_feed_install" \
+  --skip-service
+[[ "$(readlink "$api_feed_install/current")" == "releases/0.1.0" ]] || {
+  echo "ERROR: api deploy.sh --feed should follow api/current" >&2
+  exit 1
+}
+bad_sum="$(mktemp -d)"
+bad_root="$(mktemp -d)"
+cp -R "$api_deploy_root/snap-0.1.0/." "$bad_sum/"
+printf '%s  %s\n' "$(printf '%064d' 1)" "PacToolkits-Api-0.1.0.tar.gz" > "$bad_sum/SHA256SUMS"
+if ./apps/api-asp/scripts/deploy.sh apply --snapshot "$bad_sum" --root "$bad_root" --skip-service > /dev/null 2>&1; then
+  echo "ERROR: api deploy.sh apply should reject a snapshot with invalid SHA256SUMS" >&2
+  exit 1
+fi
+install_unit_dry="$(
+  ./apps/api-asp/scripts/deploy.sh install-unit \
+    --root /opt/pactoolkits/api-test \
+    --env-file /etc/pactoolkits/.env.asp.test \
+    --dry-run
+)"
+echo "$install_unit_dry" | grep -Fq 'WorkingDirectory=/opt/pactoolkits/api-test/current' || {
+  echo "ERROR: api deploy.sh install-unit should follow --root" >&2
+  exit 1
+}
+echo "$install_unit_dry" | grep -Fq 'EnvironmentFile=/etc/pactoolkits/.env.asp.test' || {
+  echo "ERROR: api deploy.sh install-unit should follow --env-file" >&2
+  exit 1
+}
+rm -rf "$api_deploy_root" "$api_install" "$api_feed_install" "$bad_sum" "$bad_root"
+
 database_policy_base_manifest="$(mktemp)"
 cp "$stable_fixture_manifest" "$database_policy_base_manifest"
 ./scripts/validate-database-policy.sh \

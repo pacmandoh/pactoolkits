@@ -1,0 +1,16 @@
+[Unit]
+Description=PacToolkits API
+After=network.target
+
+[Service]
+Type=simple
+User=pactoolkits
+Group=pactoolkits
+WorkingDirectory=/opt/pactoolkits/api/current
+ExecStart=/usr/bin/dotnet /opt/pactoolkits/api/current/PacToolkits.Api.dll
+EnvironmentFile=/etc/pactoolkits/.env.asp
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
