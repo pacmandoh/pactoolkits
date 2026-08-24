@@ -44,11 +44,8 @@
           EmptyHint="{Binding TxnPanelEmptyHint}"
           EmptyText="{Binding TxnPanelEmptyText}"
           Icon="{Binding SectionEmptyIcon}"
-          IsEmpty="{Binding IsTxnPanelEmpty}"
-          IsPending="{Binding IsSectionPending}"
-          SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
-          SlotMode="PendingOnly">
-          <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+          IsEmpty="{Binding IsTxnPanelEmpty}">
+          <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
             <Grid MinHeight="0">
               <controls:DeferredGridSlot
                 x:Name="TxnDetailGridSlot"

@@ -39,6 +39,7 @@ public sealed partial class MsfxLink
     [ObservableProperty] private bool _isMappingWorkspace;
     [ObservableProperty] private bool _isMappingConfigBarVisible = true;
     [ObservableProperty] private bool _isMappingBusy;
+    public bool IsMappingSectionPending => IsSectionPending || IsMappingBusy;
     [ObservableProperty] private string _mappingKeyword = string.Empty;
     [ObservableProperty] private string _mappingDrugText = string.Empty;
     [ObservableProperty] private OptionItem? _mappingSelectedSpec;
@@ -183,6 +184,7 @@ public sealed partial class MsfxLink
 
     partial void OnIsMappingBusyChanged(bool value)
     {
+        OnPropertyChanged(nameof(IsMappingSectionPending));
         RefreshMappingCommands();
         RefreshOpsUnlockCommands();
         RefreshQueueTabCommand.NotifyCanExecuteChanged();

@@ -1,4 +1,5 @@
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.EmptyState;
 
 namespace PacToolkits.Desktop.Tests;
@@ -6,54 +7,17 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class SectionEmptyPolicyTests
 {
     [Theory]
-    [InlineData(PageDataAvailability.Ready)]
-    [InlineData(PageDataAvailability.Stale)]
-    [InlineData(PageDataAvailability.LoadFailed)]
-    [InlineData(PageDataAvailability.AccessBlocked)]
-    public void Show_returns_true_when_content_empty_and_page_has_settled(PageDataAvailability availability)
-    {
-        Assert.True(SectionEmptyPolicy.Show(
-            isContentEmpty: true,
-            availability,
-            hasLoadedOnce: true));
-    }
-
-    [Theory]
-    [InlineData(PageDataAvailability.Loading)]
-    public void Show_hides_empty_state_during_first_fetch(PageDataAvailability availability)
-    {
-        Assert.False(SectionEmptyPolicy.Show(
-            isContentEmpty: true,
-            availability,
-            hasLoadedOnce: false));
-    }
-
-    [Theory]
-    [InlineData(PageDataAvailability.NotLoaded)]
-    [InlineData(PageDataAvailability.AwaitingService)]
-    public void Show_empty_state_while_waiting_for_connection(PageDataAvailability availability)
-    {
-        Assert.True(SectionEmptyPolicy.Show(
-            isContentEmpty: true,
-            availability,
-            hasLoadedOnce: false));
-    }
-
-    [Fact]
-    public void Show_returns_true_during_reload_when_content_still_empty()
-    {
-        Assert.True(SectionEmptyPolicy.Show(
-            isContentEmpty: true,
-            PageDataAvailability.Loading,
-            hasLoadedOnce: true));
-    }
-
-    [Fact]
-    public void Show_returns_false_when_content_not_empty()
-    {
-        Assert.False(SectionEmptyPolicy.Show(
-            isContentEmpty: false,
-            PageDataAvailability.Ready,
-            hasLoadedOnce: true));
-    }
+    [InlineData(false, PageDataAvailability.NotLoaded, ConnectionKind.Unknown, false)]
+    [InlineData(false, PageDataAvailability.NotLoaded, ConnectionKind.Up, true)]
+    [InlineData(false, PageDataAvailability.Loading, ConnectionKind.Up, true)]
+    [InlineData(false, PageDataAvailability.AwaitingService, ConnectionKind.Down, false)]
+    [InlineData(false, PageDataAvailability.NotLoaded, ConnectionKind.NotConfigured, false)]
+    [InlineData(false, PageDataAvailability.LoadFailed, ConnectionKind.Up, false)]
+    [InlineData(true, PageDataAvailability.Loading, ConnectionKind.Up, false)]
+    public void IsPending_requires_service_up_before_first_result(
+        bool hasLoadedOnce,
+        PageDataAvailability availability,
+        ConnectionKind connection,
+        bool expected)
+        => Assert.Equal(expected, SectionEmptyPolicy.IsPending(hasLoadedOnce, availability, connection));
 }

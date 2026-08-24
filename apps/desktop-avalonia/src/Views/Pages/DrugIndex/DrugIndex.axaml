@@ -59,14 +59,12 @@
               TextSize="12" />
           </controls:CardPanel.HeaderContent>
 
-          <shad:BusyArea IsBusy="{Binding IsListBusy}">
+          <shad:BusyArea IsBusy="{Binding IsListSectionPending}">
             <controls:EmptyStatePanel
               EmptyHint="{Binding ItemsEmptyHint}"
               EmptyText="{Binding ItemsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
-              IsEmpty="{Binding IsItemsEmpty}"
-              IsPending="{Binding IsListSectionPending}"
-              SlotMinHeight="{DynamicResource DgH10Rows}">
+              IsEmpty="{Binding IsItemsEmpty}">
               <controls:DeferredGridSlot
                 x:Name="DrugGridSlot"
                 SlotMinHeight="{DynamicResource DgH10Rows}"

@@ -51,11 +51,8 @@
           EmptyHint="{Binding AbnormalEmptyHint}"
           EmptyText="{Binding AbnormalEmptyText}"
           Icon="{Binding SectionEmptyIcon}"
-          IsEmpty="{Binding IsAbnormalEmpty}"
-          IsPending="{Binding IsSectionPending}"
-          SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
-          SlotMode="PendingOnly">
-          <shad:BusyArea IsBusy="{Binding IsAbnormalBusy}">
+          IsEmpty="{Binding IsAbnormalEmpty}">
+          <shad:BusyArea IsBusy="{Binding IsAbnormalSectionPending}">
             <controls:DeferredGridSlot
               x:Name="AbnormalGridSlot"
               PagerPageIndex="{Binding AbnormalPageIndex}"

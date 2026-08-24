@@ -7,14 +7,14 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class DashboardFilterInitTests
 {
     [Fact]
-    public async Task Initialize_loads_filter_catalog_when_api_ready()
+    public async Task First_reload_loads_filter_catalog_when_api_ready()
     {
         var dashboard = new FakeDashboardService();
         var lookup = new FakeLookup(["drug-a", "drug-b"]);
         var page = new Dashboard(dashboard, lookup);
         page.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
 
-        await page.TestInitializeAsync();
+        await page.TestRunReloadCoreAsync();
 
         Assert.Equal(1, lookup.DrugIdsCalls);
         Assert.Contains(page.DrugOptions, x => x.Raw == "drug-a");
