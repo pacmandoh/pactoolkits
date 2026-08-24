@@ -51,7 +51,7 @@ public partial class DashboardInput : UserControl
 
     private void QueueGrid()
     {
-        if (_vm is { IsEntryRecentEmpty: false } && !EntryGridSlot.IsMounted)
+        if (_vm is { EntryRecent.Count: > 0 } && !EntryGridSlot.IsMounted)
         {
             _gridMount.RequestMount(EntryGridSlot, 0);
         }

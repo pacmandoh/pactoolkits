@@ -56,12 +56,12 @@ public partial class DashboardTxn : UserControl
             return;
         }
 
-        if (!vm.IsRecentTxnsEmpty && !TxnDetailGridSlot.IsMounted)
+        if (vm.RecentTxns.Count > 0 && !TxnDetailGridSlot.IsMounted)
         {
             _gridMount.RequestMount(TxnDetailGridSlot, 0);
         }
 
-        if (!vm.IsTxnTrendEmpty && !TxnTrendGridSlot.IsMounted)
+        if (vm.TxnTrendRows.Count > 0 && !TxnTrendGridSlot.IsMounted)
         {
             _gridMount.RequestMount(TxnTrendGridSlot, 1);
         }
