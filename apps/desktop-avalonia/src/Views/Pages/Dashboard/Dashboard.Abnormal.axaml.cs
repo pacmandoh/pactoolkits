@@ -51,7 +51,7 @@ public partial class DashboardAbnormal : UserControl
 
     private void QueueGrid()
     {
-        if (_vm is { IsAbnormalEmpty: false } && !AbnormalGridSlot.IsMounted)
+        if (_vm is { AbnormalQueue.Count: > 0 } && !AbnormalGridSlot.IsMounted)
         {
             _gridMount.RequestMount(AbnormalGridSlot, 0);
         }

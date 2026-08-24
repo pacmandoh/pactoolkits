@@ -88,7 +88,7 @@ public partial class DashboardOverview : UserControl
 
     private void QueueGrids(DashboardViewModel vm)
     {
-        if (!vm.IsTrendEmpty && !TrendGridSlot.IsMounted)
+        if (vm.DrugTrend.Count > 0 && !TrendGridSlot.IsMounted)
         {
             _gridMount.RequestMount(TrendGridSlot, 0);
         }
@@ -98,7 +98,7 @@ public partial class DashboardOverview : UserControl
             _gridMount.RequestMount(RecentTxnGridSlot, 1);
         }
 
-        if (!vm.IsTopClientsEmpty && !TopClientsGridSlot.IsMounted)
+        if (vm.TopClients.Count > 0 && !TopClientsGridSlot.IsMounted)
         {
             _gridMount.RequestMount(TopClientsGridSlot, 2);
         }
