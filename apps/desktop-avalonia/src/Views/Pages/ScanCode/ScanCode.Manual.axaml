@@ -229,8 +229,7 @@
               EmptyHint="{Binding EntryEmptyHint}"
               EmptyText="{Binding EntryEmptyText}"
               Icon="PackageSearch"
-              IsEmpty="{Binding IsEntryContextEmpty}"
-              SlotMode="Always">
+              IsEmpty="{Binding IsEntryContextEmpty}">
               <controls:TraceCodeEditor
                 x:Name="TraceCodeInput"
                 VerticalAlignment="Stretch"

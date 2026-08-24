@@ -355,10 +355,7 @@
                   EmptyHint="{Binding StockEmptyHint}"
                   EmptyText="{Binding StockEmptyText}"
                   Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsStockEmpty}"
-                  IsPending="{Binding IsDetailSectionPending}"
-                  SlotMinHeight="{DynamicResource DgH10Rows}"
-                  SlotMode="PendingOnly">
+                  IsEmpty="{Binding IsStockEmpty}">
                   <controls:DeferredGridSlot
                     x:Name="StockDetailGridSlot"
                     PagerPageIndex="{Binding PageIndex}"
@@ -425,10 +422,7 @@
                   EmptyHint="{Binding AggEmptyHint}"
                   EmptyText="{Binding AggEmptyText}"
                   Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsAggEmpty}"
-                  IsPending="{Binding IsAggSectionPending}"
-                  SlotMinHeight="{DynamicResource DgH10Rows}"
-                  SlotMode="PendingOnly">
+                  IsEmpty="{Binding IsAggEmpty}">
                   <controls:DeferredGridSlot
                     x:Name="AggGridSlot"
                     PagerPageIndex="{Binding PageIndex}"
@@ -497,10 +491,7 @@
                   EmptyHint="{Binding LowEmptyHint}"
                   EmptyText="{Binding LowEmptyText}"
                   Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsLowEmpty}"
-                  IsPending="{Binding IsLowSectionPending}"
-                  SlotMinHeight="{DynamicResource DgH10Rows}"
-                  SlotMode="PendingOnly">
+                  IsEmpty="{Binding IsLowEmpty}">
                   <controls:DeferredGridSlot
                     x:Name="LowStockGridSlot"
                     PagerPageIndex="{Binding PageIndex}"
@@ -555,10 +546,7 @@
                   EmptyHint="{Binding MissingEmptyHint}"
                   EmptyText="{Binding MissingEmptyText}"
                   Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsMissingEmpty}"
-                  IsPending="{Binding IsMissingSectionPending}"
-                  SlotMinHeight="{DynamicResource DgH10Rows}"
-                  SlotMode="PendingOnly">
+                  IsEmpty="{Binding IsMissingEmpty}">
                   <controls:DeferredGridSlot
                     x:Name="MissingGridSlot"
                     PagerPageIndex="{Binding PageIndex}"

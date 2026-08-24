@@ -50,8 +50,6 @@ public sealed partial class Dashboard
         }
     }
 
-    internal Task TestInitializeAsync() => InitializeAsync();
-
     private sealed class NoopToast : IToastService
     {
         public static readonly NoopToast Instance = new();

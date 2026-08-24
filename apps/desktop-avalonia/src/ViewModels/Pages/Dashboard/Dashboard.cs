@@ -357,6 +357,14 @@ public sealed partial class Dashboard : AppPageBase
     public ObservableCollection<TxnItem> RecentTxns { get; } = new();
     public ObservableCollection<TxnItem> RecentTxnsOverview { get; } = new();
     [ObservableProperty] private bool _isTxnBusy;
+    public bool IsTxnSectionPending => IsSectionPending || IsTxnBusy;
+    public bool IsEntrySectionPending => IsSectionPending || IsEntryBusy;
+    public bool IsAbnormalSectionPending => IsSectionPending || IsAbnormalBusy;
+
+    partial void OnIsTxnBusyChanged(bool value) => OnPropertyChanged(nameof(IsTxnSectionPending));
+    partial void OnIsEntryBusyChanged(bool value) => OnPropertyChanged(nameof(IsEntrySectionPending));
+    partial void OnIsAbnormalBusyChanged(bool value) => OnPropertyChanged(nameof(IsAbnormalSectionPending));
+
     [ObservableProperty] private int _txnPageIndex = 1;
     [ObservableProperty] private int _txnTotalCount;
     [ObservableProperty] private int _tabPageSize = 50;
@@ -473,6 +481,9 @@ public sealed partial class Dashboard : AppPageBase
 
     protected override void OnPageAvailabilityChanged()
     {
+        OnPropertyChanged(nameof(IsTxnSectionPending));
+        OnPropertyChanged(nameof(IsEntrySectionPending));
+        OnPropertyChanged(nameof(IsAbnormalSectionPending));
         OnPropertyChanged(nameof(IsTrendEmpty));
         OnPropertyChanged(nameof(TrendEmptyText));
         OnPropertyChanged(nameof(TrendEmptyHint));
@@ -535,9 +546,6 @@ public sealed partial class Dashboard : AppPageBase
     private int _suppressReloadCount;
     private bool IsReloadSuppressed => _suppressReloadCount > 0;
 
-    private bool _firstLoadTriggered;
-    private bool _filtersLoaded;
-
     public Dashboard(IDashboardService dashboard, ILookupCatalogService lookup, IToastService toast,
         IClientAliasService clientAlias, PageNavigationService nav, InventoryOverview inventoryOverview,
         WorkspaceDirtyRefresh dirtyRefresh)
@@ -574,8 +582,6 @@ public sealed partial class Dashboard : AppPageBase
             TxnPanelMode = TxnPanelModes.FirstOrDefault();
         }
 
-        PostOnUi(() => ObserveDetached(InitializeAsync(), "init.detached.fail"), DispatcherPriority.Loaded);
-
         _clientAlias.Changed += OnClientAliasChanged;
     }
 
@@ -589,42 +595,6 @@ public sealed partial class Dashboard : AppPageBase
             var a = Interlocked.Exchange(ref _action, null);
             a?.Invoke();
         }
-    }
-
-    private async Task InitializeAsync()
-    {
-        if (_firstLoadTriggered)
-        {
-            return;
-        }
-
-        _firstLoadTriggered = true;
-
-        try
-        {
-            if (!_filtersLoaded)
-            {
-                _filtersLoaded = true;
-
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-                await RefreshDrugCatalogAsync(cts.Token);
-
-                if (!string.IsNullOrWhiteSpace(DrugText))
-                {
-                    await ReloadSpecsAsync(NormalizeInput(DrugText)!);
-                }
-                else
-                {
-                    await RunOnUiAsync(ResetSpecToAll, DispatcherPriority.Background);
-                }
-            }
-        }
-        catch (System.Exception ex)
-        {
-            LogWarn("dashboard.init.filters_fail", "Failed to initialize dashboard filters", ex);
-        }
-
-        await ReloadNow();
     }
 
     private IDisposable SuppressReload()

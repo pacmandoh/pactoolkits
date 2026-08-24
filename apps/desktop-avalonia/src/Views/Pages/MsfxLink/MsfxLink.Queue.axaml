@@ -224,13 +224,12 @@
                 <shad:BusyArea
                   Grid.Row="0"
                   MinHeight="120"
-                  IsBusy="{Binding IsMapPanelBusy}">
+                  IsBusy="{Binding IsMapSectionPending}">
                   <controls:EmptyStatePanel
                     EmptyHint="{Binding AutoMapQueueEmptyHint}"
                     EmptyText="{Binding AutoMapQueueEmptyText}"
                     Icon="{Binding SectionEmptyIcon}"
-                    IsEmpty="{Binding IsAutoMapQueueEmpty}"
-                    IsPending="{Binding IsSectionPending}">
+                    IsEmpty="{Binding IsAutoMapQueueEmpty}">
                     <DataGrid
                       x:Name="AutoMapQueueGrid"
                       HorizontalAlignment="Stretch"
@@ -459,13 +458,12 @@
                 <shad:BusyArea
                   Grid.Row="0"
                   MinHeight="120"
-                  IsBusy="{Binding IsTaskPanelBusy}">
+                  IsBusy="{Binding IsTaskSectionPending}">
                   <controls:EmptyStatePanel
                     EmptyHint="{Binding AutoTaskQueueEmptyHint}"
                     EmptyText="{Binding AutoTaskQueueEmptyText}"
                     Icon="{Binding SectionEmptyIcon}"
-                    IsEmpty="{Binding IsAutoTaskQueueEmpty}"
-                    IsPending="{Binding IsSectionPending}">
+                    IsEmpty="{Binding IsAutoTaskQueueEmpty}">
                     <DataGrid
                       x:Name="AutoTaskQueueGrid"
                       HorizontalAlignment="Stretch"
@@ -722,13 +720,12 @@
             </StackPanel>
           </controls:CardPanel.HeaderContent>
 
-          <shad:BusyArea IsBusy="{Binding IsMappingBusy}">
+          <shad:BusyArea IsBusy="{Binding IsMappingSectionPending}">
             <controls:EmptyStatePanel
               EmptyHint="{Binding MappingGroupEmptyHint}"
               EmptyText="{Binding MappingGroupEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
-              IsEmpty="{Binding IsMappingGroupEmpty}"
-              IsPending="{Binding IsSectionPending}">
+              IsEmpty="{Binding IsMappingGroupEmpty}">
               <DataGrid
                 x:Name="MappingGroupGrid"
                 MinHeight="0"

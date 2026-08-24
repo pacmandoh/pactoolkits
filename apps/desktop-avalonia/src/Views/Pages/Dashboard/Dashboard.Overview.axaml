@@ -138,11 +138,8 @@
               EmptyHint="{Binding TrendEmptyHint}"
               EmptyText="{Binding TrendEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
-              IsEmpty="{Binding IsTrendEmpty}"
-              IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource DgH10Rows}"
-              SlotMode="Always">
-              <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+              IsEmpty="{Binding IsTrendEmpty}">
+              <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
                 <Grid MinHeight="{StaticResource DgH10Rows}">
                   <controls:DeferredGridSlot
                     x:Name="TrendGridSlot"
@@ -260,11 +257,8 @@
               EmptyHint="{Binding RecentTxnsEmptyHint}"
               EmptyText="{Binding RecentTxnsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
-              IsEmpty="{Binding IsRecentTxnsEmpty}"
-              IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource DgH10Rows}"
-              SlotMode="Always">
-              <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+              IsEmpty="{Binding IsRecentTxnsEmpty}">
+              <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
                 <Grid MinHeight="{StaticResource DgH10Rows}">
                   <controls:DeferredGridSlot
                     x:Name="RecentTxnGridSlot"
@@ -391,11 +385,8 @@
               EmptyHint="{Binding TopClientsEmptyHint}"
               EmptyText="{Binding TopClientsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
-              IsEmpty="{Binding IsClientPanelEmpty}"
-              IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
-              SlotMode="PendingOnly">
-              <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+              IsEmpty="{Binding IsClientPanelEmpty}">
+              <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
                 <Grid MinHeight="{DynamicResource OverviewPendingMinHeight}">
                   <controls:DeferredGridSlot
                     x:Name="TopClientsGridSlot"
@@ -503,11 +494,8 @@
               EmptyHint="{Binding EntryRecentEmptyHint}"
               EmptyText="{Binding EntryRecentEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
-              IsEmpty="{Binding IsEntryPanelEmpty}"
-              IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
-              SlotMode="PendingOnly">
-              <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
+              IsEmpty="{Binding IsEntryPanelEmpty}">
+              <shad:BusyArea IsBusy="{Binding IsEntrySectionPending}">
                 <Grid MinHeight="{DynamicResource OverviewPendingMinHeight}">
                   <ScrollViewer
                     BringIntoViewOnFocusChange="False"

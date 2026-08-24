@@ -145,7 +145,10 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public string SectionEmptyIcon => SectionEmptyCopy.GetIcon(_pageDataAvailability);
 
-    public bool IsSectionPending => SectionEmptyPolicy.IsPending(_pageDataAvailability, _hasLoadedOnce);
+    public bool IsSectionPending => SectionEmptyPolicy.IsPending(
+        _hasLoadedOnce,
+        _pageDataAvailability,
+        ConnectionView.From(CurrentApiSnap, IsApiConfigured).Kind);
 
     protected string GetSectionEmptyTitle(string? readyTitle)
         => SectionEmptyCopy.GetTitle(readyTitle);
@@ -190,9 +193,9 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     protected bool ShowSectionEmpty(bool isContentEmpty)
-        => SectionEmptyPolicy.Show(isContentEmpty, _pageDataAvailability, _hasLoadedOnce);
+        => isContentEmpty && !IsSectionPending;
 
-    /// <summary>网格尚未挂上且正在可拉数的首次进入：用 section pending，等待连接时不要转圈</summary>
+    /// <summary>首次进入且可以拉取数据时，网格挂载前保持区块 Busy</summary>
     protected bool IsMountPending(bool mounted)
         => !mounted && CanPage && !HasLoadedOnce;
 
@@ -459,7 +462,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        // 探测仍 Up 时自排；Down 交给 Shell becameUp
+        // 探测仍为 Up 时由页面安排重试；Down 时等待 Shell 通知恢复
         if (ex is not null && IsTransportError(ex))
         {
             if (IsPageConnected)
@@ -611,7 +614,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     /// <summary>
     /// 按访问限制与连接同步页面可用性，不拉业务数据
-    /// 业务页用 ConnectionView 判定通 / 不通 / AccessBlocked
+    /// 业务页通过 ConnectionView 区分可用、不可用与 AccessBlocked
     /// </summary>
     public void SyncPageAvailability()
     {
@@ -621,6 +624,16 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             CancelPendingReload();
 
             SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
+            return;
+        }
+
+        if (ConnectionView.From(CurrentApiSnap, IsApiConfigured).Kind == ConnectionKind.Unknown)
+        {
+            ClearServiceRetryDeadline();
+            CancelPendingReload();
+            SetPageAvailability(_hasLoadedOnce && SupportsStaleWhileReconnect
+                ? PageDataAvailability.Stale
+                : PageDataAvailability.NotLoaded);
             return;
         }
 
@@ -655,8 +668,16 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     /// <summary>业务页写入探测快照后走 <see cref="SyncPageAvailability"/></summary>
     public void SyncConnection(ApiAvailabilitySnapshot snap)
     {
+        var previousAvailability = _pageDataAvailability;
+        var previousCanPage = CanPage;
         _apiSnap = snap;
         SyncPageAvailability();
+
+        // 连接就绪前后都可能是 NotLoaded，CanPage 仍需更新
+        if (previousAvailability == _pageDataAvailability && previousCanPage != CanPage)
+        {
+            RefreshPageAvailability();
+        }
     }
 
     /// <summary>收紧 API Retry-After，避免过短叠加重试或过长卡死页面</summary>

@@ -2,7 +2,7 @@ using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation.EmptyState;
 
-/// <summary>Section 空态门控文案：标题保持各区块「暂无…」，原因放 Hint</summary>
+/// <summary>区块空态沿用各自标题，并在 Hint 中说明等待或失败原因</summary>
 public static class SectionEmptyCopy
 {
     public const string StaleHint = "PacAPI 服务暂不可用，恢复后将自动刷新";
@@ -26,6 +26,7 @@ public static class SectionEmptyCopy
                 : loadFailedMessage,
             PageDataAvailability.Stale => StaleHint,
             PageDataAvailability.AwaitingService => "PacAPI 服务暂不可用，就绪后将自动加载",
+            PageDataAvailability.NotLoaded => "正在检查 PacAPI 服务，完成后将自动加载",
             _ => readyHint ?? "暂无数据",
         };
     }
@@ -37,6 +38,7 @@ public static class SectionEmptyCopy
             PageDataAvailability.LoadFailed => "CircleAlert",
             PageDataAvailability.Stale => "Server",
             PageDataAvailability.AwaitingService => "Server",
+            PageDataAvailability.NotLoaded => "Server",
             _ => "Inbox",
         };
 }

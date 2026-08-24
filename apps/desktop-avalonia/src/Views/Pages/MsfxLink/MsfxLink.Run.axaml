@@ -178,13 +178,12 @@
               </Grid>
             </controls:CardPanel.Title>
             <Grid RowDefinitions="*,Auto">
-              <shad:BusyArea MinHeight="120" IsBusy="{Binding IsPullPanelBusy}">
+              <shad:BusyArea MinHeight="120" IsBusy="{Binding IsPullSectionPending}">
                 <controls:EmptyStatePanel
                   EmptyHint="{Binding AutoPullBatchEmptyHint}"
                   EmptyText="{Binding AutoPullBatchEmptyText}"
                   Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsAutoPullBatchEmpty}"
-                  IsPending="{Binding IsSectionPending}">
+                  IsEmpty="{Binding IsAutoPullBatchEmpty}">
                   <DataGrid
                     x:Name="AutoPullBatchGrid"
                     HorizontalAlignment="Stretch"
@@ -308,59 +307,60 @@
               </Grid>
             </controls:CardPanel.Title>
             <Grid RowDefinitions="*,Auto">
-              <controls:EmptyStatePanel
-                EmptyHint="{Binding AutoLogsEmptyHint}"
-                EmptyText="{Binding AutoLogsEmptyText}"
-                Icon="{Binding SectionEmptyIcon}"
-                IsEmpty="{Binding IsAutoLogsEmpty}"
-                IsPending="{Binding IsSectionPending}">
-                <DataGrid
-                  x:Name="AutoLogGrid"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
-                  ColumnWidth="*"
-                  ItemsSource="{Binding AutoLogPageRows}"
-                  SelectedItem="{Binding SelectedAutoLogRow, Mode=TwoWay}">
-                  <DataGrid.Columns>
-                    <DataGridTemplateColumn
-                      Width="54"
-                      behaviors:DataGridFrozenColumns.IsFrozen="True"
-                      Header="状态">
-                      <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                          <Border
-                            Width="24"
-                            Height="24"
-                            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
-                            Classes="DgStatusBadge"
-                            CornerRadius="12">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeSmall}"
-                              Height="{DynamicResource IconSizeSmall}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                              Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
-                          </Border>
-                        </DataTemplate>
-                      </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn
-                      Width="140"
-                      Binding="{Binding At}"
-                      Header="时间" />
-                    <DataGridTextColumn
-                      Width="160"
-                      Binding="{Binding Stage}"
-                      Header="流程阶段" />
-                    <DataGridTextColumn
-                      Width="*"
-                      Binding="{Binding Message}"
-                      Header="详细信息" />
-                  </DataGrid.Columns>
-                </DataGrid>
-              </controls:EmptyStatePanel>
+              <shad:BusyArea IsBusy="{Binding IsSectionPending}">
+                <controls:EmptyStatePanel
+                  EmptyHint="{Binding AutoLogsEmptyHint}"
+                  EmptyText="{Binding AutoLogsEmptyText}"
+                  Icon="{Binding SectionEmptyIcon}"
+                  IsEmpty="{Binding IsAutoLogsEmpty}">
+                  <DataGrid
+                    x:Name="AutoLogGrid"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
+                    ColumnWidth="*"
+                    ItemsSource="{Binding AutoLogPageRows}"
+                    SelectedItem="{Binding SelectedAutoLogRow, Mode=TwoWay}">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn
+                        Width="54"
+                        behaviors:DataGridFrozenColumns.IsFrozen="True"
+                        Header="状态">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border
+                              Width="24"
+                              Height="24"
+                              Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                              Classes="DgStatusBadge"
+                              CornerRadius="12">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn
+                        Width="140"
+                        Binding="{Binding At}"
+                        Header="时间" />
+                      <DataGridTextColumn
+                        Width="160"
+                        Binding="{Binding Stage}"
+                        Header="流程阶段" />
+                      <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding Message}"
+                        Header="详细信息" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </shad:BusyArea>
               <controls:DataGridPager
                 Grid.Row="1"
                 Classes="CardPanelBodyInset"

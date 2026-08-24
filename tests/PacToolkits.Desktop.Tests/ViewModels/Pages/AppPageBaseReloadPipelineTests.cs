@@ -8,6 +8,66 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class AppPageBaseReloadPipelineTests
 {
     [Fact]
+    public void Unavailable_service_before_first_reload_does_not_keep_sections_pending()
+    {
+        var page = CreateRemotePage(api: FakeApiAvailability.Unavailable());
+        page.SyncPageAvailability();
+
+        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.IsSectionPending);
+    }
+
+    [Fact]
+    public void Connection_becoming_ready_notifies_can_page_without_availability_change()
+    {
+        var api = FakeApiAvailability.Connecting();
+        var page = CreateRemotePage(api: api);
+        var changed = new List<string?>();
+        page.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+        page.SyncPageAvailability();
+        Assert.Equal(PageDataAvailability.NotLoaded, page.PageDataAvailability);
+        Assert.False(page.IsSectionPending);
+        Assert.True(page.TestShowEmpty());
+        Assert.Equal("正在检查 PacAPI 服务，完成后将自动加载", page.TestEmptyHint());
+        Assert.False(page.CanPage);
+
+        api.Current = FakeApiAvailability.Ready().Current;
+        page.SyncConnection(api.Current);
+
+        Assert.Equal(PageDataAvailability.NotLoaded, page.PageDataAvailability);
+        Assert.True(page.IsSectionPending);
+        Assert.True(page.CanPage);
+        Assert.Contains(nameof(AppPageBase.CanPage), changed);
+    }
+
+    [Fact]
+    public async Task Silent_first_reload_keeps_sections_pending_until_data_is_ready()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var page = CreatePage();
+
+        using var silent = page.TestBeginSilentReload();
+        var reload = page.TestRunReloadAsync(async ct =>
+        {
+            started.SetResult();
+            await release.Task.WaitAsync(ct);
+        });
+        await started.Task;
+
+        Assert.Equal(PageDataAvailability.NotLoaded, page.PageDataAvailability);
+        Assert.True(page.IsSectionPending);
+        Assert.False(page.IsBusy);
+
+        release.SetResult();
+        await reload;
+
+        Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+        Assert.False(page.IsSectionPending);
+    }
+
+    [Fact]
     public async Task Successful_reload_sets_ready_and_has_loaded_once()
     {
         var page = CreatePage();
@@ -43,7 +103,6 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.Equal("PacAPI 服务协议不兼容", page.PageUnavailableTitle);
         Assert.Equal("contract boom", page.PageUnavailableHint);
         Assert.False(page.IsBusy);
-        Assert.False(page.IsSectionPending);
     }
 
     [Fact]
@@ -75,7 +134,6 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
         Assert.False(page.IsBusy);
         Assert.False(page.ShowPageUnavailable);
-        Assert.False(page.IsSectionPending);
     }
 
     [Fact]
@@ -91,7 +149,6 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
         Assert.False(page.ShowPageUnavailable);
         Assert.False(page.IsBusy);
-        Assert.False(page.IsSectionPending);
     }
 
     [Fact]
@@ -380,7 +437,7 @@ public sealed class AppPageBaseReloadPipelineTests
                         RetryAfter: null));
             });
 
-        // Down：预检跳过 fetch，不 Arm
+        // Down 时预检不拉取数据，也不安排页面重试
         await page.TestRunReloadCoreAsync();
 
         Assert.Equal(0, attempts);
@@ -411,23 +468,6 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.NotNull(page.TestNextRetryAt());
         Assert.False(page.IsBusy);
         Assert.False(page.ShowPageUnavailable);
-    }
-
-    [Fact]
-    public void SyncConnection_first_check_incomplete_is_wait_not_busy()
-    {
-        var page = CreateRemotePage();
-        page.SyncConnection(new ApiAvailabilitySnapshot(
-            ApiAvailabilityState.Connecting,
-            Detail: null,
-            CheckedAt: DateTimeOffset.UtcNow,
-            FirstCheckCompleted: false));
-
-        Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
-        Assert.False(page.ShowPageUnavailable);
-        Assert.False(page.IsBusy);
-        Assert.False(page.IsSectionPending);
-        Assert.False(page.CanPage);
     }
 
     [Fact]
@@ -744,6 +784,10 @@ public sealed class AppPageBaseReloadPipelineTests
 
         protected override Task ReloadCoreAsync(CancellationToken ct)
             => ReloadAction?.Invoke(ct) ?? Task.CompletedTask;
+
+        public bool TestShowEmpty() => ShowSectionEmpty(isContentEmpty: true);
+
+        public string TestEmptyHint() => GetSectionEmptyHint(readyHint: "暂无数据");
     }
 
     internal sealed class FakeApiAvailability : IApiAvailabilityService
@@ -784,6 +828,13 @@ public sealed class AppPageBaseReloadPipelineTests
                 Detail: "down",
                 CheckedAt: DateTimeOffset.UtcNow,
                 FirstCheckCompleted: true));
+
+        public static FakeApiAvailability Connecting()
+            => new(new ApiAvailabilitySnapshot(
+                ApiAvailabilityState.Connecting,
+                Detail: null,
+                CheckedAt: DateTimeOffset.UtcNow,
+                FirstCheckCompleted: false));
 
         public static FakeApiAvailability Unconfigured()
             => new(new ApiAvailabilitySnapshot(

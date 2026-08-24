@@ -76,6 +76,9 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
     [ObservableProperty] private bool _isTaskPanelBusy;
 
     public bool IsAutoBoardBusy => IsPullPanelBusy || IsMapPanelBusy || IsTaskPanelBusy;
+    public bool IsPullSectionPending => IsSectionPending || IsPullPanelBusy;
+    public bool IsMapSectionPending => IsSectionPending || IsMapPanelBusy;
+    public bool IsTaskSectionPending => IsSectionPending || IsTaskPanelBusy;
     [ObservableProperty] private string _autoStatus = "未启动";
     [ObservableProperty] private double _autoRunProgressValue;
     [ObservableProperty] private string _autoLastRunAtText = "尚未巡检";
@@ -118,11 +121,13 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
     [ObservableProperty] private long _upoutTotal;
     [ObservableProperty] private string _upoutStatus = "请设置日期后查询";
     [ObservableProperty] private bool _isUpoutBusy;
+    public bool IsUpoutSectionPending => IsSectionPending || IsUpoutBusy;
 
     [ObservableProperty] private string _subcodePageSize = "200";
     [ObservableProperty] private int _subcodePage = 1;
     [ObservableProperty] private int _subcodeTotal;
     [ObservableProperty] private bool _isSubcodeBusy;
+    public bool IsSubcodeSectionPending => IsSectionPending || IsSubcodeBusy;
     [ObservableProperty] private MsfxAutoPullBatchGridRow? _selectedAutoPullBatchRow;
     [ObservableProperty] private MsfxAutoLogRow? _selectedAutoLogRow;
 
@@ -251,6 +256,12 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
 
     protected override void OnPageAvailabilityChanged()
     {
+        OnPropertyChanged(nameof(IsPullSectionPending));
+        OnPropertyChanged(nameof(IsMapSectionPending));
+        OnPropertyChanged(nameof(IsTaskSectionPending));
+        OnPropertyChanged(nameof(IsMappingSectionPending));
+        OnPropertyChanged(nameof(IsUpoutSectionPending));
+        OnPropertyChanged(nameof(IsSubcodeSectionPending));
         OnPropertyChanged(nameof(IsUpoutEmpty));
         OnPropertyChanged(nameof(UpoutEmptyText));
         OnPropertyChanged(nameof(UpoutEmptyHint));
@@ -495,11 +506,27 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
             RefreshCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand, RefreshQueueTabCommand));
     }
 
-    partial void OnIsPullPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
+    partial void OnIsPullPanelBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsPullSectionPending));
+        RefreshAutoBoardBusy();
+    }
 
-    partial void OnIsMapPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
+    partial void OnIsMapPanelBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsMapSectionPending));
+        RefreshAutoBoardBusy();
+    }
 
-    partial void OnIsTaskPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
+    partial void OnIsTaskPanelBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsTaskSectionPending));
+        RefreshAutoBoardBusy();
+    }
+
+    partial void OnIsUpoutBusyChanged(bool value) => OnPropertyChanged(nameof(IsUpoutSectionPending));
+
+    partial void OnIsSubcodeBusyChanged(bool value) => OnPropertyChanged(nameof(IsSubcodeSectionPending));
 
     partial void OnAutoPullStateChanged(TraceEntryState value)
     {

@@ -1,30 +1,17 @@
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation.EmptyState;
 
-/// <summary>何时展示 section 空态面板的策略</summary>
+/// <summary>决定区块何时等待首个数据结果</summary>
 public static class SectionEmptyPolicy
 {
-    public static bool IsPending(PageDataAvailability availability, bool hasLoadedOnce)
-        => !hasLoadedOnce && availability is PageDataAvailability.Loading;
-
-    /// <summary>
-    /// 页面已稳定且内容为空时展示空态面板，不留空表壳
-    /// 首次拉取进行中不展示；加载由 Busy 表达
-    /// 门控文案由 <see cref="SectionEmptyCopy"/> 负责
-    /// </summary>
-    public static bool Show(bool isContentEmpty, PageDataAvailability availability, bool hasLoadedOnce)
-    {
-        if (!isContentEmpty)
-        {
-            return false;
-        }
-
-        if (IsPending(availability, hasLoadedOnce))
-        {
-            return false;
-        }
-
-        return true;
-    }
+    /// <summary>服务可用且首个数据结果尚未返回时等待</summary>
+    public static bool IsPending(
+        bool hasLoadedOnce,
+        PageDataAvailability availability,
+        ConnectionKind connection)
+        => !hasLoadedOnce
+           && connection == ConnectionKind.Up
+           && availability is PageDataAvailability.NotLoaded or PageDataAvailability.Loading;
 }

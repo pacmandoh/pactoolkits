@@ -11,7 +11,6 @@
     <Setter Property="Template">
       <ControlTemplate>
         <Grid
-          MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
           ClipToBounds="True">
@@ -22,14 +21,14 @@
             VerticalContentAlignment="Stretch"
             ClipToBounds="False"
             Content="{TemplateBinding Content}"
-            Opacity="{Binding ContentOpacity, RelativeSource={RelativeSource TemplatedParent}}" />
+            Opacity="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static shad:BooleanConverters.ToInverseOpacity}}" />
 
           <Border
             Padding="{DynamicResource EmptyStatePadding}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            IsHitTestVisible="{Binding ShowEmptyOverlay, RelativeSource={RelativeSource TemplatedParent}}"
-            IsVisible="{Binding ShowEmptyOverlay, RelativeSource={RelativeSource TemplatedParent}}"
+            IsHitTestVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
+            IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
             ZIndex="1">
             <StackPanel
               HorizontalAlignment="Center"
@@ -52,19 +51,6 @@
                 Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}" />
             </StackPanel>
           </Border>
-
-          <shad:BusyArea
-            MinHeight="0"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch"
-            VerticalContentAlignment="Stretch"
-            IsBusy="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-            IsHitTestVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-            IsVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-            ZIndex="2">
-            <Panel />
-          </shad:BusyArea>
         </Grid>
       </ControlTemplate>
     </Setter>

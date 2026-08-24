@@ -89,7 +89,7 @@ public partial class DrugIndex : UserControl
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(DrugIndexViewModel.IsItemsEmpty)
-            or nameof(DrugIndexViewModel.IsSectionPending))
+            or nameof(DrugIndexViewModel.IsListSectionPending))
         {
             QueueDrugGridMount();
         }

@@ -192,13 +192,12 @@
             MinHeight="0"
             IsVisible="{Binding IsUpoutQueryMode}"
             RowDefinitions="*,Auto">
-            <shad:BusyArea IsBusy="{Binding IsUpoutBusy}">
+            <shad:BusyArea IsBusy="{Binding IsUpoutSectionPending}">
               <controls:EmptyStatePanel
                 EmptyHint="{Binding UpoutEmptyHint}"
                 EmptyText="{Binding UpoutEmptyText}"
                 Icon="{Binding SectionEmptyIcon}"
-                IsEmpty="{Binding IsUpoutEmpty}"
-                IsPending="{Binding IsSectionPending}">
+                IsEmpty="{Binding IsUpoutEmpty}">
                 <DataGrid
                   x:Name="UpoutGrid"
                   behaviors:DataGridCellSelect.Enabled="True"
@@ -335,13 +334,12 @@
             MinHeight="0"
             IsVisible="{Binding IsSubcodeQueryMode}"
             RowDefinitions="*,Auto">
-            <shad:BusyArea IsBusy="{Binding IsSubcodeBusy}">
+            <shad:BusyArea IsBusy="{Binding IsSubcodeSectionPending}">
               <controls:EmptyStatePanel
                 EmptyHint="{Binding SubCodeEmptyHint}"
                 EmptyText="{Binding SubCodeEmptyText}"
                 Icon="{Binding SectionEmptyIcon}"
-                IsEmpty="{Binding IsSubCodeEmpty}"
-                IsPending="{Binding IsSectionPending}">
+                IsEmpty="{Binding IsSubCodeEmpty}">
                 <DataGrid
                   x:Name="SubcodeGrid"
                   behaviors:DataGridCellSelect.Enabled="True"

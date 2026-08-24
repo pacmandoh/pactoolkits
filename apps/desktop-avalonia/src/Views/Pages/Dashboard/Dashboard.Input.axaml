@@ -35,11 +35,8 @@
           EmptyHint="{Binding EntryRecentEmptyHint}"
           EmptyText="{Binding EntryRecentEmptyText}"
           Icon="{Binding SectionEmptyIcon}"
-          IsEmpty="{Binding IsEntryRecentEmpty}"
-          IsPending="{Binding IsSectionPending}"
-          SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
-          SlotMode="PendingOnly">
-          <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
+          IsEmpty="{Binding IsEntryRecentEmpty}">
+          <shad:BusyArea IsBusy="{Binding IsEntrySectionPending}">
             <controls:DeferredGridSlot
               x:Name="EntryGridSlot"
               PagerPageIndex="{Binding EntryPageIndex}"
