@@ -121,6 +121,9 @@
   <Thickness x:Key="TitleBarPathDividerMargin">10,0</Thickness>
   <x:Double x:Key="DgSortResetButtonSize">20</x:Double>
   <x:Double x:Key="DgHeaderBtnSize">18</x:Double>
+  <x:Double x:Key="DgScrollTrackSize">10</x:Double>
+  <x:Double x:Key="DgScrollThumbSize">4</x:Double>
+  <x:Double x:Key="DgScrollThumbActiveSize">7</x:Double>
   <x:Double x:Key="InventorySearchWidth">360</x:Double>
   <x:Double x:Key="PagerNavButtonSize">32</x:Double>
 </ResourceDictionary>

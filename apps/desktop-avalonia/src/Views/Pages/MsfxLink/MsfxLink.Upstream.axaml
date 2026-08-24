@@ -204,6 +204,7 @@
                   behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearActiveUpstreamSearchCommand}"
                   behaviors:DataGridSortReset.FilterActive="{Binding HasActiveUpstreamSearch}"
                   Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
+                  HorizontalScrollBarVisibility="Visible"
                   ItemsSource="{Binding UpoutRows}">
                   <DataGrid.Columns>
                     <DataGridTemplateColumn

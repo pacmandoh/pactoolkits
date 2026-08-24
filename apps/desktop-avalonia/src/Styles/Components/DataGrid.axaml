@@ -112,6 +112,53 @@
     <Setter Property="behaviors:DataGridFrozenColumns.Enabled" Value="True" />
   </Style>
 
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar Thumb">
+    <Setter Property="Template">
+      <ControlTemplate TargetType="Thumb">
+        <Border Name="ThumbHitArea" Background="Transparent">
+          <Border
+            Name="ThumbIndicator"
+            Background="{DynamicResource BorderColor}"
+            CornerRadius="{DynamicResource MdCornerRadius}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:vertical">
+    <Setter Property="Width" Value="{DynamicResource DgScrollTrackSize}" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:horizontal">
+    <Setter Property="Height" Value="{DynamicResource DgScrollTrackSize}" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:vertical Thumb">
+    <Setter Property="Width" Value="{DynamicResource DgScrollTrackSize}" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:horizontal Thumb">
+    <Setter Property="Height" Value="{DynamicResource DgScrollTrackSize}" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:vertical Thumb /template/ Border#ThumbIndicator">
+    <Setter Property="Width" Value="{DynamicResource DgScrollThumbSize}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:horizontal Thumb /template/ Border#ThumbIndicator">
+    <Setter Property="Height" Value="{DynamicResource DgScrollThumbSize}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:vertical:pointerover Thumb /template/ Border#ThumbIndicator, DataGrid.SectionGrid /template/ ScrollBar:vertical Thumb:pressed /template/ Border#ThumbIndicator">
+    <Setter Property="Width" Value="{DynamicResource DgScrollThumbActiveSize}" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar:horizontal:pointerover Thumb /template/ Border#ThumbIndicator, DataGrid.SectionGrid /template/ ScrollBar:horizontal Thumb:pressed /template/ Border#ThumbIndicator">
+    <Setter Property="Height" Value="{DynamicResource DgScrollThumbActiveSize}" />
+  </Style>
+
   <Style Selector="DataGrid.FixedColumns">
     <Setter Property="CanUserResizeColumns" Value="False" />
   </Style>
