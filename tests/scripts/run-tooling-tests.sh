@@ -867,7 +867,7 @@ jq -e --arg amin "$current_agents_min" --arg amax "$current_agents_max" '
 }
 rm -f "$desktop_no_pin_preview"
 
-# 只升 agents：product 代填抬 Desktop；原 agents 单点钉住时整段平移
+# 只升 agents：product 代填抬 Desktop；单点钉住则整段平移，宽区间只抬越界边
 agents_only_preview="$(mktemp)"
 current_agents_ver="$(manifest_agents_version "$ROOT_DIR/release-manifest.json")"
 IFS='.' read -r a_maj a_min a_pat <<< "$current_agents_ver"
@@ -876,21 +876,35 @@ agents_only_out="$(./scripts/bump-version.sh \
   --component "agents=$agents_only_next" \
   --output "$agents_only_preview" \
   --dry-run 2>&1)" || {
-  echo "ERROR: beta agents-only component bump should succeed and move pinned agents Desktop bounds" >&2
+  echo "ERROR: beta agents-only component bump should succeed" >&2
   echo "$agents_only_out" >&2
   exit 1
 }
-jq -e --arg av "$agents_only_next" '
-  .components.agents.version == $av and
-  .components.desktop.avalonia.version == .product.version and
-  .components.agents.minDesktop == .components.desktop.avalonia.version and
-  .components.agents.maxDesktop == .components.desktop.avalonia.version
-' "$agents_only_preview" > /dev/null || {
-  echo "ERROR: agents-only bump should pin minDesktop/maxDesktop to product-derived Desktop when previously pinned" >&2
-  jq '{product: .product.version, desktop: .components.desktop.avalonia.version, agents: .components.agents}' \
-    "$agents_only_preview" >&2
-  exit 1
-}
+if [[ "$current_agents_min" == "$current_agents_max" && "$current_agents_max" == "$current_desktop" ]]; then
+  jq -e --arg av "$agents_only_next" '
+    .components.agents.version == $av and
+    .components.desktop.avalonia.version == .product.version and
+    .components.agents.minDesktop == .components.desktop.avalonia.version and
+    .components.agents.maxDesktop == .components.desktop.avalonia.version
+  ' "$agents_only_preview" > /dev/null || {
+    echo "ERROR: agents-only bump should pin minDesktop/maxDesktop to product-derived Desktop when previously pinned" >&2
+    jq '{product: .product.version, desktop: .components.desktop.avalonia.version, agents: .components.agents}' \
+      "$agents_only_preview" >&2
+    exit 1
+  }
+else
+  jq -e --arg av "$agents_only_next" --arg amin "$current_agents_min" '
+    .components.agents.version == $av and
+    .components.desktop.avalonia.version == .product.version and
+    .components.agents.minDesktop == $amin and
+    .components.agents.maxDesktop == .components.desktop.avalonia.version
+  ' "$agents_only_preview" > /dev/null || {
+    echo "ERROR: agents-only bump should keep wide minDesktop and raise maxDesktop to product-derived Desktop" >&2
+    jq '{product: .product.version, desktop: .components.desktop.avalonia.version, agents: .components.agents}' \
+      "$agents_only_preview" >&2
+    exit 1
+  }
+fi
 rm -f "$agents_only_preview"
 
 # 显式 --desktop 越过 maxDesktop 且未改 agents 区间时仍应失败
