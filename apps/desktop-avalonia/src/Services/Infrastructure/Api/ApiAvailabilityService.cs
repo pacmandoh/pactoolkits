@@ -29,7 +29,7 @@ public sealed record ApiAvailabilitySnapshot(
     DateTimeOffset CheckedAt,
     bool FirstCheckCompleted);
 
-/// <summary>周期 / 按需探测 /v1/system/info 与 /v1/system/status，供 Shell 门禁与横幅</summary>
+/// <summary>周期 / 按需探测 /v1/system/info 与 /v1/system/status，供 Shell 连接态与横幅</summary>
 public interface IApiAvailabilityService : IDisposable
 {
     ApiAvailabilitySnapshot Current { get; }
@@ -58,8 +58,8 @@ public interface IApiAvailabilityService : IDisposable
 
     Task ProbeAsync(CancellationToken ct = default);
 
-    /// <summary>探测态未变时仍同步 Shell（例如刚改完是否已配置）</summary>
-    void Notify();
+    /// <summary>配置变更后丢掉旧探测结果，等新配置首检</summary>
+    void Reset();
 }
 
 /// <summary>
@@ -97,6 +97,8 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
     // 换票 429：按 Retry-After（缺省 60s）暂停探测；保存配置抬 ConfigEpoch 后解除
     private DateTimeOffset _rateLimitUntil = DateTimeOffset.MinValue;
     private int _rateLimitEpoch = -1;
+    // 换配置后只收当前代探测，免得旧请求回写状态、诊断和退避
+    private int _probeGeneration;
 
     private bool _started;
 
@@ -170,12 +172,24 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
             ClearRateLimitHold();
         }
 
+        var configEpoch = _api.ConfigEpoch;
+        var probeGeneration = Volatile.Read(ref _probeGeneration);
         await _probeGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
+            if (!IsCurrentProbe(configEpoch, probeGeneration))
+            {
+                return;
+            }
+
             using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
             budget.CancelAfter(ProbeBudget);
-            var snap = await CheckOnceAsync(budget.Token).ConfigureAwait(false);
+            var snap = await CheckOnceAsync(configEpoch, probeGeneration, budget.Token).ConfigureAwait(false);
+            if (!IsCurrentProbe(configEpoch, probeGeneration))
+            {
+                return;
+            }
+
             if (snap.State is ApiAvailabilityState.Ready)
             {
                 _authFailEpoch = -1;
@@ -186,6 +200,11 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
+            if (!IsCurrentProbe(configEpoch, probeGeneration))
+            {
+                return;
+            }
+
             // 预算耗尽：刚才还连着 PacAPI 时不要标成进程不可达；schema/协议阻断保持原态
             var prev = Current;
             var state = TimeoutState(prev.State);
@@ -203,8 +222,22 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         }
     }
 
-    public void Notify()
-        => Changed?.Invoke();
+    public void Reset()
+    {
+        Interlocked.Increment(ref _probeGeneration);
+        _authFailEpoch = -1;
+        ClearRateLimitHold();
+        LastApiVersion = null;
+        LastContractVersion = null;
+        LastDatabase = null;
+        LastSchema = null;
+        LastSchemaVersion = null;
+        Publish(new ApiAvailabilitySnapshot(
+            ApiAvailabilityState.Connecting,
+            Detail: null,
+            CheckedAt: _time.GetUtcNow(),
+            FirstCheckCompleted: false), force: true);
+    }
 
     public void Dispose()
     {
@@ -291,7 +324,10 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         }
     }
 
-    private async Task<ApiAvailabilitySnapshot> CheckOnceAsync(CancellationToken ct)
+    private async Task<ApiAvailabilitySnapshot> CheckOnceAsync(
+        int configEpoch,
+        int probeGeneration,
+        CancellationToken ct)
     {
         var at = _time.GetUtcNow();
         // 调用方已保证 IsConfigured；未配置不写成探测态
@@ -314,8 +350,12 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
                     .ConfigureAwait(false)
                     ?? throw new InvalidOperationException("empty /v1/system/info response");
 
-                LastApiVersion = info.ApiVersion;
-                LastContractVersion = info.ContractVersion;
+                if (IsCurrentProbe(configEpoch, probeGeneration))
+                {
+                    LastApiVersion = info.ApiVersion;
+                    LastContractVersion = info.ContractVersion;
+                }
+
                 var contractBlock = ClassifyContract(info.ContractVersion);
                 if (contractBlock is not null)
                 {
@@ -327,7 +367,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
                 }
             }
 
-            var status = await ReadStatusAsync(ct).ConfigureAwait(false);
+            var status = await ReadStatusAsync(configEpoch, probeGeneration, ct).ConfigureAwait(false);
             if (status is null)
             {
                 return new ApiAvailabilitySnapshot(
@@ -353,7 +393,11 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
             _logger.Warn("PacApi", "availability.check.fail", "API availability check failed", ex);
             if (IsCredentialRejected(ex))
             {
-                _authFailEpoch = _api.ConfigEpoch;
+                if (IsCurrentProbe(configEpoch, probeGeneration))
+                {
+                    _authFailEpoch = configEpoch;
+                }
+
                 return new ApiAvailabilitySnapshot(
                     ApiAvailabilityState.Unavailable,
                     Detail: DescribeFailure(ex),
@@ -361,9 +405,9 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
                     FirstCheckCompleted: true);
             }
 
-            if (IsRateLimited(ex))
+            if (IsRateLimited(ex) && IsCurrentProbe(configEpoch, probeGeneration))
             {
-                ArmRateLimitHold(ex);
+                ArmRateLimitHold(ex, configEpoch);
             }
 
             // 库/schema 已有稳定诊断时，瞬时 timeout/transport/429 不要盖成「无法连接地址」来回闪
@@ -388,6 +432,10 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
     private bool IsAuthFailHoldActive()
         => _authFailEpoch >= 0 && _authFailEpoch == _api.ConfigEpoch;
 
+    private bool IsCurrentProbe(int configEpoch, int probeGeneration)
+        => configEpoch == _api.ConfigEpoch
+           && probeGeneration == Volatile.Read(ref _probeGeneration);
+
     private bool IsRateLimitHoldActive()
         => _rateLimitEpoch == _api.ConfigEpoch && _time.GetUtcNow() < _rateLimitUntil;
 
@@ -408,7 +456,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         return remain < EpochWatchInterval ? EpochWatchInterval : remain;
     }
 
-    private void ArmRateLimitHold(Exception ex)
+    private void ArmRateLimitHold(Exception ex, int configEpoch)
     {
         var wait = TimeSpan.FromSeconds(60);
         if (ex is PacApiException { RetryAfter: { } retry } && retry > TimeSpan.Zero)
@@ -417,10 +465,10 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         }
 
         var until = _time.GetUtcNow() + wait;
-        if (until > _rateLimitUntil || _rateLimitEpoch != _api.ConfigEpoch)
+        if (until > _rateLimitUntil || _rateLimitEpoch != configEpoch)
         {
             _rateLimitUntil = until;
-            _rateLimitEpoch = _api.ConfigEpoch;
+            _rateLimitEpoch = configEpoch;
         }
     }
 
@@ -592,7 +640,10 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         return PacApiContractGate.ClassifyBlockReason(contractVersion, min, max);
     }
 
-    private async Task<PacApiSystemStatus?> ReadStatusAsync(CancellationToken ct)
+    private async Task<PacApiSystemStatus?> ReadStatusAsync(
+        int configEpoch,
+        int probeGeneration,
+        CancellationToken ct)
     {
         // 503 带诊断正文；勿走 EnsureSuccess，避免丢掉 database/schema
         using var response = await _api.SendAvailabilityAsync(
@@ -617,7 +668,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
                 PacJsonContext.Default.PacApiSystemStatus,
                 ct)
             .ConfigureAwait(false);
-        if (status is not null)
+        if (status is not null && IsCurrentProbe(configEpoch, probeGeneration))
         {
             LastDatabase = status.Database;
             LastSchema = status.Schema;
@@ -635,16 +686,17 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
             CheckedAt: _time.GetUtcNow(),
             FirstCheckCompleted: false));
 
-    private void Publish(ApiAvailabilitySnapshot snap)
+    private void Publish(ApiAvailabilitySnapshot snap, bool force = false)
     {
         ApiAvailabilitySnapshot prev;
         var changed = false;
         lock (_startGate)
         {
-            // CheckedAt 每次探测都会变；门禁与横幅只关心 State / Detail / 首检
+            // CheckedAt 每次探测都会变；连接态与横幅只关心 State / Detail / 首检
             prev = _current;
             _current = snap;
-            changed = prev.State != snap.State
+            changed = force
+                      || prev.State != snap.State
                       || prev.FirstCheckCompleted != snap.FirstCheckCompleted
                       || !string.Equals(prev.Detail, snap.Detail, StringComparison.Ordinal);
         }

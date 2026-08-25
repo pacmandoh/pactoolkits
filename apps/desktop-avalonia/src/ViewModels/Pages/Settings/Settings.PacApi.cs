@@ -268,9 +268,9 @@ public partial class Settings
             _pacApi.Apply(draft);
             _pacApiContractGate.Reset();
             _changeWatermark.Reset();
+            _apiAvailability.Reset();
 
             await _apiAvailability.ProbeAsync(_pageWorkCts.Token).ConfigureAwait(false);
-            _apiAvailability.Notify();
 
             if (!draft.IsConfigured)
             {
