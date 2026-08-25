@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
@@ -32,6 +33,7 @@ public sealed partial class Dashboard : AppPageBase
     public override string DisplayName => "概览";
     public override string Icon => "LayoutPanelLeft";
     public override int Index => 0;
+    public override ICommand RefreshCommand => _localRefreshCommand;
 
     private readonly IDashboardService _dashboard;
     private readonly ILookupCatalogService _lookup;
@@ -40,6 +42,7 @@ public sealed partial class Dashboard : AppPageBase
     private readonly PageNavigationService _nav;
     private readonly InventoryOverview _inventoryOverview;
     private readonly WorkspaceDirtyRefresh _dirtyRefresh;
+    private readonly AsyncRelayCommand _localRefreshCommand;
     private int _rowSelectionSuppressDepth;
     private int _specLoadGeneration;
     private readonly RollingDateRangeController _dateRangeController;
@@ -513,6 +516,8 @@ public sealed partial class Dashboard : AppPageBase
             IsEntryBusy = false;
             IsAbnormalBusy = false;
         }
+
+        _localRefreshCommand.NotifyCanExecuteChanged();
     }
 
     public string TrendEmptyText => GetSectionEmptyTitle("期间无使用情况");
@@ -557,6 +562,9 @@ public sealed partial class Dashboard : AppPageBase
         _nav = nav;
         _inventoryOverview = inventoryOverview;
         _dirtyRefresh = dirtyRefresh;
+        _localRefreshCommand = new AsyncRelayCommand(
+            () => RunLocalReloadAsync(_ => { }, RefreshAllAsync, OnReloadFinished),
+            () => IsEnabled && CanPage);
         _dateRangeController = new RollingDateRangeController(() =>
             PostOnUi(HandleDateRangeDayChanged, DispatcherPriority.Background));
 

@@ -103,7 +103,6 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public bool CanPage => IsPageConnected && !IsPageBlocked(out _);
 
-
     public bool ShowPageUnavailable => _pageDataAvailability switch
     {
         PageDataAvailability.AccessBlocked => true,
@@ -238,8 +237,6 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         return ValueTask.CompletedTask;
     }
 
-    protected Task RefreshPageAsync() => _refreshCommand.ExecuteAsync(null);
-
     protected static string? NormalizeInput(string? value)
     {
         var trimmed = (value ?? string.Empty).Trim();
@@ -359,6 +356,17 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     {
         return _reload.RunAsync(
             ct => RunReloadPipelineAsync(ct, setBusy, action),
+            onFinished);
+    }
+
+    /// <summary>与重载共用 PageReload 互斥，但不进入页面 Loading</summary>
+    protected Task RunExclusiveLocalBusyAsync(
+        Action<bool> setBusy,
+        Func<CancellationToken, Task> body,
+        Action? onFinished = null)
+    {
+        return _reload.RunAsync(
+            ct => RunLocalBusyAsync(ct, setBusy, () => body(ct)),
             onFinished);
     }
 
