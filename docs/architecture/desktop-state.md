@@ -1,8 +1,8 @@
 # 桌面状态模型
 
-Avalonia 桌面端（`apps/desktop-avalonia`）把状态分成三层：Shell 连接、页面数据可用性、区块空态。Busy 只表示正在拉取数据；断连与阻断由连接层和空态 Hint 表达
+Avalonia 桌面端（`apps/desktop-avalonia`）把状态分成三层：Shell 连接、页面数据可用性、区块空态。Busy 表示进行中的拉数或录入类操作；断连与阻断走连接层横幅、空态 Hint，以及内容区交互锁
 
-相关实现：`ViewModels/AppPageBase.cs`、`Controls/Feedback/PageDataShell.axaml`、`Services/Presentation/Connectivity/`（`ConnectionView`、`ConnectivityBanner`、`PageReconnectPolicy`）、`Services/Infrastructure/Api/ApiAvailabilityService.cs`
+相关实现：`ViewModels/AppPageBase.cs`、`Controls/Feedback/PageDataShell.cs`、`Styles/Components/PageDataShell.axaml`、`Services/Presentation/Connectivity/`（`ConnectionView`、`ConnectivityBanner`、`PageReconnectPolicy`）、`Services/Infrastructure/Api/ApiAvailabilityService.cs`
 
 ## 三层职责
 
@@ -41,7 +41,9 @@ flowchart TB
 
 ## 第 1 层：连接
 
-业务横幅、顶栏/底栏、刷新门禁、Lookup 清空都跟 `ConnectionView`。页面只认 PacAPI 可用性。PacAPI 地址、访问密钥与 Agents 密钥在设置的「连接设置」持久化
+业务横幅、顶栏/底栏、刷新能否点、Lookup 清空都跟 `ConnectionView`。页面只认 PacAPI 可用性。PacAPI 地址、访问密钥与 Agents 密钥在设置的「连接设置」持久化
+
+保存 PacAPI 配置后立即清除已有探测结果；新配置首检完成前为 Unknown
 
 | 条件                                                           | ConnectionView |
 | -------------------------------------------------------------- | -------------- |
@@ -73,27 +75,27 @@ flowchart TB
 | 已配置且首检未完成              | `NotLoaded`                        | 否                    | 连接检查空态              |
 | Blocked                         | `AccessBlocked`                    | 是                    | 无 Busy                   |
 | Down 且从未加载                 | `AwaitingService`                  | 否                    | 无 Busy                   |
-| Down 且已加载且允许陈旧         | `Stale`                            | 否                    | 保留已有内容              |
+| Down 且已加载且允许陈旧         | `Stale`                            | 否                    | 保留已有内容，交互禁用    |
 | Up 且已加载                     | 立刻 `Ready`，随后静默刷新         | 否                    | 保留已有内容              |
 | Up 且从未加载                   | 开始拉取；手动刷新时进入 `Loading` | 否                    | 各区块 `IsSectionPending` |
 | 非传输错误导致拉取失败          | `LoadFailed`                       | 是                    | 无 Busy                   |
 | 手动刷新正在拉取                | `Loading`                          | 否                    | 300ms 后显示对应 Busy     |
 | 业务请求传输失败，探测仍可能 Up | `AwaitingService` 或 `Stale`       | 否                    | 无 Busy                   |
 
-Shell 收到 `Changed` 后先更新连接呈现，再通过 `SyncConnection` 同步页面。连接变成 Up 时，`ScheduleAutoRefresh` 静默刷新当前页；Down 不进入 `Loading`
+Shell 收到 `Changed` 后先更新连接呈现，再通过 `SyncConnection` 同步页面。连接变成 Up 时，`ScheduleAutoRefresh` 静默刷新当前页；Down 不进入 `Loading`。连接不是 Up 时，共享敏感操作立即锁定
 
 脏页重新激活时正常拉取数据，超过 300ms 才显示 Busy。探测为 Down 时等待 Shell 通知恢复；探测仍为 Up 的传输失败按退避时间重试
 
-筛选栏（`FilterBarChrome`）、药品与库存标题搜索、分页器均跟随 `CanPage`：Down、Blocked 或未配置时禁用
+断连或阻断时，内容区由 `PageDataShell` 遮罩锁定；已有内容（若有）仍可见
 
 ### IsBusy
 
-- 只有 `PageReloadBusyDelay` / `RunLocalReloadAsync(setBusy)` / `RunLocalBusyAsync` 能把 Busy 置真
+- Busy 只来自重载与局部 Busy 路径（含与重载互斥、不进入 `Loading` 的录入路径）
 - `IsSectionPending` 只在服务可用且首个数据结果尚未返回时为真，各数据区块再叠加自己的局部 Busy
-- `IsSignalReload` 不置 Busy，也不把页面标成 `Loading`
-- 进入等待 / Stale / AccessBlocked / LoadFailed 时 Busy 为假
+- `IsSignalReload` 不亮 Busy，也不把页面标成 `Loading`
+- 进入等待 / Stale / AccessBlocked / LoadFailed 时不亮 Busy
 
-普通首刷不使用整页 Busy。`PageDataShell` 呈现访问阻断、加载失败、陈旧提示和页面级刷新；首刷、分页、筛选、延迟挂载与局部刷新由对应区块呈现 Busy
+顶栏刷新更新当前页主数据面；Busy 由各页 `BusyArea` 呈现。`PageDataShell` 只负责访问阻断空态与交互遮罩
 
 ### Lookup
 
