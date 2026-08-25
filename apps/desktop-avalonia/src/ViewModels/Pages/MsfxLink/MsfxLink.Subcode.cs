@@ -9,7 +9,10 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public sealed partial class MsfxLink : AppPageBase
 {
-    [RelayCommand]
+    private bool CanOpenSubcodes(MsfxUpoutGridRow? row)
+        => CanPage && row is not null;
+
+    [RelayCommand(CanExecute = nameof(CanOpenSubcodes))]
     private async Task OpenSubcodesAsync(MsfxUpoutGridRow? row)
     {
         if (row is null)

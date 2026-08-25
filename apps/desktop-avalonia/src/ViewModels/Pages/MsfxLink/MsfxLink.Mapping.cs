@@ -69,7 +69,8 @@ public sealed partial class MsfxLink
 
     // 批量映射 / 弃用任务：弃用路径仍会先写 mapped_drug 再建 DISCARDED 任务，与 APPLY_MAP 同门槛
     private bool CanSubmitMappingGroup()
-        => !IsMappingBusy
+        => CanPage
+           && !IsMappingBusy
            && MappingSelectedCount > 0
            && !string.IsNullOrWhiteSpace(NormalizeText(MappingDrugText))
            && !string.IsNullOrWhiteSpace(NormalizeText(MappingSelectedSpec?.Raw));

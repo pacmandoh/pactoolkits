@@ -41,8 +41,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     public override ICommand ImportCommand => _importCommand;
     public override ICommand ExportCommand => _exportCommand;
 
-    private bool CanOperateUi() => !IsBusy;
-    private bool CanIo() => CanOperateUi();
+    private bool CanOperateUi() => CanPage && !IsBusy;
 
     private async Task ImportAsync()
     {
@@ -444,9 +443,9 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         _lookup = lookup;
         _localRefreshCommand = new AsyncRelayCommand(
             () => ReloadAsync(confirmIfDirty: true, workingSet: WorkingSetReload.Clear),
-            CanRefreshLocal);
-        _importCommand = new AsyncRelayCommand(ImportAsync, CanIo);
-        _exportCommand = new AsyncRelayCommand(ExportAsync, CanIo);
+            CanOperateUi);
+        _importCommand = new AsyncRelayCommand(ImportAsync, CanOperateUi);
+        _exportCommand = new AsyncRelayCommand(ExportAsync, CanOperateUi);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _unlockStatusTimer.Tick += OnUnlockTimerTick;
         _unlockService.StateChanged += OnUnlockChanged;
@@ -465,8 +464,6 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         OnPropertyChanged(nameof(ItemCountText));
         OnPropertyChanged(nameof(IsResultTruncated));
     }
-
-    private bool CanRefreshLocal() => CanOperateUi() && CanPage;
 
     partial void OnSelectedChanging(DrugRow? value)
     {

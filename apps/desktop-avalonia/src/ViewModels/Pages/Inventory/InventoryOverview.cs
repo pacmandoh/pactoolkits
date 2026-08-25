@@ -235,7 +235,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     protected override void OnPageAvailabilityChanged()
     {
         // 等待/陈旧/阻断不是拉数：清掉模式 Busy，避免切 Tab 后一直转圈
-        if (PageDataAvailability is not PageDataAvailability.Loading)
+        if (PageDataAvailability is not global::PacToolkits.Desktop.Avalonia.Contracts.Presentation.PageDataAvailability.Loading)
         {
             SetModeBusy(ModeIndex, false);
         }
@@ -252,7 +252,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         OnPropertyChanged(nameof(IsMissingEmpty));
         OnPropertyChanged(nameof(MissingEmptyText));
         OnPropertyChanged(nameof(MissingEmptyHint));
-        OnPropertyChanged(nameof(CanUseStockSearch));
         NotifySectionPendingChanged();
         RefreshPageCommands();
     }
@@ -282,7 +281,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public bool IsMissingSectionPending =>
         IsSectionPending || IsMissingBusy || (IsMissingMode && IsMountPending(IsMissingGridMounted));
     public bool IsUiBusy => IsBusy || IsPanelBusy;
-    public bool CanUseStockSearch => CanPage && !IsUiBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
@@ -588,14 +586,12 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     partial void OnIsPanelBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(IsUiBusy));
-        OnPropertyChanged(nameof(CanUseStockSearch));
         RefreshPageCommands();
     }
 
     protected override void OnBusyChanged(bool isBusy)
     {
         OnPropertyChanged(nameof(IsUiBusy));
-        OnPropertyChanged(nameof(CanUseStockSearch));
         RefreshPageCommands();
     }
 

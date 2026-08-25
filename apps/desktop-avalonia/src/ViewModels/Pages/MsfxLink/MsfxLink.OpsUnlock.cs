@@ -20,12 +20,14 @@ public sealed partial class MsfxLink
     private bool CanUnlock()
         => (IsRunPage || IsQueuePage)
            && !IsOpsUnlocked
+           && CanPage
            && !IsAutoBoardBusy
            && !IsMappingBusy;
 
     private bool CanLock()
         => (IsRunPage || IsQueuePage)
            && IsOpsUnlocked
+           && CanPage
            && !IsAutoBoardBusy
            && !IsMappingBusy;
 
