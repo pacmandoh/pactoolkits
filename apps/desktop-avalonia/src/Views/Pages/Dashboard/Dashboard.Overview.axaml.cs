@@ -140,7 +140,10 @@ public partial class DashboardOverview : UserControl
     {
         try
         {
-            if (_syncingSelection || DataContext is not DashboardViewModel vm || !vm.IsOverviewTab)
+            if (_syncingSelection
+                || DataContext is not DashboardViewModel vm
+                || !vm.CanPage
+                || !vm.IsOverviewTab)
             {
                 return;
             }
@@ -179,6 +182,7 @@ public partial class DashboardOverview : UserControl
         {
             if (_syncingSelection
                 || DataContext is not DashboardViewModel vm
+                || !vm.CanPage
                 || sender is not Border { DataContext: EntryRecentItem item })
             {
                 return;

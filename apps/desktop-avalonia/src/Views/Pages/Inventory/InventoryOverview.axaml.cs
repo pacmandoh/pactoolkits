@@ -147,7 +147,7 @@ public partial class InventoryOverview : UserControl
     {
         try
         {
-            if (DataContext is not InventoryOverviewViewModel vm)
+            if (DataContext is not InventoryOverviewViewModel vm || !vm.CanPage)
             {
                 return;
             }

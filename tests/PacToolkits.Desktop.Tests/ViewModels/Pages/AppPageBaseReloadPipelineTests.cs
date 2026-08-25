@@ -1,6 +1,5 @@
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
-using PacToolkits.Desktop.Avalonia.Services.Presentation.EmptyState;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
 namespace PacToolkits.Desktop.Tests;
@@ -132,6 +131,7 @@ public sealed class AppPageBaseReloadPipelineTests
             FirstCheckCompleted: true));
 
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.CanPage);
         Assert.False(page.IsBusy);
         Assert.False(page.ShowPageUnavailable);
     }
@@ -147,6 +147,7 @@ public sealed class AppPageBaseReloadPipelineTests
             FirstCheckCompleted: true));
 
         Assert.Equal(PageDataAvailability.AwaitingService, page.PageDataAvailability);
+        Assert.False(page.CanPage);
         Assert.False(page.ShowPageUnavailable);
         Assert.False(page.IsBusy);
     }
@@ -208,6 +209,7 @@ public sealed class AppPageBaseReloadPipelineTests
             CheckedAt: DateTimeOffset.UtcNow,
             FirstCheckCompleted: true));
         Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);
+        Assert.False(page.CanPage);
         Assert.False(page.IsBusy);
 
         page.SyncConnection(new ApiAvailabilitySnapshot(
@@ -229,7 +231,7 @@ public sealed class AppPageBaseReloadPipelineTests
 
         Assert.Equal(PageDataAvailability.NotLoaded, page.PageDataAvailability);
         Assert.False(page.ShowPageUnavailable);
-        Assert.Equal(SectionEmptyCopy.StaleHint, page.PageStaleHint);
+        Assert.Equal("正在检查 PacAPI 服务，完成后将自动加载", page.TestEmptyHint());
     }
 
     [Fact]
@@ -853,7 +855,7 @@ public sealed class AppPageBaseReloadPipelineTests
         public Task ProbeAsync(CancellationToken ct = default)
             => Task.CompletedTask;
 
-        public void Notify()
+        public void Reset()
         {
         }
 

@@ -223,10 +223,10 @@ public sealed partial class InventoryOverview : AppPageBase
         }
     }
 
-    private bool CanOperateUi() => !IsUiBusy;
+    private bool CanOperateUi() => CanPage && !IsUiBusy;
 
     private bool CanLocalRefresh()
-        => CanOperateUi() && !IsStockEditEnabled && CanPage;
+        => CanOperateUi() && !IsStockEditEnabled;
 
     private bool CanUnlock()
         => CanOperateUi()

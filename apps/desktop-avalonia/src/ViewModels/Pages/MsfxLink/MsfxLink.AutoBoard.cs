@@ -21,7 +21,7 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class MsfxLink : AppPageBase
 {
     private bool CanRunAutoOnce()
-        => IsApiReady && !IsAutoBusy && !IsManualMsfxWriteActive;
+        => CanPage && !IsAutoBusy && !IsManualMsfxWriteActive;
 
     private bool CanRefreshAutoBoard()
         => CanPage && !IsAutoBoardBusy && !IsAutoBusy && !IsManualMsfxWriteActive;
@@ -153,7 +153,10 @@ public sealed partial class MsfxLink : AppPageBase
            $"待确认入池 {result.WatchQueued}，补偿成功 {result.WatchResolved}，补偿延后 {result.WatchDeferred}，" +
            $"新增任务 {result.CreatedTasks}";
 
-    [RelayCommand]
+    private bool CanClearAutoLogs()
+        => CanPage && !IsAutoBusy;
+
+    [RelayCommand(CanExecute = nameof(CanClearAutoLogs))]
     private void ClearAutoLogs()
     {
         AutoLogs.Clear();

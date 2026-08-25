@@ -183,22 +183,23 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         TaskQueueBatchActionMode.Split => CanSplitSelectedTasks,
         _ => false
     };
-    public bool CanMergeTasks => !IsAutoBoardBusy && _filteredTaskQueueRows.Count(x => x.CurrentCodeCount > 0) >= 2;
-    public bool CanRemapTasks => !IsAutoBoardBusy && _filteredTaskQueueRows.Any(x => !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase) && x.CurrentCodeCount > 0);
-    public bool CanDiscardTasks => !IsAutoBoardBusy && _filteredTaskQueueRows.Any(x => x.CurrentCodeCount > 0 && (string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase)));
-    public bool CanReopenTasks => !IsAutoBoardBusy && _filteredTaskQueueRows.Any(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase));
-    public bool CanBatchReopenSelectedTasks => !IsAutoBoardBusy
+    private bool CanOperateTaskQueue => CanPage && !IsAutoBoardBusy;
+    public bool CanMergeTasks => CanOperateTaskQueue && _filteredTaskQueueRows.Count(x => x.CurrentCodeCount > 0) >= 2;
+    public bool CanRemapTasks => CanOperateTaskQueue && _filteredTaskQueueRows.Any(x => !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase) && x.CurrentCodeCount > 0);
+    public bool CanDiscardTasks => CanOperateTaskQueue && _filteredTaskQueueRows.Any(x => x.CurrentCodeCount > 0 && (string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase)));
+    public bool CanReopenTasks => CanOperateTaskQueue && _filteredTaskQueueRows.Any(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase));
+    public bool CanBatchReopenSelectedTasks => CanOperateTaskQueue
                                                && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
                                                    string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase)
                                                    || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase));
-    public bool CanBatchDiscardSelectedTasks => !IsAutoBoardBusy
+    public bool CanBatchDiscardSelectedTasks => CanOperateTaskQueue
                                                 && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
                                                     string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase)
                                                     || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase));
-    public bool CanBatchRemapSelectedTasks => !IsAutoBoardBusy
+    public bool CanBatchRemapSelectedTasks => CanOperateTaskQueue
                                               && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
                                                   !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase));
-    public bool CanBatchMergeSelectedTasks => !IsAutoBoardBusy
+    public bool CanBatchMergeSelectedTasks => CanOperateTaskQueue
                                               && SelectedAutoTaskQueueRowsSnapshot.Count >= 2
                                               && SelectedAutoTaskQueueRowsSnapshot.All(x =>
                                                   x.CurrentCodeCount > 0
@@ -211,8 +212,8 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
                                                   .Select(BuildMergeKey)
                                                   .Distinct(StringComparer.OrdinalIgnoreCase)
                                                   .Count() == 1;
-    public bool CanSplitTasks => !IsAutoBoardBusy && _filteredTaskQueueRows.Any(CanSplitTask);
-    public bool CanSplitSelectedTasks => !IsAutoBoardBusy
+    public bool CanSplitTasks => CanOperateTaskQueue && _filteredTaskQueueRows.Any(CanSplitTask);
+    public bool CanSplitSelectedTasks => CanOperateTaskQueue
                                          && TaskQueueBatchMode == TaskQueueBatchActionMode.Split
                                          && SelectedAutoTaskQueueRowsSnapshot.Count == 1
                                          && CanSplitTask(SelectedAutoTaskQueueRowsSnapshot[0]);
@@ -283,6 +284,25 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
         OnPropertyChanged(nameof(IsMappingGroupEmpty));
         OnPropertyChanged(nameof(MappingGroupEmptyText));
         OnPropertyChanged(nameof(MappingGroupEmptyHint));
+        RefreshCommands(
+            RunAutoOnceCommand,
+            ClearAutoLogsCommand,
+            RefreshAutoBoardCommand,
+            RefreshQueueTabCommand,
+            OpenSubcodesCommand);
+        RefreshMappingCommands();
+        RefreshOpsUnlock();
+        OnPropertyChanged(nameof(CanMergeTasks));
+        OnPropertyChanged(nameof(CanRemapTasks));
+        OnPropertyChanged(nameof(CanDiscardTasks));
+        OnPropertyChanged(nameof(CanReopenTasks));
+        OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchRemapSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchMergeSelectedTasks));
+        OnPropertyChanged(nameof(CanSplitTasks));
+        OnPropertyChanged(nameof(CanSplitSelectedTasks));
+        OnPropertyChanged(nameof(CanConfirmTaskQueueBatchAction));
     }
 
     public int PullBatchTotalPages => Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)GetPullBatchPageSize()));

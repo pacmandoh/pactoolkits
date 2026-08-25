@@ -20,6 +20,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Navigation;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Notifications;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Platform;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Security;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
@@ -75,6 +76,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ILoggingSettingsService _loggingSettings;
     private readonly IUiBehaviorService _uiBehavior;
     private readonly ITraceCodeRuleService _traceCodeRule;
+    private readonly ISensitiveUnlockService _unlockService;
     private readonly IAppLogger _logger;
     private readonly PageNavigationService _nav;
     private readonly string _configPath;
@@ -308,12 +310,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private bool _sessionHadServiceDown;
     private DateTimeOffset _lastServiceOkToastAt = DateTimeOffset.MinValue;
 
-    private void RaiseConnectivityChanged()
+    private void RaiseConnectivityChanged(ApiAvailabilitySnapshot api, bool configured)
     {
-        var api = _apiAvailability.Current;
-        var configured = _apiAvailability.IsConfigured;
         var view = ConnectionView.From(api, configured);
         var banner = ConnectivityBanner.Create(api, isConfigured: configured);
+
+        if (view.Kind != ConnectionKind.Up)
+        {
+            _unlockService.Lock(UnlockScopes.SharedOps);
+        }
 
         if (view.Kind == ConnectionKind.Blocked)
         {
@@ -343,9 +348,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void OnApiAvailabilityChanged()
     {
+        var api = _apiAvailability.Current;
+        var configured = _apiAvailability.IsConfigured;
         PostOnUi(() =>
         {
-            var view = ConnectionView.From(_apiAvailability.Current, _apiAvailability.IsConfigured);
+            var view = ConnectionView.From(api, configured);
             var becameUp = view.Kind == ConnectionKind.Up && _lastConnection != ConnectionKind.Up;
             if (view.Kind is ConnectionKind.Down or ConnectionKind.Blocked)
             {
@@ -354,7 +361,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             _lastConnection = view.Kind;
 
-            RaiseConnectivityChanged();
+            RaiseConnectivityChanged(api, configured);
             if (becameUp)
             {
                 ScheduleAutoRefresh();
@@ -493,6 +500,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ILoggingSettingsService loggingSettings,
         IUiBehaviorService uiBehavior,
         ITraceCodeRuleService traceCodeRule,
+        ISensitiveUnlockService unlockService,
         IAppLogger logger,
         WorkspaceDirtyRefresh dirtyRefresh)
     {
@@ -512,6 +520,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _loggingSettings = loggingSettings ?? throw new ArgumentNullException(nameof(loggingSettings));
         _uiBehavior = uiBehavior ?? throw new ArgumentNullException(nameof(uiBehavior));
         _traceCodeRule = traceCodeRule ?? throw new ArgumentNullException(nameof(traceCodeRule));
+        _unlockService = unlockService ?? throw new ArgumentNullException(nameof(unlockService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _dirtyRefresh = dirtyRefresh ?? throw new ArgumentNullException(nameof(dirtyRefresh));
         _nav = nav ?? throw new ArgumentNullException(nameof(nav));
@@ -570,7 +579,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ObserveDetached(CheckConfigOnStartupAsync(), "startup.config.detached.fail");
         StartConfigWatcher();
         _lastConnection = ConnectionView.From(_apiAvailability.Current, _apiAvailability.IsConfigured).Kind;
-        RaiseConnectivityChanged();
+        RaiseConnectivityChanged(_apiAvailability.Current, _apiAvailability.IsConfigured);
         ObserveDetached(InitializeAfterStartupChecksAsync(), "startup.init.detached.fail");
         _logger.Info("MainWindowVM", "main.init", "Main window initialized");
     }
