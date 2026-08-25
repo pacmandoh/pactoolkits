@@ -16,9 +16,8 @@
   Focusable="True"
   mc:Ignorable="d">
   <controls:PageDataShell
-    ShowStale="{Binding IsShowingStaleData}"
+    IsInteractionEnabled="{Binding CanPage}"
     ShowUnavailable="{Binding ShowPageUnavailable}"
-    StaleHint="{Binding PageStaleHint}"
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
@@ -37,10 +36,7 @@
               ClipToBounds="True"
               RowDefinitions="Auto,Auto"
               RowSpacing="0">
-              <ContentControl
-                Grid.Row="0"
-                Classes="FilterBarChrome"
-                IsEnabled="{Binding CanPage}">
+              <ContentControl Grid.Row="0" Classes="FilterBarChrome">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterBarGroupSpacing}">
                   <Grid
                     Grid.Row="0"
@@ -199,7 +195,6 @@
               <ContentControl
                 Grid.Row="1"
                 Classes="FilterBarChrome"
-                IsEnabled="{Binding CanPage}"
                 IsVisible="{Binding ShowReassignPreview}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterBarGroupSpacing}">
                   <StackPanel Grid.Row="0" Spacing="4">
@@ -313,7 +308,7 @@
             shad:TextBoxAssist.Clearable="True"
             AcceptsReturn="False"
             Classes="SearchBox Clearable"
-            IsEnabled="{Binding CanUseStockSearch}"
+            IsEnabled="{Binding !IsUiBusy}"
             PlaceholderText="搜索：药品名 / 规格 / 追溯码"
             Text="{Binding Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
             TextWrapping="NoWrap">
@@ -588,7 +583,6 @@
             FirstPageCommand="{Binding FirstPageCommand}"
             IsActive="{Binding IsPagedMode}"
             IsContentEmpty="{Binding IsStockEmpty}"
-            IsEnabled="{Binding CanPage}"
             LastPageCommand="{Binding LastPageCommand}"
             NextPageCommand="{Binding NextPageCommand}"
             PageSizeOptions="{Binding PageSizeOptions}"

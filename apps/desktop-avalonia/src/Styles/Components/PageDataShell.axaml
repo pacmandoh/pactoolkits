@@ -1,0 +1,44 @@
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <Style Selector="controls|PageDataShell">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <controls:EmptyStatePanel
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          EmptyHint="{TemplateBinding UnavailableHint}"
+          EmptyText="{TemplateBinding UnavailableTitle}"
+          Icon="{TemplateBinding UnavailableIcon}"
+          IsEmpty="{TemplateBinding ShowUnavailable}">
+          <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <ContentPresenter
+              x:Name="ContentHost"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch"
+              VerticalContentAlignment="Stretch"
+              Content="{TemplateBinding Content}"
+              ContentTemplate="{TemplateBinding ContentTemplate}"
+              IsEnabled="{TemplateBinding IsInteractionEnabled}" />
+
+            <!--  DataGrid 仍可点到时，用遮罩挡住命中  -->
+            <Border
+              x:Name="InteractionLock"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              Background="{DynamicResource WindowBackgroundColor}"
+              IsHitTestVisible="True"
+              IsVisible="{Binding !IsInteractionEnabled, RelativeSource={RelativeSource TemplatedParent}}"
+              Opacity="0.55"
+              ZIndex="2" />
+          </Grid>
+        </controls:EmptyStatePanel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+</Styles>

@@ -112,10 +112,6 @@
     <Setter Property="Background" Value="{DynamicResource WarningColor10}" />
   </Style>
 
-  <Style Selector="Border.PageStaleBanner">
-    <Setter Property="Background" Value="{DynamicResource WarningColor10}" />
-  </Style>
-
   <Style Selector="Border.PageHeader">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
     <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />

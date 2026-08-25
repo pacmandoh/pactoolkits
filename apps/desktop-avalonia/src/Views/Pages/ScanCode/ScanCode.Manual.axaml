@@ -21,10 +21,7 @@
     MinHeight="0"
     Classes="DashboardLayout"
     RowDefinitions="Auto,*">
-    <ContentControl
-      Grid.Row="0"
-      Classes="FilterBarChrome"
-      IsEnabled="{Binding CanPage}">
+    <ContentControl Grid.Row="0" Classes="FilterBarChrome">
       <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*">
         <Grid
           Grid.Column="0"

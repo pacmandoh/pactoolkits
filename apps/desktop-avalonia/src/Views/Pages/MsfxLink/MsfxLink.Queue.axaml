@@ -16,10 +16,7 @@
       MinHeight="0"
       IsVisible="{Binding IsQueueMonitorWorkspace}"
       RowDefinitions="Auto,*">
-      <ContentControl
-        Classes="FilterBarChrome"
-        IsEnabled="{Binding CanPage}"
-        IsVisible="{Binding ShowQueueToolbar}">
+      <ContentControl Classes="FilterBarChrome" IsVisible="{Binding ShowQueueToolbar}">
         <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,*,Auto">
           <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
             <TextBlock
@@ -354,7 +351,6 @@
                   ClearTarget="{Binding #AutoMapQueueGrid}"
                   FirstPageCommand="{Binding FirstMapQueuePageCommand}"
                   IsContentEmpty="{Binding IsAutoMapQueueEmpty}"
-                  IsEnabled="{Binding CanPage}"
                   LastPageCommand="{Binding LastMapQueuePageCommand}"
                   NextPageCommand="{Binding NextMapQueuePageCommand}"
                   PageSizeOptions="{Binding MapQueuePageSizeOptions}"
@@ -558,7 +554,6 @@
                   ClearTarget="{Binding #AutoTaskQueueGrid}"
                   FirstPageCommand="{Binding FirstTaskQueuePageCommand}"
                   IsContentEmpty="{Binding IsAutoTaskQueueEmpty}"
-                  IsEnabled="{Binding CanPage}"
                   LastPageCommand="{Binding LastTaskQueuePageCommand}"
                   NextPageCommand="{Binding NextTaskQueuePageCommand}"
                   PageSizeOptions="{Binding TaskQueuePageSizeOptions}"
@@ -579,10 +574,7 @@
       MinHeight="0"
       IsVisible="{Binding IsMappingWorkspace}"
       RowDefinitions="Auto,*">
-      <ContentControl
-        Classes="FilterBarChrome"
-        IsEnabled="{Binding CanPage}"
-        IsVisible="{Binding IsMappingConfigBarVisible}">
+      <ContentControl Classes="FilterBarChrome" IsVisible="{Binding IsMappingConfigBarVisible}">
         <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*,*,Auto">
           <Grid
             Grid.Column="0"
