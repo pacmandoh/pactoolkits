@@ -15,10 +15,8 @@
   x:DataType="vm:Dashboard"
   mc:Ignorable="d">
   <controls:PageDataShell
-    IsLoadingData="{Binding IsBusy}"
-    ShowStale="{Binding IsShowingStaleData}"
+    IsInteractionEnabled="{Binding CanPage}"
     ShowUnavailable="{Binding ShowPageUnavailable}"
-    StaleHint="{Binding PageStaleHint}"
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
@@ -26,7 +24,6 @@
       <ContentControl
         Grid.Row="0"
         Classes="FilterBarChrome"
-        IsEnabled="{Binding CanPage}"
         IsVisible="{Binding IsFilterBarVisible}">
         <Grid Classes="FilterBarColumns" ColumnDefinitions="1*,Auto,0.85*,Auto,1.15*">
           <Grid

@@ -17,37 +17,37 @@
   Focusable="True"
   mc:Ignorable="d">
   <controls:PageDataShell
-    IsLoadingData="{Binding IsBusy}"
-    ShowStale="{Binding IsShowingStaleData}"
+    IsInteractionEnabled="{Binding CanPage}"
     ShowUnavailable="{Binding ShowPageUnavailable}"
-    StaleHint="{Binding PageStaleHint}"
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
-    <Grid
-      MinHeight="0"
-      Classes="DashboardLayout"
-      RowDefinitions="Auto,*">
-      <controls:DeferredContentHost
-        Grid.Row="1"
-        IsActive="{Binding IsManualEntryTab}"
-        IsVisible="{Binding IsManualEntryTab}">
-        <controls:DeferredContentHost.ContentTemplate>
-          <DataTemplate x:DataType="vm:ScanCode">
-            <pages:ScanCodeManual />
-          </DataTemplate>
-        </controls:DeferredContentHost.ContentTemplate>
-      </controls:DeferredContentHost>
-      <controls:DeferredContentHost
-        Grid.Row="1"
-        IsActive="{Binding IsAutoFetchTab}"
-        IsVisible="{Binding IsAutoFetchTab}">
-        <controls:DeferredContentHost.ContentTemplate>
-          <DataTemplate x:DataType="vm:ScanCode">
-            <pages:ScanCodeAutoFetch />
-          </DataTemplate>
-        </controls:DeferredContentHost.ContentTemplate>
-      </controls:DeferredContentHost>
-    </Grid>
+    <shad:BusyArea IsBusy="{Binding IsBusy}">
+      <Grid
+        MinHeight="0"
+        Classes="DashboardLayout"
+        RowDefinitions="Auto,*">
+        <controls:DeferredContentHost
+          Grid.Row="1"
+          IsActive="{Binding IsManualEntryTab}"
+          IsVisible="{Binding IsManualEntryTab}">
+          <controls:DeferredContentHost.ContentTemplate>
+            <DataTemplate x:DataType="vm:ScanCode">
+              <pages:ScanCodeManual />
+            </DataTemplate>
+          </controls:DeferredContentHost.ContentTemplate>
+        </controls:DeferredContentHost>
+        <controls:DeferredContentHost
+          Grid.Row="1"
+          IsActive="{Binding IsAutoFetchTab}"
+          IsVisible="{Binding IsAutoFetchTab}">
+          <controls:DeferredContentHost.ContentTemplate>
+            <DataTemplate x:DataType="vm:ScanCode">
+              <pages:ScanCodeAutoFetch />
+            </DataTemplate>
+          </controls:DeferredContentHost.ContentTemplate>
+        </controls:DeferredContentHost>
+      </Grid>
+    </shad:BusyArea>
   </controls:PageDataShell>
 </UserControl>

@@ -103,7 +103,6 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public bool CanPage => IsPageConnected && !IsPageBlocked(out _);
 
-    public string PageStaleHint => SectionEmptyCopy.StaleHint;
 
     public bool ShowPageUnavailable => _pageDataAvailability switch
     {
@@ -604,7 +603,6 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         OnPropertyChanged(nameof(PageUnavailableTitle));
         OnPropertyChanged(nameof(PageUnavailableHint));
         OnPropertyChanged(nameof(PageUnavailableIcon));
-        OnPropertyChanged(nameof(PageStaleHint));
         OnPropertyChanged(nameof(IsShowingStaleData));
         OnPropertyChanged(nameof(CanPage));
         OnPropertyChanged(nameof(SectionEmptyIcon));

@@ -10,10 +10,8 @@
   ClipToBounds="True"
   Focusable="True">
   <controls:PageDataShell
-    IsLoadingData="{Binding IsBusy}"
-    ShowStale="{Binding IsShowingStaleData}"
+    IsInteractionEnabled="{Binding CanPage}"
     ShowUnavailable="{Binding ShowPageUnavailable}"
-    StaleHint="{Binding PageStaleHint}"
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">

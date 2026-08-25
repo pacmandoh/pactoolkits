@@ -19,9 +19,8 @@
   Focusable="True"
   mc:Ignorable="d">
   <controls:PageDataShell
-    ShowStale="{Binding IsShowingStaleData}"
+    IsInteractionEnabled="{Binding CanPage}"
     ShowUnavailable="{Binding ShowPageUnavailable}"
-    StaleHint="{Binding PageStaleHint}"
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
@@ -39,7 +38,6 @@
               shad:TextBoxAssist.Clearable="True"
               AcceptsReturn="False"
               Classes="SearchBox Clearable"
-              IsEnabled="{Binding CanPage}"
               PlaceholderText="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
               Text="{Binding Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
               TextWrapping="NoWrap">

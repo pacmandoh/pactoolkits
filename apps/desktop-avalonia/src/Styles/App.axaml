@@ -10,6 +10,7 @@
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/AppIcon.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/BusyArea.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/EmptyStatePanel.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/PageDataShell.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/DataGrid.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/DataGridPager.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/Navigation.axaml" />

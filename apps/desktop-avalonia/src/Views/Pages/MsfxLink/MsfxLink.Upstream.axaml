@@ -13,7 +13,7 @@
     MinHeight="0"
     Classes="DashboardLayout"
     RowDefinitions="Auto,*">
-    <ContentControl Classes="FilterBarChrome" IsEnabled="{Binding CanPage}">
+    <ContentControl Classes="FilterBarChrome">
       <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,Auto,Auto,*,Auto">
         <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
           <TextBlock
@@ -319,7 +319,6 @@
               ClearTarget="{Binding #UpoutGrid}"
               FirstPageCommand="{Binding FirstUpoutPageCommand}"
               IsContentEmpty="{Binding IsUpoutEmpty}"
-              IsEnabled="{Binding CanPage}"
               LastPageCommand="{Binding LastUpoutPageCommand}"
               NextPageCommand="{Binding NextUpoutPageCommand}"
               PageSizeOptions="{Binding UpoutPageSizeOptions}"
@@ -426,7 +425,6 @@
               ClearTarget="{Binding #SubcodeGrid}"
               FirstPageCommand="{Binding FirstSubcodePageCommand}"
               IsContentEmpty="{Binding IsSubCodeEmpty}"
-              IsEnabled="{Binding CanPage}"
               LastPageCommand="{Binding LastSubcodePageCommand}"
               NextPageCommand="{Binding NextSubcodePageCommand}"
               PageSizeOptions="{Binding SubcodePageSizeOptions}"
