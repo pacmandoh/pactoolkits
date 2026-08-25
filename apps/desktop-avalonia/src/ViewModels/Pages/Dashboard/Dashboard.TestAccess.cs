@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Navigation;
@@ -24,6 +25,9 @@ public sealed partial class Dashboard
         _nav = new PageNavigationService();
         _inventoryOverview = null!;
         _dirtyRefresh = new WorkspaceDirtyRefresh();
+        _localRefreshCommand = new AsyncRelayCommand(
+            () => RunLocalReloadAsync(_ => { }, RefreshAllAsync, OnReloadFinished),
+            () => IsEnabled && CanPage);
         _dateRangeController = new RollingDateRangeController(() =>
             PostOnUi(HandleDateRangeDayChanged, DispatcherPriority.Background));
 

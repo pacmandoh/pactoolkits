@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
@@ -35,11 +36,13 @@ public sealed partial class ScanCode : AppPageBase
     public override string DisplayName => "追溯码录入";
     public override string Icon => "ScanBarcode";
     public override int Index => 3;
+    public override ICommand RefreshCommand => _localRefreshCommand;
 
     private readonly ILookupCatalogService _lookup;
     private readonly IScanCodeService _scanCode;
     private readonly ITraceCodeRuleService _traceCodeRule;
     private readonly IToastService _toast;
+    private readonly AsyncRelayCommand _localRefreshCommand;
     private IRelayCommand?[]? _notifiableCommands;
 
     public ObservableCollection<OptionItem> DrugOptions { get; } = new();
@@ -165,6 +168,7 @@ public sealed partial class ScanCode : AppPageBase
         _scanCode = scanCode;
         _traceCodeRule = traceCodeRule;
         _toast = toast;
+        _localRefreshCommand = new AsyncRelayCommand(ReloadAsync, () => IsEnabled && CanPage);
         RecentRuns.CollectionChanged += OnRecentRunsChanged;
         RetryQueue.CollectionChanged += OnRetryQueueChanged;
         SeedAutoFetchPanel();
@@ -173,7 +177,8 @@ public sealed partial class ScanCode : AppPageBase
         PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
     }
 
-    private Task ReloadAsync() => RefreshPageAsync();
+    private Task ReloadAsync()
+        => RunLocalReloadAsync(v => IsBusy = v, ReloadCoreAsync, OnReloadFinished);
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
         => ReloadLookupAsync(ct);
@@ -198,7 +203,19 @@ public sealed partial class ScanCode : AppPageBase
         RecalcCodeStats(TraceCodesText);
     }
 
-    private bool CanOperateUi() => !IsBusy;
+    private bool CanOperateUi() => CanPage && !IsBusy;
+
+    protected override void OnBusyChanged(bool isBusy)
+    {
+        _localRefreshCommand.NotifyCanExecuteChanged();
+        RefreshPageCommands();
+    }
+
+    protected override void OnPageAvailabilityChanged()
+    {
+        _localRefreshCommand.NotifyCanExecuteChanged();
+        RefreshPageCommands();
+    }
 
     public void ReloadAfterDrugIndexChange()
     {
@@ -436,81 +453,84 @@ public sealed partial class ScanCode : AppPageBase
 
         try
         {
-            await RunReloadAsync(async ct =>
-            {
-                try
+            await RunExclusiveLocalBusyAsync(
+                v => IsBusy = v,
+                async ct =>
                 {
-                    var drug = NormalizeInput(DrugText);
-                    var spec = NormalizeInput(SelectedSpec?.Raw);
-                    _statsDebouncer.Cancel();
-                    await EnsurePoolCheckAsync(ct).ConfigureAwait(false);
-                    CodeAnalysis analysis = default!;
-                    await RunOnUiAsync(() => analysis = ToCodeAnalysis(_cachedDetailed)).ConfigureAwait(false);
-                    var codes = analysis.ValidUniqueCodes;
-
-                    if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
+                    try
                     {
-                        _toast.Warn("追溯码录入", "请先选择药品与规格");
-                        return;
-                    }
+                        var drug = NormalizeInput(DrugText);
+                        var spec = NormalizeInput(SelectedSpec?.Raw);
+                        _statsDebouncer.Cancel();
+                        await EnsurePoolCheckAsync(ct).ConfigureAwait(false);
+                        CodeAnalysis analysis = default!;
+                        await RunOnUiAsync(() => analysis = ToCodeAnalysis(_cachedDetailed)).ConfigureAwait(false);
+                        var codes = analysis.ValidUniqueCodes;
 
-                    if (codes.Count == 0)
-                    {
-                        _toast.Warn("追溯码录入", "未检测到可入库的有效追溯码");
-                        return;
-                    }
+                        if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
+                        {
+                            _toast.Warn("追溯码录入", "请先选择药品与规格");
+                            return;
+                        }
 
-                    using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                    timeoutCts.CancelAfter(SubmitTimeout);
+                        if (codes.Count == 0)
+                        {
+                            _toast.Warn("追溯码录入", "未检测到可入库的有效追溯码");
+                            return;
+                        }
 
-                    var submit = await _scanCode.SubmitAsync(
-                        new ScanCodeSubmitRequest(
-                            DrugId: drug,
-                            Spec: spec,
-                            ValidUniqueCodes: codes,
-                            Analysis: analysis,
-                            ClientRaw: CachedClientRaw.Value),
-                        timeoutCts.Token).ConfigureAwait(false);
+                        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        timeoutCts.CancelAfter(SubmitTimeout);
 
-                    if (!submit.DrugFound)
-                    {
+                        var submit = await _scanCode.SubmitAsync(
+                            new ScanCodeSubmitRequest(
+                                DrugId: drug,
+                                Spec: spec,
+                                ValidUniqueCodes: codes,
+                                Analysis: analysis,
+                                ClientRaw: CachedClientRaw.Value),
+                            timeoutCts.Token).ConfigureAwait(false);
+
+                        if (!submit.DrugFound)
+                        {
+                            await RunOnUiAsync(() =>
+                            {
+                                _toast.Error("追溯码录入", "药品/规格不存在，请检查选择项");
+                                Status = "录入失败：药品/规格不存在";
+                            });
+                            return;
+                        }
+
+                        var result = submit.Insert;
+
                         await RunOnUiAsync(() =>
                         {
-                            _toast.Error("追溯码录入", "药品/规格不存在，请检查选择项");
-                            Status = "录入失败：药品/规格不存在";
+                            SelectedQtyText = submit.QtyPerTrace.ToString();
+                            Status = $"处理 {result.RequestedCount} 条，成功 {result.InsertedCount} 条，跳过 {result.SkippedCount} 条";
+                            var summary = BuildSubmitToastSummary(
+                                drug,
+                                spec,
+                                submit.QtyPerTrace,
+                                analysis,
+                                PoolSkipCount,
+                                result);
+
+                            if (result.InsertedCount > 0)
+                            {
+                                _toast.Success("追溯码录入", summary);
+                            }
+                            else
+                            {
+                                _toast.Warn("追溯码录入 · 无新增记录", summary);
+                            }
                         });
-                        return;
                     }
-
-                    var result = submit.Insert;
-
-                    await RunOnUiAsync(() =>
+                    finally
                     {
-                        SelectedQtyText = submit.QtyPerTrace.ToString();
-                        Status = $"处理 {result.RequestedCount} 条，成功 {result.InsertedCount} 条，跳过 {result.SkippedCount} 条";
-                        var summary = BuildSubmitToastSummary(
-                            drug,
-                            spec,
-                            submit.QtyPerTrace,
-                            analysis,
-                            PoolSkipCount,
-                            result);
-
-                        if (result.InsertedCount > 0)
-                        {
-                            _toast.Success("追溯码录入", summary);
-                        }
-                        else
-                        {
-                            _toast.Warn("追溯码录入 · 无新增记录", summary);
-                        }
-                    });
-                }
-                finally
-                {
-                    await RunOnUiAsync(() => { TraceCodesText = string.Empty; }).ConfigureAwait(false);
-                }
-            }, onFinished: RefreshPageCommands);
+                        await RunOnUiAsync(() => { TraceCodesText = string.Empty; }).ConfigureAwait(false);
+                    }
+                },
+                onFinished: RefreshPageCommands);
         }
         catch (Exception ex)
         {
