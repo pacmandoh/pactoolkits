@@ -39,7 +39,7 @@
 
 <br />
 
-<sub><strong>Desktop</strong> 负责业务交互 · <strong>Agents</strong> 负责自动化执行 · <strong>DB</strong> 负责任务编排与持久化</sub>
+<sub><strong>Desktop</strong> 负责业务交互 · <strong>Agents</strong> 负责自动化执行 · <strong>PacAPI</strong> 负责数据访问</sub>
 
 <br />
 <br />
@@ -74,11 +74,11 @@ PacToolkits Desktop、PacAPI、Agents（Host 与模块）与 PostgreSQL
 
 ## 核心特性
 
-- Desktop、Agents、DB 一体化单仓库设计
+- Desktop、PacAPI、Agents、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
 - Agents 运行时：常驻 .NET Host（模块监管与 Snapshot）；Desktop 侧管 Host 生命周期与 desired
 - 基于 PostgreSQL Migration 的数据库演进与兼容门禁
-- Desktop、Agents 和数据库版本由 Manifest 统一管理
+- Desktop、PacAPI、Agents 和数据库版本由 Manifest 统一管理
 - 支持库存、追溯码录入、联调映射、任务队列与审计
 
 ---

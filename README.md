@@ -39,7 +39,7 @@
 
 <br />
 
-<sub><strong>Desktop</strong> for business work · <strong>Agents</strong> for automation · <strong>DB</strong> for tasks and durable state</sub>
+<sub><strong>Desktop</strong> for business work · <strong>Agents</strong> for automation · <strong>PacAPI</strong> for data access</sub>
 
 <br />
 <br />
@@ -74,11 +74,11 @@ Main areas:
 
 ## Highlights
 
-- Desktop, Agents, and DB live in one repository
+- Desktop, PacAPI, Agents, and DB live in one repository
 - Avalonia business client with update and diagnostics
 - Resident .NET Host supervises modules and publishes Snapshot; Desktop owns Host lifecycle and session desired
 - PostgreSQL migrations with schema compatibility checks
-- Versioned release pipeline for Desktop, Agents, and DB schema ranges
+- Versioned release pipeline for Desktop, PacAPI, Agents, and DB schema ranges
 - Operational views for inventory, mapping, MSFX linkage, and execution queues
 
 ---
