@@ -152,18 +152,18 @@ DI 组装入口：`AddPacToolkitsApi`（`Hosting/ServiceRegistration.cs`）。�
 
 Desktop 访问 API 的地址与密钥在设置的「连接设置」写入 `AppConfigStore`（与码上放心 API 凭证同一套持久化）。保存后立刻让 `PacApiClient` 用上新配置，并 `Reset` 变更水位与 Shell 可用性探测
 
-| 字段           | 含义                                         |
-| -------------- | -------------------------------------------- |
-| `BaseUrl`      | API 根地址（绝对 URI；非 loopback 须 HTTPS） |
-| `ApiKey`       | Desktop 换票用明文 Key                       |
-| `AgentsApiKey` | Agents 换票明文 Key；对应环境 `PAC_API_KEY`  |
-| `HeaderName`   | 可选；默认 `X-Api-Key`（设置页不暴露）       |
+| 字段           | 含义                                                      |
+| -------------- | --------------------------------------------------------- |
+| `BaseUrl`      | API 根地址（绝对 URI；内网与本机可用 HTTP，公网须 HTTPS） |
+| `ApiKey`       | Desktop 换票用明文 Key                                    |
+| `AgentsApiKey` | Agents 换票明文 Key；对应环境 `PAC_API_KEY`               |
+| `HeaderName`   | 可选；默认 `X-Api-Key`（设置页不暴露）                    |
 
 规则：
 
 - `BaseUrl` 与 `ApiKey` 都空：合法，表示未配置；此时不探测 PacAPI，`ConnectionView` 为 `NotConfigured`，变更流不启动
 - 只配一侧：保存失败
-- 两侧都有：须为绝对 URI；非 loopback 须 HTTPS；`BaseUrl` 不得带 query、fragment、userinfo
+- 两侧都有：须为绝对 URI；内网与本机可用 HTTP，公网须 HTTPS；`BaseUrl` 不得带 query、fragment、userinfo
 - 保存后立刻生效、`Reset` 水位并立刻 `Probe`；换票 401/403 后可用性挂起自动探测，改密钥抬 `ConfigEpoch` 再探
 
 未配置是配置态，不是 API 探测态：`IApiAvailabilityService.IsConfigured` 为假时不发 HTTP，也不把「未配置」写成 `ApiAvailabilityState`
