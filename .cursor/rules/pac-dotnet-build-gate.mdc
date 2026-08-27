@@ -1,0 +1,12 @@
+---
+description: .NET build/test — always run Shell with full permissions
+alwaysApply: true
+---
+
+# .NET build and test（Shell 权限）
+
+每一次 `dotnet build`、`dotnet test`、`scripts/check-format.sh`、`tests/scripts/run-tooling-tests.sh` 都必须用 Shell 的 **`required_permissions: ["all"]`**。这管的是权限，不是次数：`FORMAT_CHANGED=1 ./scripts/check-format.sh` 只在提交前跑一次（见 **pac-git**），不要与每次改代码或增量编测绑在一起。
+
+不要在默认沙箱里跑这些。沙箱里经常几分钟没有任何输出——不要等待无输出后再申请权限，第一次就开满权限。
+
+参数见 **pac-dotnet-build**：build `--no-restore -v minimal`；test `--no-restore --no-build -v minimal`。除非用户要求，或 **pac-git** push 前第 0 步需要，否则不要 `dotnet restore`
