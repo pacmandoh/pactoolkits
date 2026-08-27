@@ -1,9 +1,8 @@
 # ------------------------------
-# Local agent config (rules, hooks, skills)
+# Local agent config
 # ------------------------------
-.cursor/
-.agent/
-/AGENTS.md
+.cursor/*
+!.cursor/rules/
 
 # ------------------------------
 # OS / editor noise
@@ -83,6 +82,10 @@ database/postgres/scripts/config.json
 # Node (if any tooling uses npm)
 # ------------------------------
 **/node_modules/
+
+# skill local Python scratch
+.agents/skills/**/.venv/
+.agents/skills/**/__pycache__/
 
 # ------------------------------
 # Optional local release scratch files

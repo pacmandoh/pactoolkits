@@ -1,0 +1,14 @@
+---
+description: Naming — debit before write, peer before invent
+alwaysApply: true
+---
+
+# Naming
+
+在 `apps/` 或 `packages/` 写新符号前加载 **pac-naming**。
+
+1. **Debit** — 文件夹、类型、partial、闸门、调用方已经包含的职责，名字里不要再重复
+2. **Peer** — 同一目录里用途相同的最短名字；对齐或更短
+3. **Done** — 能编过不够；看自己的 diff（可选：`bash .agents/skills/pac-naming/scripts/scan-naming-debit.sh`，提示列表不是穷举）
+
+skill 里的例子只是示意，不是穷举允许/禁止表
