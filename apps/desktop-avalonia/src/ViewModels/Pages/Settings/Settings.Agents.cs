@@ -148,7 +148,7 @@ public partial class Settings
     private void OnAgentsRuntimeChanged()
     {
         // 启停期间保留用户刚设置的开关值，命令结束后再以运行时状态校准
-        // 存在编辑任务时只更新运行状态，不更新同步键，确保后续仍会重建模块表单
+        // 有未保存编辑或模块自动保存时不立刻重建表单，只刷新运行行并标过期
         Dispatcher.UIThread.Post(() =>
         {
             var syncRunSwitches = !IsAgentsToggling;
@@ -1020,7 +1020,7 @@ public partial class Settings
                         GetFileSyncToken(schemaPath));
                 })
                 .OrderBy(part => part, StringComparer.Ordinal));
-        // 同步键包含磁盘 Host 配置，确保外部配置更新也能触发表单重建
+        // 同步键包含磁盘上的 Host 配置，外部配置更新也会重建表单
         return string.Join(
             '\n',
             catalog,

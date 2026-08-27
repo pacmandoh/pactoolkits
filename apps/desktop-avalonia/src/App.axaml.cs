@@ -285,7 +285,7 @@ public partial class App : global::Avalonia.Application
 
         UnregisterGlobalExceptionHandlers();
 
-        // 真正退出应用：确保已注册的 Host 进程全部停掉
+        // 退出应用（不是关窗进托盘）：停掉已注册的 Host
         if (_agentsManager is not null)
         {
             try

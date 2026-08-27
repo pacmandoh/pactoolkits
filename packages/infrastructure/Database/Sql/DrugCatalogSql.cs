@@ -2,7 +2,7 @@ namespace PacToolkits.Infrastructure.Database;
 
 /// <summary>
 /// 药品目录 SQL 片段：活跃/弃用口径（note 含「弃用」）及存在性探测
-/// 供多个仓储复用，确保药品目录查询口径一致
+/// 多个仓储共用同一套药品目录查询口径
 /// </summary>
 internal static class DrugCatalogSql
 {
