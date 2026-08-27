@@ -7,7 +7,7 @@ using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation.Update;
 
-/// <summary>定义应用更新提示、确认和执行的 UI 编排契约</summary>
+/// <summary>应用更新的提示、确认和执行</summary>
 public interface IUpdateFlowService
 {
     bool IsApplying { get; }

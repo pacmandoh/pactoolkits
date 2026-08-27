@@ -3,7 +3,7 @@ using PacToolkits.Agents.Contracts.Commands;
 namespace PacToolkits.Agents.Contracts.Abstractions;
 
 /// <summary>
-/// 聚合已注册的 Agents 运行时，提供实例查找、配置同步和统一停止契约
+/// 已注册的 Agents 运行时：查找实例、同步配置、统一停止
 /// </summary>
 public interface IAgentsManager
 {

@@ -16,7 +16,7 @@ internal static class AgentsDeployPaths
 
     public static string? ResolveAgentsDir(AgentsOptions options)
     {
-        // 与配置规范化共用 Host 路径解析，确保模块目录来源一致
+        // 与配置规范化共用 Host 路径解析，模块目录来源一致
         var resolution = AgentsPath.ResolveHost(options.ExecutablePath, AppContext.BaseDirectory);
         if (resolution.ResolvedPath is null)
         {
