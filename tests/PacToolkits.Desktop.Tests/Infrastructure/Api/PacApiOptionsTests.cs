@@ -28,7 +28,29 @@ public sealed class PacApiOptionsTests
     }
 
     [Fact]
-    public void Non_loopback_requires_https()
+    public void Private_ipv4_http_allowed()
+    {
+        var o = new PacApiOptions
+        {
+            BaseUrl = "http://192.168.1.10:5080",
+            ApiKey = "k",
+        };
+        Assert.True(PacApiOptions.Validate(o).Succeeded);
+    }
+
+    [Fact]
+    public void Single_label_hostname_http_allowed()
+    {
+        var o = new PacApiOptions
+        {
+            BaseUrl = "http://pac-api-host:5080",
+            ApiKey = "k",
+        };
+        Assert.True(PacApiOptions.Validate(o).Succeeded);
+    }
+
+    [Fact]
+    public void Public_host_http_rejected()
     {
         var o = new PacApiOptions
         {
