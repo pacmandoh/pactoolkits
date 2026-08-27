@@ -1,4 +1,6 @@
 using System;
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Options;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
@@ -41,9 +43,9 @@ public sealed class PacApiOptions
             return ValidateOptionsResult.Fail("服务地址须为绝对 http(s) URI");
         }
 
-        if (!IsLoopback(uri) && uri.Scheme != Uri.UriSchemeHttps)
+        if (!AllowsCleartextHttp(uri) && uri.Scheme != Uri.UriSchemeHttps)
         {
-            return ValidateOptionsResult.Fail("非本机地址须使用 HTTPS");
+            return ValidateOptionsResult.Fail("内网与本机可用 HTTP，公网须 HTTPS");
         }
 
         // Resolve 按根路径拼接；query/fragment/userinfo 会进意外地址
@@ -63,11 +65,53 @@ public sealed class PacApiOptions
         return ValidateOptionsResult.Success;
     }
 
+    private static bool AllowsCleartextHttp(Uri uri)
+    {
+        if (IsLoopback(uri))
+        {
+            return true;
+        }
+
+        if (IPAddress.TryParse(uri.Host, out var ip))
+        {
+            return IPAddress.IsLoopback(ip) || IsPrivateOrLinkLocalIpv4(ip);
+        }
+
+        // 无点 hostname 视为内网短名
+        return !uri.Host.Contains('.');
+    }
+
     private static bool IsLoopback(Uri uri)
         => uri.IsLoopback
            || string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase)
            || string.Equals(uri.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
            || string.Equals(uri.Host, "::1", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPrivateOrLinkLocalIpv4(IPAddress ip)
+    {
+        if (ip.AddressFamily != AddressFamily.InterNetwork)
+        {
+            return false;
+        }
+
+        var bytes = ip.GetAddressBytes();
+        if (bytes[0] == 10)
+        {
+            return true;
+        }
+
+        if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+        {
+            return true;
+        }
+
+        if (bytes[0] == 192 && bytes[1] == 168)
+        {
+            return true;
+        }
+
+        return bytes[0] == 169 && bytes[1] == 254;
+    }
 
     /// <summary>RFC 9110 token：字母数字与 !#$%&amp;'*+-.^_`|~</summary>
     private static bool IsHttpFieldName(string name)
