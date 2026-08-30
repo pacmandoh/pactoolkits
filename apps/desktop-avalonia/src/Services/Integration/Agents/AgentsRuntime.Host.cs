@@ -168,7 +168,16 @@ public sealed partial class AgentsRuntime
                 IReadOnlyList<ModuleDescriptor> modules;
                 lock (_gate)
                 {
+                    modulesChanged = _projection.TryApplyCatalogFromCaches(
+                        ResolveAgentsDir(options),
+                        _link,
+                        TimeSpan.FromMinutes(30));
                     modules = _projection.Modules;
+                }
+
+                if (modulesChanged)
+                {
+                    TryPersistNormalizedModules();
                 }
 
                 var enabled = modules.Where(m => IsModuleEnabled(m.Id));
