@@ -85,7 +85,7 @@ flowchart LR
 
 desired 在会话内是**持续挂载意图**（已过 Desktop 门）：进程非 0 退出或未 ready 失败记 sticky Failed，不再热循环；ready 后正常 exit 0 且仍在 desired 时可再起。
 
-新增目录可被 Host 动态发现，**发现 ≠ 启动**。Desktop 起 Host 后按门禁通过的启用集写 desired；运行中新模块须用户显式启。
+新增目录可被 Host 动态发现，**发现 ≠ 启动**。Desktop 起 Host 并连上管道后，按 Snapshot catalog 与门禁通过的启用集写 desired；运行中新模块须用户显式启。
 
 ## 日志
 
