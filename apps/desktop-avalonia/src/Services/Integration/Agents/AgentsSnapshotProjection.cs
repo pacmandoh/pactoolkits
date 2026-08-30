@@ -289,7 +289,7 @@ internal sealed class AgentsSnapshotProjection
     }
 
     /// <summary>
-    /// 从链路与可选文件镜像解析 catalog（长 maxAge，仅 Reload / 启动前）
+    /// 从链路与可选文件镜像解析 catalog；文件用长 maxAge
     /// </summary>
     public bool TryApplyCatalogFromCaches(
         string? agentsDir,
