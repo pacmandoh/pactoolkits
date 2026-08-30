@@ -42,7 +42,7 @@
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" Condition="'$(Configuration)' == 'Debug'" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" Version="2.1.0-dev-292" />
-        <PackageReference Include="Lucide.Avalonia" Version="0.2.17" />
+        <PackageReference Include="Lucide.Avalonia" Version="0.2.20" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
         <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
