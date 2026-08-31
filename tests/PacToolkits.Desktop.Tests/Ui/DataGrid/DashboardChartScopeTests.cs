@@ -69,7 +69,23 @@ public sealed class DashboardChartScopeTests
         Assert.Empty(snapshot.EntryChart);
     }
 
-    private static DashboardRequest CreateRequest(bool refreshDistributions)
+    [Fact]
+    public async Task Client_names_are_skipped_when_not_requested()
+    {
+        var repo = new Repo();
+        var service = new DashboardService(repo);
+
+        var snapshot = await service.GetSnapshotAsync(
+            CreateRequest(refreshDistributions: false, refreshClientNames: false),
+            CancellationToken.None);
+
+        Assert.Equal(0, repo.ClientNameCalls);
+        Assert.Empty(snapshot.ClientNames);
+    }
+
+    private static DashboardRequest CreateRequest(
+        bool refreshDistributions,
+        bool refreshClientNames = true)
         => new(
             Filter: new DashboardFilter(
                 new DateOnly(2026, 7, 1),
@@ -88,17 +104,22 @@ public sealed class DashboardChartScopeTests
             EntryPageIndex: 1,
             EntryPageSize: 50,
             AbnormalPageIndex: 1,
-            AbnormalPageSize: 50);
+            AbnormalPageSize: 50,
+            RefreshClientNames: refreshClientNames);
 
     private sealed class Repo : IDashboardRepo
     {
+        public int ClientNameCalls { get; private set; }
         public List<DashboardQuery> ClientQueries { get; } = [];
         public List<(DashboardQuery Query, int PageSize)> TrendQueries { get; } = [];
         public List<(DashboardQuery Query, int PageSize)> TxnQueries { get; } = [];
         public DashboardQuery? EntryChartQuery { get; private set; }
 
         public Task<IReadOnlyList<string>> GetClientNamesAsync(CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<string>>([]);
+        {
+            ClientNameCalls++;
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
 
         public Task<IReadOnlyList<(string Client, long Value)>> GetClientsAsync(DashboardQuery q, CancellationToken ct)
         {

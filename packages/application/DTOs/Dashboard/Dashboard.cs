@@ -270,7 +270,8 @@ public sealed record DashboardRequest(
     int EntryPageIndex,
     int EntryPageSize,
     int AbnormalPageIndex,
-    int AbnormalPageSize);
+    int AbnormalPageSize,
+    bool RefreshClientNames);
 
 public sealed record DashboardSnapshot(
     IReadOnlyList<string> ClientNames,

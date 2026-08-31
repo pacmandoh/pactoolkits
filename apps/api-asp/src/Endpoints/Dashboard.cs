@@ -154,7 +154,8 @@ public static class DashboardEndpoints
             || !TryParsePageSize(request, "entryPageSize", defaultValue: 20, out var entryPageSize, out error)
             || !TryParseBoundedPositiveInt(
                 request, "abnormalPageIndex", defaultValue: 1, max: MaxPageIndex, out var abnormalPageIndex, out error)
-            || !TryParsePageSize(request, "abnormalPageSize", defaultValue: 20, out var abnormalPageSize, out error))
+            || !TryParsePageSize(request, "abnormalPageSize", defaultValue: 20, out var abnormalPageSize, out error)
+            || !TryParseBool(request, "refreshClientNames", defaultValue: true, out var refreshClientNames, out error))
         {
             return false;
         }
@@ -171,7 +172,8 @@ public static class DashboardEndpoints
             EntryPageIndex: entryPageIndex,
             EntryPageSize: entryPageSize,
             AbnormalPageIndex: abnormalPageIndex,
-            AbnormalPageSize: abnormalPageSize);
+            AbnormalPageSize: abnormalPageSize,
+            RefreshClientNames: refreshClientNames);
         return true;
     }
 
