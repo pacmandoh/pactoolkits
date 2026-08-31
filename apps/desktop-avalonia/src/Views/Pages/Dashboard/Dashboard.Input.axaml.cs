@@ -16,6 +16,7 @@ public partial class DashboardInput : UserControl
     {
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
+        EntryGridSlot.GridMounted += (_, _) => _vm?.IsEntryGridMounted = true;
         DataContextChanged += OnDataContextChanged;
         _gridMount.StartAfterFirstLayout();
     }
@@ -39,6 +40,10 @@ public partial class DashboardInput : UserControl
 
         _vm = vm;
         _vm?.PropertyChanged += OnViewModelPropertyChanged;
+        if (_vm is not null && EntryGridSlot.IsMounted)
+        {
+            _vm.IsEntryGridMounted = true;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

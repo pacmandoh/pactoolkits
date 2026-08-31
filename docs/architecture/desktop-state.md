@@ -84,7 +84,7 @@ flowchart TB
 
 Shell 收到 `Changed` 后先更新连接呈现，再通过 `SyncConnection` 同步页面。连接变成 Up 时，`ScheduleAutoRefresh` 静默刷新当前页；Down 不进入 `Loading`。连接不是 Up 时，共享敏感操作立即锁定
 
-脏页重新激活时正常拉取数据，超过 300ms 才显示 Busy。探测为 Down 时等待 Shell 通知恢复；探测仍为 Up 的传输失败按退避时间重试
+watermark 把对应页标脏；刷新成功后仅当期间未再 Mark 才清除。脏页重新激活时正常拉取数据，超过 300ms 才显示 Busy。探测为 Down 时等待 Shell 通知恢复；探测仍为 Up 的传输失败按退避时间重试。客户端名单与分布图随脏页、自动重载和别名重拉；分布图还随日期与药品范围变化重拉
 
 断连或阻断时，内容区由 `PageDataShell` 遮罩锁定；已有内容（若有）仍可见
 
@@ -108,6 +108,8 @@ Shell 收到 `Changed` 后先更新连接呈现，再通过 `SyncConnection` 同
 - Ready 且无数据：Hint 用各区块 `readyHint`
 - Stale：有内容时不以空态盖住；内容空则用 Stale Hint
 - 区块 `BusyArea` 负责加载遮罩，`EmptyStatePanel` 不判断加载状态。连接首检显示空态，开始首刷后各区块显示 Busy
+- `DeferredGridSlot` 挂载前由骨架撑开高度
+- 总览 Busy 只跟拉数。录入 / 事务 / 异常 Tab 在已有数据但网格未挂时也亮该区 Busy
 
 ## 重载流水线
 

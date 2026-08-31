@@ -306,6 +306,7 @@ public sealed partial class Dashboard : AppPageBase
     {
         OnPropertyChanged(nameof(TxnViewToggleText));
         OnPropertyChanged(nameof(TxnViewToggleIcon));
+        OnPropertyChanged(nameof(IsTxnOverviewEmpty));
     }
 
     [ObservableProperty] private bool _isClientChartVisible;
@@ -347,6 +348,7 @@ public sealed partial class Dashboard : AppPageBase
     public ObservableCollection<TopClientItem> ChartClients { get; } = new();
     public ObservableCollection<EntryChartItem> EntryChartRows { get; } = new();
     private DistributionScope? _distributionScope;
+    private bool _clientNamesLoaded;
     public ObservableCollection<int> TabPageSizeOptions { get; } = new(TabPageSizeOptionValues);
 
     public ObservableCollection<SimpleModeItem> ClientMetricModes { get; } = new()
@@ -360,13 +362,39 @@ public sealed partial class Dashboard : AppPageBase
     public ObservableCollection<TxnItem> RecentTxns { get; } = new();
     public ObservableCollection<TxnItem> RecentTxnsOverview { get; } = new();
     [ObservableProperty] private bool _isTxnBusy;
+    [ObservableProperty] private bool _isTxnDetailGridMounted;
+    [ObservableProperty] private bool _isTxnTrendGridMounted;
+    [ObservableProperty] private bool _isEntryGridMounted;
+    [ObservableProperty] private bool _isAbnormalGridMounted;
+
     public bool IsTxnSectionPending => IsSectionPending || IsTxnBusy;
     public bool IsEntrySectionPending => IsSectionPending || IsEntryBusy;
-    public bool IsAbnormalSectionPending => IsSectionPending || IsAbnormalBusy;
+    public bool IsAbnormalSectionPending =>
+        IsSectionPending || IsAbnormalBusy || (AbnormalQueue.Count > 0 && !IsAbnormalGridMounted);
+    public bool IsTxnTabPending =>
+        IsTxnSectionPending
+        || (IsTxnPanelDetailMode && RecentTxns.Count > 0 && !IsTxnDetailGridMounted)
+        || (IsTxnPanelTrendMode && TxnTrendRows.Count > 0 && !IsTxnTrendGridMounted);
+    public bool IsEntryTabPending =>
+        IsEntrySectionPending || (EntryRecent.Count > 0 && !IsEntryGridMounted);
 
-    partial void OnIsTxnBusyChanged(bool value) => OnPropertyChanged(nameof(IsTxnSectionPending));
-    partial void OnIsEntryBusyChanged(bool value) => OnPropertyChanged(nameof(IsEntrySectionPending));
+    partial void OnIsTxnBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsTxnSectionPending));
+        OnPropertyChanged(nameof(IsTxnTabPending));
+    }
+
+    partial void OnIsEntryBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsEntrySectionPending));
+        OnPropertyChanged(nameof(IsEntryTabPending));
+    }
+
     partial void OnIsAbnormalBusyChanged(bool value) => OnPropertyChanged(nameof(IsAbnormalSectionPending));
+    partial void OnIsTxnDetailGridMountedChanged(bool value) => OnPropertyChanged(nameof(IsTxnTabPending));
+    partial void OnIsTxnTrendGridMountedChanged(bool value) => OnPropertyChanged(nameof(IsTxnTabPending));
+    partial void OnIsEntryGridMountedChanged(bool value) => OnPropertyChanged(nameof(IsEntryTabPending));
+    partial void OnIsAbnormalGridMountedChanged(bool value) => OnPropertyChanged(nameof(IsAbnormalSectionPending));
 
     [ObservableProperty] private int _txnPageIndex = 1;
     [ObservableProperty] private int _txnTotalCount;
@@ -392,6 +420,7 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsTxnPanelDetailMode));
         OnPropertyChanged(nameof(IsTxnPanelTrendMode));
         OnPropertyChanged(nameof(IsTxnPanelEmpty));
+        OnPropertyChanged(nameof(IsTxnTabPending));
 
         if (IsTxnPanelTrendMode && TxnTrendRows.Count == 0 && !IsTxnBusy)
             ObserveDetached(ReloadTxnTrendPageOnlyAsync(), "txn_trend.reload.detached.fail");
@@ -487,6 +516,8 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsTxnSectionPending));
         OnPropertyChanged(nameof(IsEntrySectionPending));
         OnPropertyChanged(nameof(IsAbnormalSectionPending));
+        OnPropertyChanged(nameof(IsTxnTabPending));
+        OnPropertyChanged(nameof(IsEntryTabPending));
         OnPropertyChanged(nameof(IsTrendEmpty));
         OnPropertyChanged(nameof(TrendEmptyText));
         OnPropertyChanged(nameof(TrendEmptyHint));
@@ -498,6 +529,7 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(TopClientsEmptyText));
         OnPropertyChanged(nameof(TopClientsEmptyHint));
         OnPropertyChanged(nameof(IsRecentTxnsEmpty));
+        OnPropertyChanged(nameof(IsTxnOverviewEmpty));
         OnPropertyChanged(nameof(RecentTxnsEmptyText));
         OnPropertyChanged(nameof(RecentTxnsEmptyHint));
         OnPropertyChanged(nameof(IsEntryRecentEmpty));
@@ -541,9 +573,11 @@ public sealed partial class Dashboard : AppPageBase
     public bool IsClientPanelEmpty => ShowSectionEmpty(
         IsClientChartVisible ? ChartClients.Count == 0 : TopClients.Count == 0);
     public bool IsRecentTxnsEmpty => ShowSectionEmpty(TxnTotalCount == 0);
+    public bool IsTxnOverviewEmpty => ShowSectionEmpty(
+        IsTxnChartVisible ? ChartTxns.Count == 0 : RecentTxnsOverview.Count == 0);
     public bool IsEntryRecentEmpty => ShowSectionEmpty(EntryTotalCount == 0);
     public bool IsEntryPanelEmpty => ShowSectionEmpty(
-        IsEntryChartVisible ? EntryChartRows.Count == 0 : EntryTotalCount == 0);
+        IsEntryChartVisible ? EntryChartRows.Count == 0 : EntryRecentOverview.Count == 0);
     public bool IsAbnormalEmpty => ShowSectionEmpty(AbnormalTotalCount == 0);
 
     private DispatcherTimer? _debounce;
@@ -641,7 +675,7 @@ public sealed partial class Dashboard : AppPageBase
         _debounce.Start();
     }
 
-    private Task ReloadNow() => RunLocalReloadAsync(_ => { }, RefreshAllAsync);
+    private Task ReloadNow() => RunLocalReloadAsync(_ => { }, RefreshAllAsync, OnReloadFinished);
 
     private void OnDebounceTimerTick(object? sender, EventArgs e)
     {
@@ -693,10 +727,7 @@ public sealed partial class Dashboard : AppPageBase
     protected override void OnReloadFinished()
     {
         base.OnReloadFinished();
-        if (WorkspacePageRefresh.RefreshSucceeded(this))
-        {
-            _dirtyRefresh.Clear(this);
-        }
+        _dirtyRefresh.EndReload(this, WorkspacePageRefresh.RefreshSucceeded(this));
 
         if (!IsSignalReload)
         {
@@ -1037,6 +1068,7 @@ public sealed partial class Dashboard : AppPageBase
 
     private async Task RefreshAllAsync(CancellationToken ct)
     {
+        _dirtyRefresh.BeginReload(this);
         var showTxnBusy = ShowTxnBusy();
         var showEntryBusy = ShowEntryBusy();
         var showAbnormalBusy = ShowAbnormalBusy();
@@ -1087,6 +1119,9 @@ public sealed partial class Dashboard : AppPageBase
                     new DateRange(filter.From, filter.To),
                     filter.DrugId,
                     NormalizeInput(filter.Spec));
+                var refreshClientNames = !_clientNamesLoaded
+                                         || _dirtyRefresh.IsDirty(this)
+                                         || IsSignalReload;
                 var request = new DashboardRequest(
                     Filter: filter,
                     RefreshDistributions: IsSignalReload
@@ -1101,7 +1136,8 @@ public sealed partial class Dashboard : AppPageBase
                     EntryPageIndex: EntryPageIndex,
                     EntryPageSize: EntryPageSize,
                     AbnormalPageIndex: AbnormalPageIndex,
-                    AbnormalPageSize: AbnormalPageSize);
+                    AbnormalPageSize: AbnormalPageSize,
+                    RefreshClientNames: refreshClientNames);
 
                 var loaded = await _dashboard.GetSnapshotAsync(request, ct).ConfigureAwait(false);
 
@@ -1120,7 +1156,11 @@ public sealed partial class Dashboard : AppPageBase
 
                 await RunOnUiAsync(() =>
                 {
-                    ApplyClients(loaded.ClientNames);
+                    if (refreshClientNames)
+                    {
+                        ApplyClients(loaded.ClientNames);
+                        _clientNamesLoaded = true;
+                    }
 
                     ApplyKpi(loaded.Kpi);
                     ApplyTrend(trendItems);
@@ -1140,14 +1180,17 @@ public sealed partial class Dashboard : AppPageBase
                         OnPropertyChanged(nameof(IsClientPanelEmpty));
                         OnPropertyChanged(nameof(IsEntryPanelEmpty));
                     }
+
                     ApplyAbnormalQueue(abnormalItems, loaded.Abnormal.TotalCount);
 
                     OnPropertyChanged(nameof(IsTrendEmpty));
                     OnPropertyChanged(nameof(IsTopClientsEmpty));
                     OnPropertyChanged(nameof(IsRecentTxnsEmpty));
+                    OnPropertyChanged(nameof(IsTxnOverviewEmpty));
                     OnPropertyChanged(nameof(IsEntryRecentEmpty));
                     OnPropertyChanged(nameof(IsAbnormalEmpty));
                     OnPropertyChanged(nameof(IsTxnPanelEmpty));
+                    OnPropertyChanged(nameof(IsEntryPanelEmpty));
                 }, DispatcherPriority.Background);
             });
         }
@@ -1176,23 +1219,12 @@ public sealed partial class Dashboard : AppPageBase
     private bool ShowAbnormalBusy()
         => AbnormalQueue.Count == 0;
 
-    private void ApplyClients(IReadOnlyList<string> list, bool refreshAliases = false)
+    private void ApplyClients(IReadOnlyList<string> list)
     {
         var rawClients = list
             .Where(raw => !string.IsNullOrWhiteSpace(raw))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        var currentKnown = Clients
-            .Skip(1)
-            .SelectMany(static client => client.MachineKeys)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        if (!refreshAliases
-            && currentKnown.SequenceEqual(rawClients, StringComparer.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
         var selectedRaw = SelectedClient?.Raw ?? string.Empty;
         var options = ClientDisplayResolver.OptionsByDisplay(rawClients, _clientAlias);
 
@@ -1379,6 +1411,7 @@ public sealed partial class Dashboard : AppPageBase
         TxnTrendTotalCount = totalCount;
         OnPropertyChanged(nameof(IsTxnTrendEmpty));
         OnPropertyChanged(nameof(IsTxnPanelEmpty));
+        OnPropertyChanged(nameof(IsTxnTabPending));
     }
 
     private List<TopClientItem> BuildTopClientItems(IReadOnlyList<(string Client, long Value)> rows)
@@ -1437,7 +1470,10 @@ public sealed partial class Dashboard : AppPageBase
     }
 
     private void ApplyRecentTxnsOverview(IReadOnlyList<TxnItem> items)
-        => RecentTxnsOverview.ReplaceAll(items);
+    {
+        RecentTxnsOverview.ReplaceAll(items);
+        OnPropertyChanged(nameof(IsTxnOverviewEmpty));
+    }
 
     private List<TxnItem> BuildRecentTxnsPageItems(
         IReadOnlyList<TraceTxnDto> rows,
@@ -1471,6 +1507,7 @@ public sealed partial class Dashboard : AppPageBase
         TxnTotalCount = totalCount;
         OnPropertyChanged(nameof(IsRecentTxnsEmpty));
         OnPropertyChanged(nameof(IsTxnPanelEmpty));
+        OnPropertyChanged(nameof(IsTxnTabPending));
     }
 
     private List<EntryRecentItem> BuildEntryLogsOverviewItems(IReadOnlyList<TraceEntryLogDto> rows)
@@ -1487,7 +1524,10 @@ public sealed partial class Dashboard : AppPageBase
     }
 
     private void ApplyEntryLogsOverview(IReadOnlyList<EntryRecentItem> items)
-        => EntryRecentOverview.ReplaceAll(items);
+    {
+        EntryRecentOverview.ReplaceAll(items);
+        OnPropertyChanged(nameof(IsEntryPanelEmpty));
+    }
 
     private List<EntryRecentItem> BuildEntryLogsPageItems(
         IReadOnlyList<TraceEntryLogDto> rows,
@@ -1511,6 +1551,7 @@ public sealed partial class Dashboard : AppPageBase
         EntryRecent.ReplaceAll(items);
         EntryTotalCount = totalCount;
         OnPropertyChanged(nameof(IsEntryRecentEmpty));
+        OnPropertyChanged(nameof(IsEntryTabPending));
     }
 
     private List<AbnormalItem> BuildAbnormalQueueItems(
@@ -1540,6 +1581,7 @@ public sealed partial class Dashboard : AppPageBase
         AbnormalQueue.ReplaceAll(items);
         AbnormalTotalCount = totalCount;
         OnPropertyChanged(nameof(IsAbnormalEmpty));
+        OnPropertyChanged(nameof(IsAbnormalSectionPending));
     }
 
     private string ResolveTrendClient(string? rawClient)
@@ -1756,9 +1798,16 @@ public sealed partial class Dashboard : AppPageBase
         }
     }
 
-    private void OnClientAliasChanged()
+    private void InvalidateClientCache()
     {
-        // 别名合并会同时影响设备筛选和图表聚合，因此统一执行一次重载
-        PostOnUi(RequestReload);
+        _clientNamesLoaded = false;
+        _distributionScope = null;
     }
+
+    private void OnClientAliasChanged()
+        => PostOnUi(() =>
+        {
+            InvalidateClientCache();
+            RequestReload();
+        });
 }

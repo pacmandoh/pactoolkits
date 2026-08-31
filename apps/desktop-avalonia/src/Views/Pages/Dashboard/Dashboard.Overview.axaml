@@ -257,7 +257,7 @@
               EmptyHint="{Binding RecentTxnsEmptyHint}"
               EmptyText="{Binding RecentTxnsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
-              IsEmpty="{Binding IsRecentTxnsEmpty}">
+              IsEmpty="{Binding IsTxnOverviewEmpty}">
               <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
                 <Grid MinHeight="{StaticResource DgH10Rows}">
                   <controls:DeferredGridSlot

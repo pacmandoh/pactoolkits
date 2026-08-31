@@ -16,6 +16,7 @@ public partial class DashboardAbnormal : UserControl
     {
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
+        AbnormalGridSlot.GridMounted += (_, _) => _vm?.IsAbnormalGridMounted = true;
         DataContextChanged += OnDataContextChanged;
         _gridMount.StartAfterFirstLayout();
     }
@@ -39,6 +40,10 @@ public partial class DashboardAbnormal : UserControl
 
         _vm = vm;
         _vm?.PropertyChanged += OnViewModelPropertyChanged;
+        if (_vm is not null && AbnormalGridSlot.IsMounted)
+        {
+            _vm.IsAbnormalGridMounted = true;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Diagnostics;
 using PacToolkits.Desktop.Avalonia.Ui.Interaction;
@@ -20,6 +21,8 @@ public partial class DashboardOverview : UserControl
     private readonly PageGridMountScheduler _gridMount;
     private DashboardViewModel? _vm;
     private bool _syncingSelection;
+    private bool _chartSelectionQueued;
+    private string? _pendingChartClient;
 
     public DashboardOverview()
     {
@@ -75,14 +78,17 @@ public partial class DashboardOverview : UserControl
         }
 
         if (e.PropertyName is nameof(DashboardViewModel.IsTrendEmpty)
-            or nameof(DashboardViewModel.IsRecentTxnsEmpty)
-            or nameof(DashboardViewModel.IsTopClientsEmpty))
+            or nameof(DashboardViewModel.IsTxnOverviewEmpty)
+            or nameof(DashboardViewModel.IsTopClientsEmpty)
+            or nameof(DashboardViewModel.IsTrendChartVisible)
+            or nameof(DashboardViewModel.IsTxnChartVisible)
+            or nameof(DashboardViewModel.IsClientChartVisible))
         {
             QueueGrids(vm);
         }
         else if (e.PropertyName == nameof(DashboardViewModel.SelectedClient))
         {
-            UpdateChartSelection(vm.SelectedClient?.Raw);
+            QueueChartSelection(vm.SelectedClient?.Raw);
         }
     }
 
@@ -116,6 +122,25 @@ public partial class DashboardOverview : UserControl
         EntryChartHost.Factory = () => DataContext is DashboardViewModel vm
             ? new EntryChart(vm.EntryChartRows, vm.SelectedClient?.Raw)
             : null;
+    }
+
+    private void QueueChartSelection(string? selectedClient)
+    {
+        // ComboBox 选中变化会先清空再写入，合并后再高亮圈图
+        _pendingChartClient = selectedClient;
+        if (_chartSelectionQueued)
+        {
+            return;
+        }
+
+        _chartSelectionQueued = true;
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                _chartSelectionQueued = false;
+                UpdateChartSelection(_pendingChartClient);
+            },
+            DispatcherPriority.Background);
     }
 
     private void UpdateChartSelection(string? selectedClient)

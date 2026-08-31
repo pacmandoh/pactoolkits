@@ -36,7 +36,7 @@
           EmptyText="{Binding EntryRecentEmptyText}"
           Icon="{Binding SectionEmptyIcon}"
           IsEmpty="{Binding IsEntryRecentEmpty}">
-          <shad:BusyArea IsBusy="{Binding IsEntrySectionPending}">
+          <shad:BusyArea IsBusy="{Binding IsEntryTabPending}">
             <controls:DeferredGridSlot
               x:Name="EntryGridSlot"
               PagerPageIndex="{Binding EntryPageIndex}"

@@ -39,6 +39,60 @@ public sealed class WorkspaceDirtyRefreshTests
     }
 
     [Fact]
+    public async Task TryRefreshIfDirty_retries_when_marked_again_during_refresh()
+    {
+        var (refresh, runPending) = CreateRefresh();
+        var calls = 0;
+        RefreshablePageStub? page = null;
+        page = new RefreshablePageStub(_ =>
+        {
+            calls++;
+            if (calls == 1)
+            {
+                refresh.Mark(page!);
+            }
+
+            return Task.CompletedTask;
+        });
+        refresh.Mark(page);
+
+        refresh.TryRefreshIfDirty(page);
+        await runPending();
+        Assert.True(refresh.IsDirty(page));
+        Assert.Equal(1, calls);
+
+        await runPending();
+        Assert.False(refresh.IsDirty(page));
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public async Task TryRefreshIfDirty_keeps_dirty_when_cleared_then_marked_during_refresh()
+    {
+        var (refresh, runPending) = CreateRefresh();
+        var calls = 0;
+        RefreshablePageStub? page = null;
+        page = new RefreshablePageStub(_ =>
+        {
+            calls++;
+            if (calls == 1)
+            {
+                refresh.Clear(page!);
+                refresh.Mark(page!);
+            }
+
+            return Task.CompletedTask;
+        });
+        refresh.Mark(page);
+
+        refresh.TryRefreshIfDirty(page);
+        await runPending();
+
+        Assert.True(refresh.IsDirty(page));
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
     public async Task TryRefreshIfDirty_keeps_dirty_when_still_active_guard_fails()
     {
         var (refresh, runPending) = CreateRefresh();
