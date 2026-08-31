@@ -26,7 +26,8 @@ public sealed class DrugIndexServiceSaveTests
                     SourceExists: true,
                     TargetExists: false,
                     TracePoolAffected: sourceDrugId == "DrugA" && sourceSpec == "1g" ? 2 : 0,
-                    TraceTxnAffected: 0)),
+                    TraceTxnAffected: 0,
+                    MsfxAffected: 0)),
             upsert: (_, _, _) => Task.FromResult(dto with { Version = 2 }));
 
         var service = new DrugIndexService(repo, new EmptyCatalogCache());

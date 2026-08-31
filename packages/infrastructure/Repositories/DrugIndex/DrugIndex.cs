@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Infrastructure.Database;
@@ -249,7 +250,17 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             cmd.AddParam("spec", spec);
             cmd.AddParam("expected_version", expectedVersion);
 
-            var rows = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            int rows;
+            try
+            {
+                rows = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.RestrictViolation)
+            {
+                // WHERE 含 version：版本不对是 0 行。RESTRICT 报 23001
+                throw new DrugIndexInUseException(ex);
+            }
+
             if (rows > 0)
             {
                 return;
@@ -314,6 +325,11 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 from trace_txn
                 where drug_id = @src_drug and spec = @src_spec
             """;
+            const string msfxSql = """
+                select count(*)::int
+                from msfx_code_staging
+                where mapped_drug_id = @src_drug and mapped_spec = @src_spec
+            """;
 
             bool sourceExists;
             await using (var cmd = conn.CreateCommand(srcSql, _opt.CommandTimeoutSeconds))
@@ -351,7 +367,16 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 txnAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
             }
 
-            return new DrugKeyFixPreviewDto(sourceExists, targetExists, poolAffected, txnAffected);
+            var msfxAffected = 0;
+            await using (var cmd = conn.CreateCommand(msfxSql, _opt.CommandTimeoutSeconds))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                msfxAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
+            }
+
+            return new DrugKeyFixPreviewDto(sourceExists, targetExists, poolAffected, txnAffected, msfxAffected);
         }, ct);
 
     public Task<DrugKeyFixApplyResultDto> ApplyKeyFixAsync(
@@ -482,6 +507,17 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 cmd.AddParam("src_spec", srcSpec);
                 var scalar = await cmd.ExecuteScalarAsync(token);
                 txnAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
+            }
+
+            var msfxAffected = 0;
+            await using (var cmd = conn.CreateCommand(
+                             "select count(*)::int from msfx_code_staging where mapped_drug_id = @src_drug and mapped_spec = @src_spec",
+                             _opt.CommandTimeoutSeconds, tx))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                msfxAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
             }
 
             DrugIndexDto current;
@@ -656,6 +692,22 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     await cmd.ExecuteNonQueryAsync(token);
                 }
 
+                const string updateMsfxSql = """
+                    update msfx_code_staging
+                    set mapped_drug_id = @dst_drug,
+                        mapped_spec = @dst_spec
+                    where mapped_drug_id = @src_drug
+                      and mapped_spec = @src_spec
+                """;
+                await using (var cmd = conn.CreateCommand(updateMsfxSql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("dst_drug", dstDrug);
+                    cmd.AddParam("dst_spec", dstSpec);
+                    cmd.AddParam("src_drug", srcDrug);
+                    cmd.AddParam("src_spec", srcSpec);
+                    await cmd.ExecuteNonQueryAsync(token);
+                }
+
                 const string deleteSourceSql = """
                     delete from drug_index
                     where drug_id = @src_drug
@@ -737,7 +789,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 // 旧 Schema 无审计表时仍完成键修正；审计写入待库升级后再保证
             }
 
-            return new DrugKeyFixApplyResultDto(targetExisted, poolAffected, txnAffected, auditId, current);
+            return new DrugKeyFixApplyResultDto(targetExisted, poolAffected, txnAffected, msfxAffected, auditId, current);
         }, IsolationLevel.ReadCommitted, ct);
 
     private static DrugIndexDto ReadDrugIndexDto(IDataRecord reader)

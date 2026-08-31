@@ -11,9 +11,9 @@ public sealed class CatalogEndpointsTests
     [
         "/v1/catalog/drug-ids",
         "/v1/catalog/client-ids",
-        "/v1/catalog/drugs/d1/specs",
-        "/v1/catalog/drugs/d1/s1/quantity",
-        "/v1/catalog/drugs/d1/deprecated",
+        "/v1/catalog/drugs/specs?drugId=d1",
+        "/v1/catalog/drugs/quantity?drugId=d1&spec=s1",
+        "/v1/catalog/drugs/deprecated?drugId=d1",
     ];
 
     [Theory]
@@ -58,8 +58,33 @@ public sealed class CatalogEndpointsTests
         Assert.Equal("d1", doc.RootElement.GetProperty("items")[0].GetString());
     }
 
+    [Fact]
+    public async Task Quantity_keeps_slash_in_drug_and_spec()
+    {
+        var lookup = new FakeLookup();
+        await using var factory = new ApiFactory { Lookup = lookup };
+        using var client = factory.CreateClient();
+        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var drug = "氨/西林";
+        var spec = "10ml/盒";
+        using var response = await client.GetAsync(
+            "/v1/catalog/drugs/quantity?drugId=" + Uri.EscapeDataString(drug)
+            + "&spec=" + Uri.EscapeDataString(spec),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(drug, lookup.LastQtyDrugId);
+        Assert.Equal(spec, lookup.LastQtySpec);
+    }
+
     private sealed class FakeLookup : ILookupCatalogService
     {
+        public string? LastQtyDrugId { get; private set; }
+
+        public string? LastQtySpec { get; private set; }
+
         public Task<IReadOnlyList<string>> GetClientIdsAsync(CancellationToken ct, bool forceRefresh = false)
             => Task.FromResult<IReadOnlyList<string>>(["m1"]);
 
@@ -83,7 +108,11 @@ public sealed class CatalogEndpointsTests
             string? spec,
             CancellationToken ct,
             bool forceRefresh = false)
-            => Task.FromResult<int?>(12);
+        {
+            LastQtyDrugId = drugId;
+            LastQtySpec = spec;
+            return Task.FromResult<int?>(12);
+        }
 
         public Task<bool> IsDeprecatedDrugIdAsync(
             string? drugId,

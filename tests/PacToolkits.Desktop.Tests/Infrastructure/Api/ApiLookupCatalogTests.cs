@@ -26,7 +26,33 @@ public sealed class ApiLookupCatalogTests
         Assert.Equal(["s1"], specs);
         Assert.Equal(2, api.Calls.Count);
         Assert.EndsWith("/v1/catalog/drug-ids", api.Calls[0].Uri.AbsolutePath, StringComparison.Ordinal);
-        Assert.EndsWith("/v1/catalog/drugs/d1/specs", api.Calls[1].Uri.AbsolutePath, StringComparison.Ordinal);
+        Assert.EndsWith("/v1/catalog/drugs/specs", api.Calls[1].Uri.AbsolutePath, StringComparison.Ordinal);
+        Assert.Contains("drugId=d1", api.Calls[1].Uri.Query, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetQtyAsync_puts_slash_key_in_query()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        token.EnqueueToken("tok-1");
+        api.EnqueueJson(HttpStatusCode.OK, """{"quantity":12}""");
+
+        using var client = CreateClient(token, api);
+        var lookup = new ApiLookupCatalog(client);
+        var qty = await lookup.GetQtyAsync("氨/西林", "10ml/盒", TestContext.Current.CancellationToken);
+
+        Assert.Equal(12, qty);
+        Assert.Single(api.Calls);
+        Assert.Equal("/v1/catalog/drugs/quantity", api.Calls[0].Uri.AbsolutePath);
+        Assert.Contains(
+            "drugId=" + Uri.EscapeDataString("氨/西林"),
+            api.Calls[0].Uri.Query,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "spec=" + Uri.EscapeDataString("10ml/盒"),
+            api.Calls[0].Uri.Query,
+            StringComparison.Ordinal);
     }
 
     private static PacApiClient CreateClient(HttpMessageHandler token, HttpMessageHandler api)

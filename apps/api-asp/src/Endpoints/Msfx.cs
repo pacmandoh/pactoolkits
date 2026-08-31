@@ -583,7 +583,7 @@ public static class MsfxEndpoints
             .ConfigureAwait(false);
     }
 
-    // 与 Drugs.BuildPathPayload 同口径：path 是命令载荷的一部分
+    // 与 Drugs.BuildKeyPayload 同口径：标识计入摘要
     private static byte[] BuildIdPayload(long id, byte[] body)
     {
         var prefix = Encoding.UTF8.GetBytes($"{id}\n");

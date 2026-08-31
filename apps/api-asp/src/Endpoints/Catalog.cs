@@ -15,11 +15,12 @@ public static class CatalogEndpoints
             .RequireAuthorization(AuthPolicies.Read);
         routes.MapGet("/v1/catalog/drug-ids", GetDrugIds)
             .RequireAuthorization(AuthPolicies.Read);
-        routes.MapGet("/v1/catalog/drugs/{drugId}/specs", GetSpecs)
+        // 药品名与规格可含 /，主键用 query
+        routes.MapGet("/v1/catalog/drugs/specs", GetSpecs)
             .RequireAuthorization(AuthPolicies.Read);
-        routes.MapGet("/v1/catalog/drugs/{drugId}/{spec}/quantity", GetQuantity)
+        routes.MapGet("/v1/catalog/drugs/quantity", GetQuantity)
             .RequireAuthorization(AuthPolicies.Read);
-        routes.MapGet("/v1/catalog/drugs/{drugId}/deprecated", GetDeprecated)
+        routes.MapGet("/v1/catalog/drugs/deprecated", GetDeprecated)
             .RequireAuthorization(AuthPolicies.Read);
         return routes;
     }
@@ -38,14 +39,13 @@ public static class CatalogEndpoints
 
     private static async Task<IResult> GetSpecs(
         HttpContext http,
-        string drugId,
         ILookupCatalogService lookup,
         CancellationToken ct)
     {
-        var key = InputNormalizer.Normalize(drugId);
+        var key = ReadDrugId(http);
         if (key is null)
         {
-            return ApiProblems.BadRequest(http, title: "Missing drugId", detail: "Path drugId is required");
+            return ApiProblems.BadRequest(http, title: "Missing drugId", detail: "Query drugId is required");
         }
 
         var items = await lookup.GetSpecsByDrugAsync(key, ct, forceRefresh: true).ConfigureAwait(false);
@@ -54,19 +54,17 @@ public static class CatalogEndpoints
 
     private static async Task<IResult> GetQuantity(
         HttpContext http,
-        string drugId,
-        string spec,
         ILookupCatalogService lookup,
         CancellationToken ct)
     {
-        var drug = InputNormalizer.Normalize(drugId);
-        var specKey = InputNormalizer.Normalize(spec);
+        var drug = ReadDrugId(http);
+        var specKey = InputNormalizer.Normalize(http.Request.Query["spec"].ToString());
         if (drug is null || specKey is null)
         {
             return ApiProblems.BadRequest(
                 http,
-                title: "Missing path",
-                detail: "Path drugId and spec are required");
+                title: "Missing key",
+                detail: "Query drugId and spec are required");
         }
 
         var qty = await lookup.GetQtyAsync(drug, specKey, ct, forceRefresh: true).ConfigureAwait(false);
@@ -75,17 +73,19 @@ public static class CatalogEndpoints
 
     private static async Task<IResult> GetDeprecated(
         HttpContext http,
-        string drugId,
         ILookupCatalogService lookup,
         CancellationToken ct)
     {
-        var key = InputNormalizer.Normalize(drugId);
+        var key = ReadDrugId(http);
         if (key is null)
         {
-            return ApiProblems.BadRequest(http, title: "Missing drugId", detail: "Path drugId is required");
+            return ApiProblems.BadRequest(http, title: "Missing drugId", detail: "Query drugId is required");
         }
 
         var deprecated = await lookup.IsDeprecatedDrugIdAsync(key, ct, forceRefresh: true).ConfigureAwait(false);
         return Results.Ok(new CatalogDeprecatedResponse(deprecated));
     }
+
+    private static string? ReadDrugId(HttpContext http)
+        => InputNormalizer.Normalize(http.Request.Query["drugId"].ToString());
 }

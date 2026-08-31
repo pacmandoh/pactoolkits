@@ -43,11 +43,10 @@ public sealed class ApiDrugIndex : IDrugIndexService
                    ?? throw new ArgumentException("drugId is required", nameof(drugId));
         var specKey = InputNormalizer.Normalize(spec)
                       ?? throw new ArgumentException("spec is required", nameof(spec));
-        var path = "/v1/drugs/" + Uri.EscapeDataString(drug) + "/" + Uri.EscapeDataString(specKey);
         try
         {
             return await _api.GetJsonAsync(
-                    () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve(path)),
+                    () => new HttpRequestMessage(HttpMethod.Get, KeyUri(drug, specKey)),
                     PacJsonContext.Default.DrugIndexDto,
                     ct)
                 .ConfigureAwait(false);
@@ -65,12 +64,11 @@ public sealed class ApiDrugIndex : IDrugIndexService
                    ?? throw new ArgumentException("Dto.DrugId is required", nameof(request));
         var spec = InputNormalizer.Normalize(request.Dto.Spec)
                    ?? throw new ArgumentException("Dto.Spec is required", nameof(request));
-        var path = "/v1/drugs/" + Uri.EscapeDataString(drug) + "/" + Uri.EscapeDataString(spec);
         var json = JsonSerializer.Serialize(request, PacJsonContext.Default.DrugIndexSaveRequest);
         try
         {
             var body = await _api.PutJsonAsync(
-                    () => new HttpRequestMessage(HttpMethod.Put, _api.Resolve(path))
+                    () => new HttpRequestMessage(HttpMethod.Put, KeyUri(drug, spec))
                     {
                         Content = new StringContent(json, Encoding.UTF8, "application/json"),
                     },
@@ -97,24 +95,23 @@ public sealed class ApiDrugIndex : IDrugIndexService
                    ?? throw new ArgumentException("drugId is required", nameof(drugId));
         var specKey = InputNormalizer.Normalize(spec)
                       ?? throw new ArgumentException("spec is required", nameof(spec));
-        var path = "/v1/drugs/"
-                   + Uri.EscapeDataString(drug)
-                   + "/"
-                   + Uri.EscapeDataString(specKey)
-                   + "?expectedVersion="
-                   + Uri.EscapeDataString(
-                       expectedVersion.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        var uri = KeyUri(drug, specKey, expectedVersion);
         try
         {
             await _api.DeleteAsync(
-                    () => new HttpRequestMessage(HttpMethod.Delete, _api.Resolve(path)),
+                    () => new HttpRequestMessage(HttpMethod.Delete, uri),
                     ct)
                 .ConfigureAwait(false);
         }
         catch (PacApiConflictException ex) when (string.Equals(ex.Code, "conflict", StringComparison.Ordinal))
         {
-            var current = await GetByKeyAsync(drug, specKey, ct).ConfigureAwait(false);
-            throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", current);
+            if (ex.CurrentVersion is not null)
+            {
+                var current = await GetByKeyAsync(drug, specKey, ct).ConfigureAwait(false);
+                throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", current);
+            }
+
+            throw new DrugIndexInUseException(ex);
         }
     }
 
@@ -158,5 +155,18 @@ public sealed class ApiDrugIndex : IDrugIndexService
         {
             throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试");
         }
+    }
+
+    private Uri KeyUri(string drug, string spec, long? expectedVersion = null)
+    {
+        var query = "drugId=" + Uri.EscapeDataString(drug) + "&spec=" + Uri.EscapeDataString(spec);
+        if (expectedVersion is { } version)
+        {
+            query += "&expectedVersion="
+                     + Uri.EscapeDataString(
+                         version.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return _api.Resolve("/v1/drugs/key?" + query);
     }
 }

@@ -119,6 +119,117 @@ public sealed class ApiDrugIndexTests
         Assert.Equal(HttpMethod.Put, api.Calls[0].Method);
     }
 
+    [Fact]
+    public async Task GetByKeyAsync_puts_slash_key_in_query()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        token.EnqueueToken("tok-1");
+        api.EnqueueJson(
+            HttpStatusCode.OK,
+            """
+            {
+              "drugId": "氨/西林",
+              "spec": "10ml/盒",
+              "qty": 1,
+              "ruleKey": null,
+              "preTc": null,
+              "note": null,
+              "createdAt": "2024-01-01T00:00:00Z",
+              "updatedAt": null,
+              "version": 1
+            }
+            """);
+
+        using var client = CreateClient(token, api);
+        var drugs = new ApiDrugIndex(client);
+        await drugs.GetByKeyAsync("氨/西林", "10ml/盒", TestContext.Current.CancellationToken);
+
+        Assert.Single(api.Calls);
+        Assert.Equal("/v1/drugs/key", api.Calls[0].Uri.AbsolutePath);
+        Assert.Contains(
+            "drugId=" + Uri.EscapeDataString("氨/西林"),
+            api.Calls[0].Uri.Query,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "spec=" + Uri.EscapeDataString("10ml/盒"),
+            api.Calls[0].Uri.Query,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_concurrency_maps_to_domain_exception()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        token.EnqueueToken("tok-1");
+        api.EnqueueJson(
+            HttpStatusCode.Conflict,
+            """
+            {
+              "status": 409,
+              "code": "conflict",
+              "title": "Concurrency conflict",
+              "detail": "Row changed",
+              "traceId": "t1",
+              "currentVersion": 9
+            }
+            """);
+        api.EnqueueJson(
+            HttpStatusCode.OK,
+            """
+            {
+              "drugId": "d1",
+              "spec": "s1",
+              "qty": 1,
+              "ruleKey": null,
+              "preTc": null,
+              "note": null,
+              "createdAt": "2024-01-01T00:00:00Z",
+              "updatedAt": null,
+              "version": 9
+            }
+            """);
+
+        using var client = CreateClient(token, api);
+        var drugs = new ApiDrugIndex(client);
+        var ex = await Assert.ThrowsAsync<DrugIndexConcurrencyException>(() =>
+            drugs.DeleteAsync("d1", "s1", 1, TestContext.Current.CancellationToken));
+
+        Assert.Equal(9, ex.Current?.Version);
+        Assert.Equal(2, api.Calls.Count);
+        Assert.Equal(HttpMethod.Delete, api.Calls[0].Method);
+        Assert.Equal(HttpMethod.Get, api.Calls[1].Method);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_in_use_maps_to_domain_exception()
+    {
+        var token = new ScriptedHandler();
+        var api = new ScriptedHandler();
+        token.EnqueueToken("tok-1");
+        api.EnqueueJson(
+            HttpStatusCode.Conflict,
+            """
+            {
+              "status": 409,
+              "code": "conflict",
+              "title": "In use",
+              "detail": "Drug spec is still referenced",
+              "traceId": "t1"
+            }
+            """);
+
+        using var client = CreateClient(token, api);
+        var drugs = new ApiDrugIndex(client);
+        var ex = await Assert.ThrowsAsync<DrugIndexInUseException>(() =>
+            drugs.DeleteAsync("d1", "s1", 1, TestContext.Current.CancellationToken));
+
+        Assert.Equal(DrugIndexInUseException.DefaultMessage, ex.Message);
+        Assert.Single(api.Calls);
+        Assert.Equal(HttpMethod.Delete, api.Calls[0].Method);
+    }
+
     private static PacApiClient CreateClient(HttpMessageHandler token, HttpMessageHandler api)
         => new(
             "http://127.0.0.1:5080",

@@ -234,7 +234,8 @@ public sealed record DrugKeyFixPreviewDto(
     bool SourceExists,
     bool TargetExists,
     int TracePoolAffected,
-    int TraceTxnAffected
+    int TraceTxnAffected,
+    int MsfxAffected
 );
 
 /// <summary>
@@ -244,6 +245,7 @@ public sealed record DrugKeyFixApplyResultDto(
     bool TargetExisted,
     int TracePoolAffected,
     int TraceTxnAffected,
+    int MsfxAffected,
     long AuditId,
     DrugIndexDto Current
 );
