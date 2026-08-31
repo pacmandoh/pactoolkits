@@ -57,7 +57,8 @@ public sealed class ApiDashboardTests
             EntryPageIndex: 1,
             EntryPageSize: 20,
             AbnormalPageIndex: 1,
-            AbnormalPageSize: 20);
+            AbnormalPageSize: 20,
+            RefreshClientNames: true);
 
         var snapshot = await service.GetSnapshotAsync(request, TestContext.Current.CancellationToken);
 
@@ -72,6 +73,7 @@ public sealed class ApiDashboardTests
         Assert.Contains("drugId=d1", call.Uri.Query, StringComparison.Ordinal);
         Assert.Contains("trendMetric=Txn", call.Uri.Query, StringComparison.Ordinal);
         Assert.Contains("refreshDistributions=true", call.Uri.Query, StringComparison.Ordinal);
+        Assert.Contains("refreshClientNames=true", call.Uri.Query, StringComparison.Ordinal);
     }
 
     [Theory]

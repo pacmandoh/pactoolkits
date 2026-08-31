@@ -66,6 +66,24 @@ public sealed class DashboardEndpointsTests
         Assert.Equal(9, doc.RootElement.GetProperty("topClients")[0].GetProperty("value").GetInt64());
         Assert.Equal(3, dashboard.LastOverviewTopN);
         Assert.Equal(["pc-a"], dashboard.LastFilter?.ClientMachines);
+        Assert.True(dashboard.LastRefreshClientNames);
+    }
+
+    [Fact]
+    public async Task Snapshot_passes_refresh_client_names_false()
+    {
+        var dashboard = new FakeDashboardService();
+        await using var factory = new ApiFactory { Dashboard = dashboard };
+        using var client = factory.CreateClient();
+        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await client.GetAsync(
+            "/v1/dashboard/snapshot?from=2024-01-01&to=2024-01-07&refreshClientNames=false",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(dashboard.LastRefreshClientNames);
     }
 
     [Fact]
@@ -134,6 +152,8 @@ public sealed class DashboardEndpointsTests
 
         public int LastOverviewTopN { get; private set; }
 
+        public bool LastRefreshClientNames { get; private set; }
+
         public int LastPage { get; private set; }
 
         public int LastPageSize { get; private set; }
@@ -142,6 +162,7 @@ public sealed class DashboardEndpointsTests
         {
             LastFilter = request.Filter;
             LastOverviewTopN = request.OverviewTopN;
+            LastRefreshClientNames = request.RefreshClientNames;
             var emptyTxns = new PagedResult<TraceTxnDto>([], 0);
             var emptyTrends = new PagedResult<TrendRowDto>([], 0);
             var emptyEntries = new PagedResult<TraceEntryLogDto>([], 0);

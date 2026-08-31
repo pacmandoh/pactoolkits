@@ -65,7 +65,9 @@ public sealed class DashboardService : IDashboardService
         var qPaged = BuildQuery(request.Filter, topN: 0);
         var qDistribution = BuildDistributionQuery(request.Filter, ChartPageSize);
 
-        var clientNamesTask = _repo.GetClientNamesAsync(ct);
+        var clientNamesTask = request.RefreshClientNames
+            ? _repo.GetClientNamesAsync(ct)
+            : Task.FromResult<IReadOnlyList<string>>([]);
         var kpiTask = _repo.GetKpisAsync(qTop, ct);
         var trendTask = _repo.GetTrendPageAsync(qTop, page: 1, pageSize: qTop.TopN, ct);
         var txnOverviewTask = _repo.GetRecentTxnsPageAsync(qTop, page: 1, pageSize: request.OverviewTopN, ct);

@@ -39,6 +39,7 @@ public sealed class ApiDashboard : IDashboardService
                 ("entryPageSize", request.EntryPageSize.ToString(CultureInfo.InvariantCulture)),
                 ("abnormalPageIndex", request.AbnormalPageIndex.ToString(CultureInfo.InvariantCulture)),
                 ("abnormalPageSize", request.AbnormalPageSize.ToString(CultureInfo.InvariantCulture)),
+                ("refreshClientNames", request.RefreshClientNames ? "true" : "false"),
             ]);
 
         var body = await _api.GetJsonAsync(
