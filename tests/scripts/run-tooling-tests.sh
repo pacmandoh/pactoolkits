@@ -779,7 +779,7 @@ RELEASE_TAG="v9.9.9" ./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manife
 
 current_db="$(manifest_database_postgres_version "$ROOT_DIR/release-manifest.json")"
 
-# 独立字段：只改 api bounds、module bounds 或 contract 时，其它字段须保持不变
+# 独立字段：只改 api bounds、module bounds、desktop 协议区间或 contract 时，其它字段须保持不变
 api_bounds_preview="$(mktemp)"
 api_bounds_out="$(./scripts/bump-version.sh \
   --component-min-db "api=$current_db" \
@@ -837,12 +837,39 @@ contract_out="$(./scripts/bump-version.sh \
 }
 jq -e --arg c "$current_contract" --slurpfile root "$ROOT_DIR/release-manifest.json" '
   .components.api.contractVersion == $c and
-  .components.api.version == $root[0].components.api.version
+  .components.api.version == $root[0].components.api.version and
+  .components.desktop.avalonia.minApiContract == $root[0].components.desktop.avalonia.minApiContract and
+  .components.desktop.avalonia.maxApiContract == $root[0].components.desktop.avalonia.maxApiContract and
+  .components.agents.modules.Injector.minApiContract == $root[0].components.agents.modules.Injector.minApiContract and
+  .components.agents.modules.Injector.maxApiContract == $root[0].components.agents.modules.Injector.maxApiContract
 ' "$contract_preview" > /dev/null || {
-  echo "ERROR: --api-contract should not change api packaging version" >&2
+  echo "ERROR: --api-contract should not change api packaging version or client contract bounds" >&2
   exit 1
 }
 rm -f "$contract_preview"
+
+current_desktop_max_c="$(jq -r '.components.desktop.avalonia.maxApiContract' "$ROOT_DIR/release-manifest.json")"
+# 写入与当前 max 不同的 min，才能断言只改一侧
+desktop_min_probe="0.1.0"
+desktop_min_only_preview="$(mktemp)"
+desktop_min_only_out="$(./scripts/bump-version.sh \
+  --desktop-min-api-contract "$desktop_min_probe" \
+  --output "$desktop_min_only_preview" \
+  --dry-run 2>&1)" || {
+  echo "ERROR: bump-version --desktop-min-api-contract alone failed" >&2
+  echo "$desktop_min_only_out" >&2
+  exit 1
+}
+jq -e --arg minc "$desktop_min_probe" --arg maxc "$current_desktop_max_c" --slurpfile root "$ROOT_DIR/release-manifest.json" '
+  .components.desktop.avalonia.minApiContract == $minc and
+  .components.desktop.avalonia.maxApiContract == $maxc and
+  .components.api.contractVersion == $root[0].components.api.contractVersion and
+  .components.desktop.avalonia.version == $root[0].components.desktop.avalonia.version
+' "$desktop_min_only_preview" > /dev/null || {
+  echo "ERROR: --desktop-min-api-contract must not rewrite maxApiContract or other versions" >&2
+  exit 1
+}
+rm -f "$desktop_min_only_preview"
 
 # 显式升 desktop 不得改写 agents minDesktop / maxDesktop
 desktop_no_pin_preview="$(mktemp)"

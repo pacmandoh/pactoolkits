@@ -37,6 +37,7 @@
 | 组件 PacAPI 程序版本   | `--component api=…` / `agents=…` 等                                                                                                                                                                  |
 | Desktop / DB           | `--desktop` / `--db`                                                                                                                                                                                 |
 | API 协议               | `--api-contract X.Y.Z`                                                                                                                                                                               |
+| Desktop 协议区间       | `--desktop-min-api-contract` / `--desktop-max-api-contract`（可只改一侧）                                                                                                                            |
 | API schema 闭区间      | `--component-min-db` / `--component-max-db api=…`                                                                                                                                                    |
 | 单模块 version         | `--module Injector=…`                                                                                                                                                                                |
 | 单模块协议区间         | `--module-min-api-contract` / `--module-max-api-contract MODULE=…`（成对有效；皆缺=不校验 PacAPI 协议）                                                                                              |
