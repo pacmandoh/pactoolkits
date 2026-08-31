@@ -35,7 +35,7 @@
     <Grid
       ColumnDefinitions="Auto,*"
       ColumnSpacing="{DynamicResource PageColumnSpacing}"
-      RowDefinitions="Auto,Auto,Auto,Auto"
+      RowDefinitions="Auto,Auto,Auto,Auto,Auto"
       RowSpacing="{DynamicResource DialogRowSpacing}">
       <TextBlock
         Grid.Row="0"
@@ -82,6 +82,17 @@
         Grid.Column="1"
         FontWeight="SemiBold"
         Text="{Binding Preview.TraceTxnAffectedDisplay}" />
+
+      <TextBlock
+        Grid.Row="4"
+        Grid.Column="0"
+        Classes="Caption Muted"
+        Text="码上放心映射影响" />
+      <TextBlock
+        Grid.Row="4"
+        Grid.Column="1"
+        FontWeight="SemiBold"
+        Text="{Binding Preview.MsfxAffectedDisplay}" />
     </Grid>
 
     <TextBlock

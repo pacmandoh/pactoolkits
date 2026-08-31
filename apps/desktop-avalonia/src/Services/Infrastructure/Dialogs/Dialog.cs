@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Ui.Formatting;
 using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 using ShadUI;
@@ -27,9 +28,7 @@ public interface IDialogService
         string targetDrugId,
         string targetSpec,
         int targetQty,
-        bool targetExists,
-        int tracePoolAffected,
-        int traceTxnAffected);
+        DrugKeyFixPreviewDto preview);
     Task<string?> PromptUnlockPassword(
         string title,
         string hintMessage,
@@ -99,9 +98,7 @@ public sealed class DialogService(
         string targetDrugId,
         string targetSpec,
         int targetQty,
-        bool targetExists,
-        int tracePoolAffected,
-        int traceTxnAffected)
+        DrugKeyFixPreviewDto preview)
         => FormDialogSession.ShowAsync(
             dialogManager,
             new DrugKeyFixPreview(dialogManager)
@@ -109,9 +106,10 @@ public sealed class DialogService(
                 Preview = new DrugKeyFixPreviewArgs(
                     SourceKeyDisplay: DrugLabel.WithQty(sourceDrugId, sourceSpec, sourceQty),
                     TargetKeyDisplay: DrugLabel.WithQty(targetDrugId, targetSpec, targetQty),
-                    TracePoolAffectedDisplay: $"{tracePoolAffected} 条",
-                    TraceTxnAffectedDisplay: $"{traceTxnAffected} 条",
-                    TargetExistsDisplay: targetExists
+                    TracePoolAffectedDisplay: $"{preview.TracePoolAffected} 条",
+                    TraceTxnAffectedDisplay: $"{preview.TraceTxnAffected} 条",
+                    MsfxAffectedDisplay: $"{preview.MsfxAffected} 条",
+                    TargetExistsDisplay: preview.TargetExists
                         ? "目标药品键已存在，迁移时将并入既有记录"
                         : "目标药品键不存在，迁移时将创建新记录")
             },

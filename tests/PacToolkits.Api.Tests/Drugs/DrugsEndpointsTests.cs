@@ -45,7 +45,7 @@ public sealed class DrugsEndpointsTests
         var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, "/v1/drugs/d1/s1")
+        using var request = new HttpRequestMessage(HttpMethod.Put, "/v1/drugs/key?drugId=d1&spec=s1")
         {
             Content = new StringContent("{}", Encoding.UTF8, "application/json"),
         };
@@ -63,7 +63,7 @@ public sealed class DrugsEndpointsTests
         var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, "/v1/drugs/d1/s1")
+        using var request = new HttpRequestMessage(HttpMethod.Put, "/v1/drugs/key?drugId=d1&spec=s1")
         {
             Content = new StringContent(
                 """
@@ -133,7 +133,7 @@ public sealed class DrugsEndpointsTests
 
         async Task<HttpResponseMessage> SendOnce()
         {
-            using var request = new HttpRequestMessage(HttpMethod.Put, "/v1/drugs/d1/s1")
+            using var request = new HttpRequestMessage(HttpMethod.Put, "/v1/drugs/key?drugId=d1&spec=s1")
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json"),
             };
@@ -191,9 +191,54 @@ public sealed class DrugsEndpointsTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetByKey_keeps_slash_in_drug_and_spec()
+    {
+        var drugs = new FakeDrugs();
+        await using var factory = new ApiFactory { Drugs = drugs };
+        using var client = factory.CreateClient();
+        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var drug = "氨/西林";
+        var spec = "10ml/盒";
+        using var response = await client.GetAsync(
+            "/v1/drugs/key?drugId=" + Uri.EscapeDataString(drug) + "&spec=" + Uri.EscapeDataString(spec),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(drug, drugs.LastGetDrugId);
+        Assert.Equal(spec, drugs.LastGetSpec);
+    }
+
+    [Fact]
+    public async Task Delete_referenced_row_returns_409()
+    {
+        var drugs = new FakeDrugs { DeleteError = new DrugIndexInUseException() };
+        await using var factory = new ApiFactory { Drugs = drugs };
+        using var client = factory.CreateClient();
+        var token = await ApiFactory.FetchAccessTokenAsync(client, TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "/v1/drugs/key?drugId=d1&spec=s1&expectedVersion=1");
+        request.Headers.TryAddWithoutValidation(PacApiHeaders.CommandId, Guid.NewGuid().ToString("D"));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal("conflict", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("Drug spec is still referenced", doc.RootElement.GetProperty("detail").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("currentVersion", out _));
+    }
+
     private sealed class FakeDrugs : IDrugIndexService
     {
         public int SaveCalls { get; private set; }
+
+        public string? LastGetDrugId { get; private set; }
+
+        public string? LastGetSpec { get; private set; }
 
         public DrugSaveOutcome NextOutcome { get; set; } = DrugSaveOutcome.Saved;
 
@@ -204,7 +249,11 @@ public sealed class DrugsEndpointsTests
         }
 
         public Task<DrugIndexDto?> GetByKeyAsync(string drugId, string spec, CancellationToken ct)
-            => Task.FromResult<DrugIndexDto?>(SampleRow());
+        {
+            LastGetDrugId = drugId;
+            LastGetSpec = spec;
+            return Task.FromResult<DrugIndexDto?>(SampleRow());
+        }
 
         public Task<DrugIndexSaveResult> SaveAsync(DrugIndexSaveRequest request, CancellationToken ct)
         {
@@ -213,8 +262,10 @@ public sealed class DrugsEndpointsTests
             return Task.FromResult(new DrugIndexSaveResult(NextOutcome, row, null));
         }
 
+        public Exception? DeleteError { get; set; }
+
         public Task DeleteAsync(string drugId, string spec, long expectedVersion, CancellationToken ct)
-            => Task.CompletedTask;
+            => DeleteError is null ? Task.CompletedTask : Task.FromException(DeleteError);
 
         public Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(
             string sourceDrugId,
@@ -222,7 +273,7 @@ public sealed class DrugsEndpointsTests
             string targetDrugId,
             string targetSpec,
             CancellationToken ct)
-            => Task.FromResult(new DrugKeyFixPreviewDto(true, false, 0, 0));
+            => Task.FromResult(new DrugKeyFixPreviewDto(true, false, 0, 0, 0));
 
         public Task<DrugKeyFixCommitResult> ApplyKeyFixAsync(DrugKeyFixRequest request, CancellationToken ct)
             => throw new NotSupportedException();

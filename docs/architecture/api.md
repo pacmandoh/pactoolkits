@@ -22,7 +22,7 @@ GET  /health          匿名探活；仅 status ok/unavailable
 GET  /v1/system/info  Bearer system.status；product、apiVersion、contractVersion
 GET  /v1/system/status  Bearer system.status；database 与 schema 诊断
 GET  /v1/dashboard/*  Bearer read；snapshot / transactions / trends / entries / abnormal
-GET  /v1/catalog/*    Bearer read；client-ids / drug-ids / drugs/{drugId}/specs|quantity|deprecated
+GET  /v1/catalog/*    Bearer read；client-ids / drug-ids / drugs/specs|quantity|deprecated
 GET/PUT/DELETE /v1/drugs*  Bearer read|write；检索、保存、删除、主键修复
 POST /v1/trace-codes/*  Bearer write；check-existing / submit
 GET/POST /v1/inventory/*  Bearer read|write；库存分页，以及批量编辑与改派
@@ -52,7 +52,9 @@ POST /v1/injector/*       Bearer read|write；贴码事务与仓库任务
 - 错误体：业务路径 ProblemDetails 含 `status` / `code` / `title` / `detail` / `traceId`；OCC 另带 `currentVersion`；限流或短暂不可用可带 `Retry-After`
 - 状态码：参数 400、未认证/无权限 401/403、不存在 404、状态冲突 409、限流 429、库或 schema 不可用 503
 - 药品保存业务成功或 Blocked\* 返回 200，body 带 `outcome`
-- OCC（保存、删除、主键修复）统一 409，并带 `currentVersion`；删除须带 query `expectedVersion`
+- OCC（保存、删除、主键修复）409 带 `currentVersion`；删除须带 query `expectedVersion`
+- 删除时若被追溯码池、执行事务或码上放心映射引用：409（`code=conflict`），无 `currentVersion`
+- 纠错预览计入码上放心映射；改主键时映射改到目标规格。单盒数量变更拦截只看追溯码池与执行事务
 - 库存批量编辑若有冲突：HTTP 409 ProblemDetails（`code=conflict`），扩展字段 `conflicts` 为冲突行；Desktop 捕获 `PacApiConflictException` 转成批结果
 - 写命令（POST/PUT/DELETE）要求头 `X-Command-Id`（非空 UUID）
 - 会改库的写走持久化 `ICommandDedup`（`PgCommandDedup`，表 `api_command_dedup`）。Claim、业务写与 Complete 同一库事务；失败回滚后可同 CommandId 重试
@@ -83,7 +85,7 @@ Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）用 `IHttpClientFa
 异常约定：
 
 - `GetJsonAsync` / `PostJsonAsync` / `PutJsonAsync` / `DeleteAsync`、`EnsureSuccessAsync`、换票：非 2xx 或不可达时抛 `PacApiException`（`code`、`traceId`、可选 `currentVersion`；不可达 `transport`；超时 `timeout`）
-- HTTP 409 为 `PacApiConflictException`（含 `currentVersion`；库存批量 OCC 另含 `conflicts`）
+- HTTP 409 为 `PacApiConflictException`（可选 `currentVersion`；库存批量 OCC 另含 `conflicts`）
 - 写方法带非空 `X-Command-Id`；业务 JSON、错误正文与换票响应受正文大小上限（超出 `response_too_large`）
 - 调用方取消原样抛出；超时与断网为 `PacApiException`
 - 裸 `SendAsync`、`SendSseAsync` 返回 `HttpResponseMessage`，由调用方 `EnsureSuccessAsync` 或自读状态（如 `ApiChangeWatermark`）
@@ -121,6 +123,7 @@ Pg NOTIFY
 
 ## 约束
 
+- 药品主键是 query `drugId=` 与 `spec=`（均可含 `/`）
 - HTTP 按用例级命令暴露，不按 Repository / SQL 机械映射
 - 需要事务的写在 API 内完整提交；客户端不跨请求拼事务
 - 实时变更走 SSE 与 watermark；常规定时轮询不是主路径

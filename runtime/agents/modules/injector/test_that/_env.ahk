@@ -89,7 +89,7 @@ Test_ClientId(cfg) {
 }
 
 Test_GetQuantity(drugId, spec) {
-	path := "/v1/catalog/drugs/" PacApi_UrlEncode(drugId) "/" PacApi_UrlEncode(spec) "/quantity"
+	path := "/v1/catalog/drugs/quantity?drugId=" PacApi_UrlEncode(drugId) "&spec=" PacApi_UrlEncode(spec)
 	r := PacApi_Get(path)
 	if !r["ok"]
 		return r

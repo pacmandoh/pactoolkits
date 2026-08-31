@@ -50,4 +50,5 @@ public sealed record DrugKeyFixPreviewArgs(
     string TargetKeyDisplay,
     string TracePoolAffectedDisplay,
     string TraceTxnAffectedDisplay,
+    string MsfxAffectedDisplay,
     string TargetExistsDisplay);

@@ -52,7 +52,7 @@ public sealed class ApiLookupCatalog : ILookupCatalogService
         _ = forceRefresh;
         var key = InputNormalizer.Normalize(drugId)
                   ?? throw new ArgumentException("drugId is required", nameof(drugId));
-        var path = "/v1/catalog/drugs/" + Uri.EscapeDataString(key) + "/specs";
+        var path = "/v1/catalog/drugs/specs?drugId=" + Uri.EscapeDataString(key);
         var body = await _api.GetJsonAsync(
                 () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve(path)),
                 PacJsonContext.Default.StringListResponse,
@@ -91,11 +91,10 @@ public sealed class ApiLookupCatalog : ILookupCatalogService
             return null;
         }
 
-        var path = "/v1/catalog/drugs/"
+        var path = "/v1/catalog/drugs/quantity?drugId="
                    + Uri.EscapeDataString(drug)
-                   + "/"
-                   + Uri.EscapeDataString(specKey)
-                   + "/quantity";
+                   + "&spec="
+                   + Uri.EscapeDataString(specKey);
         var body = await _api.GetJsonAsync(
                 () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve(path)),
                 PacJsonContext.Default.CatalogQuantityResponse,
@@ -117,7 +116,7 @@ public sealed class ApiLookupCatalog : ILookupCatalogService
             return false;
         }
 
-        var path = "/v1/catalog/drugs/" + Uri.EscapeDataString(key) + "/deprecated";
+        var path = "/v1/catalog/drugs/deprecated?drugId=" + Uri.EscapeDataString(key);
         var body = await _api.GetJsonAsync(
                 () => new HttpRequestMessage(HttpMethod.Get, _api.Resolve(path)),
                 PacJsonContext.Default.CatalogDeprecatedResponse,

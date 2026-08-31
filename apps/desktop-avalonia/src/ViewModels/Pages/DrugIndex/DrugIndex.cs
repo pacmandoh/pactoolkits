@@ -1203,9 +1203,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                     targetDrugId,
                     targetSpec,
                     EditQty.Value,
-                    preview.TargetExists,
-                    preview.TracePoolAffected,
-                    preview.TraceTxnAffected);
+                    preview);
                 if (!confirm)
                 {
                     return;
@@ -1270,7 +1268,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                         $"源药品名/规格：{DrugLabel.WithQty(source.DrugId, source.Spec, source.Qty)}\n" +
                         $"目标药品名/规格：{DrugLabel.WithQty(focusDrugId, focusSpec, dbTargetAfter.Qty)}\n" +
                         $"追溯码池影响：{result.TracePoolAffected} 条\n" +
-                        $"执行事务影响：{result.TraceTxnAffected} 条"));
+                        $"执行事务影响：{result.TraceTxnAffected} 条\n" +
+                        $"码上放心映射影响：{result.MsfxAffected} 条"));
 
                 NotifyDrugCatalogChanged();
             }
@@ -1445,7 +1444,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         var deleteSpec = _originSpec!;
 
         var ok = await _dialog.ConfirmDestructive("删除药品规格",
-            $"确认删除？\n{DrugLabel.Format(deleteDrugId, deleteSpec)}\n\n注意：追溯码池和事务中有记录会阻止删除正在引用的记录");
+            $"确认删除？\n{DrugLabel.Format(deleteDrugId, deleteSpec)}\n\n注意：追溯码池、执行事务或码上放心映射仍引用时无法删除");
 
         if (!ok)
         {

@@ -3,7 +3,7 @@
 
 ; 读 drug_index 单盒数量
 Txn_FetchDbQty(drugId, spec) {
-	path := "/v1/catalog/drugs/" PacApi_UrlEncode(drugId) "/" PacApi_UrlEncode(spec) "/quantity"
+	path := "/v1/catalog/drugs/quantity?drugId=" PacApi_UrlEncode(drugId) "&spec=" PacApi_UrlEncode(spec)
 	rr := PacApi_Get(path)
 	if !rr["ok"]
 		return Map("ok", false, "level", "Error",
