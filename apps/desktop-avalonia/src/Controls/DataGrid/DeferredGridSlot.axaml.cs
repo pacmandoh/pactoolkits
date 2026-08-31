@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Ui.Interaction;
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// 占位骨架：直到 <see cref="MountGrid"/> 物化 grid 模板前显示 skeleton
+/// 挂载前由骨架撑开高度；内层 Grid 最小高度为 0，避免挂载后仍被撑开
 /// </summary>
 public partial class DeferredGridSlot : UserControl
 {

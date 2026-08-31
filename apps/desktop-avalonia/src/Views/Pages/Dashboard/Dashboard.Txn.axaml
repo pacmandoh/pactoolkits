@@ -45,7 +45,7 @@
           EmptyText="{Binding TxnPanelEmptyText}"
           Icon="{Binding SectionEmptyIcon}"
           IsEmpty="{Binding IsTxnPanelEmpty}">
-          <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
+          <shad:BusyArea IsBusy="{Binding IsTxnTabPending}">
             <Grid MinHeight="0">
               <controls:DeferredGridSlot
                 x:Name="TxnDetailGridSlot"

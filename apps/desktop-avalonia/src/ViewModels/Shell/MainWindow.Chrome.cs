@@ -34,7 +34,7 @@ public partial class MainWindowViewModel
     public event Action? AgentsChromeUpdated;
 
     [ObservableProperty] private bool _isAgentsActionRunning;
-    [ObservableProperty] private bool _isTopModulesExpanded;
+    [ObservableProperty] private bool _isTopModulesExpanded = true;
     [ObservableProperty] private bool _isApiProbeRunning;
 
     public bool IsHostMenuChecked => Agents.IsHostRunning;
@@ -761,10 +761,6 @@ public partial class MainWindowViewModel
         ReplaceModuleChrome(TopStatusPills, scanned.Where(m => m.Desktop.TopStatusPills));
         ReplaceModuleChrome(AgentsMenuModules, scanned.Where(m => m.Desktop.BottomStatusBar));
         OnPropertyChanged(nameof(HasTopModules));
-        if (!HasTopModules && IsTopModulesExpanded)
-        {
-            IsTopModulesExpanded = false;
-        }
     }
 
     private void ReplaceModuleChrome(

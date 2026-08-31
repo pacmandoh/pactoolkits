@@ -134,6 +134,7 @@ Pg NOTIFY
 ### Desktop 业务数据
 
 - 变更水位、Dashboard、药品目录、药品索引、扫码入库、库存、MSFX 库侧同步（`ApiSync`）与 AutoRun 入库走 PacAPI
+- Dashboard snapshot 一次返回总览各板块与各 Tab 分页；query `refreshClientNames` 控制是否拉客户端名单，省略时为 `true`，Desktop 在名单已缓存且仅筛选变更时发 `false`
 - Shell 连接与刷新门禁跟 `IApiAvailabilityService` / `ConnectionView`
 - Settings 业务配置与码上放心 HTTP 在 Desktop 直连；不走 PacAPI 落库
 - 页面连接与可用性见 [desktop-state.md](./desktop-state.md)

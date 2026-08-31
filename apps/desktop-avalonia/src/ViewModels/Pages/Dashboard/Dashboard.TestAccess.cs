@@ -16,12 +16,12 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class Dashboard
 {
     // 单测构造：不触发自动 Initialize
-    internal Dashboard(IDashboardService dashboard, ILookupCatalogService? lookup = null)
+    internal Dashboard(IDashboardService dashboard, ILookupCatalogService? lookup = null, IClientAliasService? clientAlias = null)
     {
         _dashboard = dashboard;
         _lookup = lookup ?? NoopLookup.Instance;
         _toast = NoopToast.Instance;
-        _clientAlias = NoopClientAlias.Instance;
+        _clientAlias = clientAlias ?? NoopClientAlias.Instance;
         _nav = new PageNavigationService();
         _inventoryOverview = null!;
         _dirtyRefresh = new WorkspaceDirtyRefresh();
@@ -52,6 +52,8 @@ public sealed partial class Dashboard
             ClientMetricMode = ClientMetricModes.FirstOrDefault();
             TxnPanelMode = TxnPanelModes.FirstOrDefault();
         }
+
+        _clientAlias.Changed += OnClientAliasChanged;
     }
 
     private sealed class NoopToast : IToastService

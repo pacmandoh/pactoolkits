@@ -16,6 +16,8 @@ public partial class DashboardTxn : UserControl
     {
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
+        TxnDetailGridSlot.GridMounted += (_, _) => _vm?.IsTxnDetailGridMounted = true;
+        TxnTrendGridSlot.GridMounted += (_, _) => _vm?.IsTxnTrendGridMounted = true;
         DataContextChanged += OnDataContextChanged;
         _gridMount.StartAfterFirstLayout();
     }
@@ -39,11 +41,28 @@ public partial class DashboardTxn : UserControl
 
         _vm = vm;
         _vm?.PropertyChanged += OnViewModelPropertyChanged;
+        if (_vm is null)
+        {
+            return;
+        }
+
+        if (TxnDetailGridSlot.IsMounted)
+        {
+            _vm.IsTxnDetailGridMounted = true;
+        }
+
+        if (TxnTrendGridSlot.IsMounted)
+        {
+            _vm.IsTxnTrendGridMounted = true;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(DashboardViewModel.IsRecentTxnsEmpty) or nameof(DashboardViewModel.IsTxnTrendEmpty))
+        if (e.PropertyName is nameof(DashboardViewModel.IsRecentTxnsEmpty)
+            or nameof(DashboardViewModel.IsTxnTrendEmpty)
+            or nameof(DashboardViewModel.IsTxnPanelDetailMode)
+            or nameof(DashboardViewModel.IsTxnPanelTrendMode))
         {
             QueueGrids();
         }

@@ -6,11 +6,13 @@ using PacToolkits.Desktop.Avalonia.ViewModels;
 namespace PacToolkits.Desktop.Avalonia.Services.Workspace.Refresh;
 
 /// <summary>
-/// 跟踪工作区页面的待刷新状态，并在页面重新激活时执行刷新
+/// 跟踪工作区页面的待刷新状态并执行刷新
 /// </summary>
 public sealed class WorkspaceDirtyRefresh
 {
     private readonly DirtyPageTracker _dirty = new();
+    private readonly object _reloadGate = new();
+    private readonly Dictionary<AppPageBase, int> _reloadStamps = new();
     private Func<bool>? _canWorkspaceRefresh;
     private Action<Func<Task>>? _schedule;
     private Action<AppPageBase, Exception>? _logRefreshFail;
@@ -32,6 +34,34 @@ public sealed class WorkspaceDirtyRefresh
     public bool IsDirty(AppPageBase page) => _dirty.IsDirty(page);
 
     public void Clear(AppPageBase page) => _dirty.Clear(page);
+
+    public void BeginReload(AppPageBase page)
+    {
+        lock (_reloadGate)
+        {
+            _reloadStamps[page] = _dirty.Stamp(page);
+        }
+    }
+
+    public void EndReload(AppPageBase page, bool succeeded)
+    {
+        int stamp;
+        lock (_reloadGate)
+        {
+            if (!_reloadStamps.Remove(page, out stamp))
+            {
+                return;
+            }
+        }
+
+        if (!succeeded)
+        {
+            return;
+        }
+
+        _dirty.ClearIf(page, stamp);
+        TryRefreshIfDirty(page);
+    }
 
     public Task RunAsync(IEnumerable<AppPageBase> pages, AppPageBase? active)
         => RunAsync(
@@ -59,11 +89,18 @@ public sealed class WorkspaceDirtyRefresh
             return;
         }
 
-        if (await tryRefresh(active).ConfigureAwait(true))
+        BeginReload(active);
+        var ok = false;
+        try
         {
-            _dirty.Clear(active);
+            ok = await tryRefresh(active).ConfigureAwait(true);
         }
-        else
+        finally
+        {
+            EndReload(active, ok);
+        }
+
+        if (!ok)
         {
             _dirty.Mark(active);
         }
@@ -93,9 +130,15 @@ public sealed class WorkspaceDirtyRefresh
                 return;
             }
 
-            if (await WorkspacePageRefresh.TryRefreshAsync(page, silent).ConfigureAwait(true))
+            BeginReload(page);
+            var ok = false;
+            try
             {
-                _dirty.Clear(page);
+                ok = await WorkspacePageRefresh.TryRefreshAsync(page, silent).ConfigureAwait(true);
+            }
+            finally
+            {
+                EndReload(page, ok);
             }
         }
         catch (Exception ex)
