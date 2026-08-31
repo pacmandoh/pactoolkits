@@ -8,5 +8,5 @@ namespace PacToolkits.Api.Hosting;
 /// </summary>
 public static class ApiContract
 {
-    public const string Version = "1.4.0";
+    public const string Version = "1.5.0";
 }

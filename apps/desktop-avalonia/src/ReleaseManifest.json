@@ -10,20 +10,20 @@
     },
     "desktop": {
       "avalonia": {
-        "maxApiContract": "1.4.0",
-        "minApiContract": "1.4.0",
+        "maxApiContract": "1.5.0",
+        "minApiContract": "1.5.0",
         "packageId": "PacToolkits",
-        "version": "1.0.2-beta.10"
+        "version": "1.0.2-beta.11"
       }
     }
   },
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.2-beta.10"
+    "version": "1.0.2-beta.11"
   },
   "release": {
     "channel": "beta",
-    "date": "2026-08-25"
+    "date": "2026-08-31"
   },
   "schemaVersion": 2
 }
