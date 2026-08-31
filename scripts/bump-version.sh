@@ -16,13 +16,16 @@ Usage:
                   [--module-min-api-contract MODULE_ID=X.Y.Z]...
                   [--module-max-api-contract MODULE_ID=X.Y.Z]...
                   [--api-contract X.Y.Z]
+                  [--desktop-min-api-contract X.Y.Z]
+                  [--desktop-max-api-contract X.Y.Z]
                   [--agents-min-desktop X.Y.Z|X.Y.Z-beta.N]
                   [--agents-max-desktop X.Y.Z|X.Y.Z-beta.N]
                   [--channel stable|beta] [--date YYYY-MM-DD]
                   [--output PATH] [--dry-run]
 
 Fields are independent: same-channel --desktop does not rewrite agents bounds;
-version bumps do not rewrite schema bounds. On stable-to-beta with no agents flags,
+version bumps do not rewrite schema bounds; --api-contract does not rewrite
+desktop or module min/maxApiContract. On stable-to-beta with no agents flags,
 min/maxDesktop follow the Desktop being written. On beta, when product fills Desktop
 and agents were pinned to the previous Desktop, that pin moves with it; wide
 agents ranges only expand edges that the new Desktop would otherwise break.
@@ -33,6 +36,7 @@ Examples:
   bump-version.sh --module Injector=0.7.1
   bump-version.sh --module-min-api-contract Injector=1.4.0 --module-max-api-contract Injector=1.4.0
   bump-version.sh --api-contract 1.1.0
+  bump-version.sh --desktop-min-api-contract 1.5.0 --desktop-max-api-contract 1.5.0
   bump-version.sh --db 1.2.26 --channel beta
 USAGE
 }
@@ -200,6 +204,8 @@ PRODUCT=""
 DESKTOP=""
 DB=""
 API_CONTRACT=""
+DESKTOP_MIN_API_CONTRACT=""
+DESKTOP_MAX_API_CONTRACT=""
 AGENTS_MIN_DESKTOP=""
 AGENTS_MAX_DESKTOP=""
 CHANNEL=""
@@ -253,6 +259,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --api-contract)
       API_CONTRACT="${2:-}"
+      shift 2
+      ;;
+    --desktop-min-api-contract)
+      DESKTOP_MIN_API_CONTRACT="${2:-}"
+      shift 2
+      ;;
+    --desktop-max-api-contract)
+      DESKTOP_MAX_API_CONTRACT="${2:-}"
       shift 2
       ;;
     --agents-min-desktop)
@@ -349,7 +363,7 @@ if [[ -n "$CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$PRODUCT$DESKTOP$DB$API_CONTRACT$AGENTS_MIN_DESKTOP$AGENTS_MAX_DESKTOP$CHANNEL" &&
+if [[ -z "$PRODUCT$DESKTOP$DB$API_CONTRACT$DESKTOP_MIN_API_CONTRACT$DESKTOP_MAX_API_CONTRACT$AGENTS_MIN_DESKTOP$AGENTS_MAX_DESKTOP$CHANNEL" &&
   ${#COMPONENT_UPDATES[@]} -eq 0 &&
   ${#MODULE_UPDATES[@]} -eq 0 &&
   ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 &&
@@ -565,6 +579,15 @@ for v in "$AGENTS_MIN_DESKTOP" "$AGENTS_MAX_DESKTOP"; do
   fi
 done
 
+for v in "$DESKTOP_MIN_API_CONTRACT" "$DESKTOP_MAX_API_CONTRACT"; do
+  if [[ -n "$v" ]]; then
+    is_semver "$v" || {
+      echo "ERROR: invalid desktop minApiContract/maxApiContract: $v" >&2
+      exit 1
+    }
+  fi
+done
+
 TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
@@ -573,6 +596,8 @@ jq \
   --arg desktop "$DESKTOP" \
   --arg db "$DB" \
   --arg api_contract "$API_CONTRACT" \
+  --arg desktop_min_api_contract "$DESKTOP_MIN_API_CONTRACT" \
+  --arg desktop_max_api_contract "$DESKTOP_MAX_API_CONTRACT" \
   --arg agents_min_desktop "$AGENTS_MIN_DESKTOP" \
   --arg agents_max_desktop "$AGENTS_MAX_DESKTOP" \
   --arg channel "$CHANNEL" \
@@ -623,6 +648,12 @@ jq \
   .components.database.postgres.version = (if $db == "" then .components.database.postgres.version else $db end) |
   .components.api.contractVersion = (
     if $api_contract == "" then .components.api.contractVersion else $api_contract end
+  ) |
+  .components.desktop.avalonia.minApiContract = (
+    if $desktop_min_api_contract == "" then .components.desktop.avalonia.minApiContract else $desktop_min_api_contract end
+  ) |
+  .components.desktop.avalonia.maxApiContract = (
+    if $desktop_max_api_contract == "" then .components.desktop.avalonia.maxApiContract else $desktop_max_api_contract end
   ) |
   .components.agents.minDesktop = (
     if $agents_min_desktop == "" then .components.agents.minDesktop else $agents_min_desktop end
