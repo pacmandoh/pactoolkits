@@ -1,6 +1,6 @@
 {
   "id": "Injector",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "runtime": "ahk",
   "displayName": "Injector",
   "entry": {
@@ -25,6 +25,6 @@
       "icon": "assets/agents-injector.ico"
     }
   },
-  "minApiContract": "1.4.0",
-  "maxApiContract": "1.4.0"
+  "minApiContract": "1.5.0",
+  "maxApiContract": "1.5.0"
 }
