@@ -22,6 +22,13 @@ public sealed class DashboardRepo : IDashboardRepo
         _opt = opt.Value;
     }
 
+    // 半开区间才能走 created_at / entry_at 索引
+    private const string TxnCreatedRange =
+        "t.created_at >= @from::date and t.created_at < (@to::date + 1)";
+
+    private const string EntryAtRange =
+        "l.entry_at >= @from::date and l.entry_at < (@to::date + 1)";
+
     public Task<IReadOnlyList<string>> GetClientNamesAsync(CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
@@ -65,7 +72,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                        t.created_at
                                      from trace_txn t
                                      where t.status = 'COMMITTED'
-                                       and t.created_at::date between @from and @to
+                                       and {TxnCreatedRange}
                                        and {ClientMachineFilter("t")}
                                        and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                        and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
@@ -139,7 +146,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                  select *
                                  from trace_txn t
                                  where 1=1
-                                   and t.created_at::date between @from::date and @to::date
+                                   and {TxnCreatedRange}
                                    and {ClientMachineFilter("t")}
                                    and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                    and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
@@ -295,7 +302,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                       case when @trend_metric = 1 then 1 else t.req_qty end as v
                                     from trace_txn t
                                     where t.status = 'COMMITTED'
-                                      and t.created_at::date between @from and @to
+                                      and {TxnCreatedRange}
                                       and {ClientMachineFilter("t")}
                                       and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                       and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
@@ -392,7 +399,7 @@ public sealed class DashboardRepo : IDashboardRepo
             var countSql = $"""
                                    select count(*)::int
                                    from trace_txn t
-                                   where t.created_at::date between @from and @to
+                                   where {TxnCreatedRange}
                                      and {ClientMachineFilter("t")}
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                      and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
@@ -409,7 +416,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                      t.created_at,
                                      {ClientMachineExpr("t")} as client_machine
                                    from trace_txn t
-                                   where t.created_at::date between @from and @to
+                                   where {TxnCreatedRange}
                                      and {ClientMachineFilter("t")}
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                      and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
@@ -476,7 +483,7 @@ public sealed class DashboardRepo : IDashboardRepo
             var countSql = $"""
                                    select count(*)::int
                                    from trace_txn t
-                                   where t.created_at::date between @from and @to
+                                   where {TxnCreatedRange}
                                      and {ClientMachineFilter("t")}
                                      and t.status = 'ROLLED_BACK'
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
@@ -490,7 +497,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                      {ClientMachineExpr("t")} as client_machine,
                                      null::bigint as txn_id
                                    from trace_txn t
-                                   where t.created_at::date between @from and @to
+                                   where {TxnCreatedRange}
                                      and {ClientMachineFilter("t")}
                                      and t.status = 'ROLLED_BACK'
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
@@ -604,7 +611,7 @@ public sealed class DashboardRepo : IDashboardRepo
             var countSql = $"""
                 select count(*)::int
                 from trace_entry_log l
-                where l.entry_at::date between @from and @to
+                where {EntryAtRange}
                   and {ClientMachineFilter("l")}
                   and (coalesce(@drug,'') = '' or btrim(l.drug_id) = btrim(@drug))
                   and (coalesce(@spec,'') = '' or btrim(coalesce(l.spec,'')) = btrim(@spec))
@@ -629,7 +636,7 @@ public sealed class DashboardRepo : IDashboardRepo
                   l.source,
                   l.message
                 from trace_entry_log l
-                where l.entry_at::date between @from and @to
+                where {EntryAtRange}
                   and {ClientMachineFilter("l")}
                   and (coalesce(@drug,'') = '' or btrim(l.drug_id) = btrim(@drug))
                   and (coalesce(@spec,'') = '' or btrim(coalesce(l.spec,'')) = btrim(@spec))
@@ -695,7 +702,7 @@ public sealed class DashboardRepo : IDashboardRepo
                   end as state,
                   count(*)::bigint as count
                 from trace_entry_log l
-                where l.entry_at::date between @from and @to
+                where {EntryAtRange}
                   and (coalesce(@drug,'') = '' or btrim(l.drug_id) = btrim(@drug))
                   and (coalesce(@spec,'') = '' or btrim(coalesce(l.spec,'')) = btrim(@spec))
                 group by client_machine, state
