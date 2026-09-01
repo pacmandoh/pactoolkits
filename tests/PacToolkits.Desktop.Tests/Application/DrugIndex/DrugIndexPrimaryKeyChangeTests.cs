@@ -14,6 +14,7 @@ public sealed class DrugIndexPrimaryKeyChangeTests
             Qty: 10,
             RuleKey: null,
             PreTc: "869",
+            Pos: null,
             Note: "old",
             CreatedAt: DateTimeOffset.UtcNow,
             UpdatedAt: null,

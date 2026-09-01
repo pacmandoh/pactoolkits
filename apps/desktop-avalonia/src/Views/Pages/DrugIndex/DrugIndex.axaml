@@ -38,7 +38,7 @@
               shad:TextBoxAssist.Clearable="True"
               AcceptsReturn="False"
               Classes="SearchBox Clearable"
-              PlaceholderText="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
+              PlaceholderText="搜索：药品名 / 规格 / 简称 / 前缀 / 摆放位置 / 备注..."
               Text="{Binding Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
               TextWrapping="NoWrap">
               <TextBox.KeyBindings>
@@ -80,12 +80,12 @@
                       SelectionMode="Extended">
                       <DataGrid.Columns>
                         <DataGridTextColumn
-                          Width="2*"
+                          Width="2.5*"
                           Binding="{ReflectionBinding DrugId}"
                           Header="药品名"
                           SortMemberPath="DrugId" />
                         <DataGridTextColumn
-                          Width="1.2*"
+                          Width="2.5*"
                           Binding="{ReflectionBinding Spec}"
                           Header="规格"
                           SortMemberPath="Spec" />
@@ -95,7 +95,7 @@
                           Header="单盒数量"
                           SortMemberPath="Qty" />
                         <DataGridTextColumn
-                          Width="1.2*"
+                          Width="1.4*"
                           Binding="{ReflectionBinding RuleKey}"
                           Header="简称"
                           SortMemberPath="RuleKey" />
@@ -105,7 +105,12 @@
                           Header="前缀"
                           SortMemberPath="PreTc" />
                         <DataGridTextColumn
-                          Width="1.4*"
+                          Width="1.2*"
+                          Binding="{ReflectionBinding Pos}"
+                          Header="摆放位置"
+                          SortMemberPath="Pos" />
+                        <DataGridTextColumn
+                          Width="1*"
                           Binding="{ReflectionBinding EffectiveNote}"
                           Header="备注"
                           SortMemberPath="EffectiveNote" />
@@ -278,6 +283,18 @@
                       Classes="CompactField"
                       PlaceholderText="可选"
                       Text="{Binding EditPreTc, Mode=TwoWay}"
+                      TextWrapping="NoWrap" />
+                  </StackPanel>
+
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="摆放位置" />
+                    <TextBox
+                      HorizontalAlignment="Stretch"
+                      VerticalContentAlignment="Center"
+                      AcceptsReturn="False"
+                      Classes="CompactField"
+                      PlaceholderText="可选"
+                      Text="{Binding EditPos, Mode=TwoWay}"
                       TextWrapping="NoWrap" />
                   </StackPanel>
 

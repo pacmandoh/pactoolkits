@@ -38,6 +38,7 @@ public sealed record DrugIndexDto(
     int Qty,
     string? RuleKey,
     string? PreTc,
+    string? Pos,
     string? Note,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,

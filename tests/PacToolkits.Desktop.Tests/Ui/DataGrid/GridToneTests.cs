@@ -77,6 +77,7 @@ public sealed class GridToneTests
             Qty: 10,
             RuleKey: null,
             PreTc: null,
+            Pos: null,
             Note: "未拆零",
             CreatedAt: DateTimeOffset.UtcNow,
             UpdatedAt: null,

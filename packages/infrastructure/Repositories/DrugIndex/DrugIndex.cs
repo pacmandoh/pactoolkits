@@ -28,7 +28,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
         => _db.WithConnection(async (conn, token) =>
         {
             const string sql = """
-                select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                select drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 from drug_index
                 where
                   @kw = ''
@@ -36,6 +36,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                   or spec    ilike ('%' || @kw || '%')
                   or coalesce(rule_key,'') ilike ('%' || @kw || '%')
                   or coalesce(pre_tc,'')   ilike ('%' || @kw || '%')
+                  or coalesce(pos,'')      ilike ('%' || @kw || '%')
                   or coalesce(note,'')     ilike ('%' || @kw || '%')
                 order by drug_id asc, spec asc
                 limit @n
@@ -68,6 +69,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                   or spec    ilike ('%' || @kw || '%')
                   or coalesce(rule_key,'') ilike ('%' || @kw || '%')
                   or coalesce(pre_tc,'')   ilike ('%' || @kw || '%')
+                  or coalesce(pos,'')      ilike ('%' || @kw || '%')
                   or coalesce(note,'')     ilike ('%' || @kw || '%')
             """;
 
@@ -83,7 +85,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
         => _db.WithConnection(async (conn, token) =>
         {
             const string sql = """
-                select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                select drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 from drug_index
                 order by drug_id asc, spec asc
                 limit @n
@@ -106,7 +108,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
         => _db.WithConnection(async (conn, token) =>
         {
             const string sql = """
-                select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                select drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 from drug_index
                 where drug_id = @drug_id and spec = @spec
                 limit 1
@@ -173,10 +175,10 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             if (expectedVersion is null)
             {
                 const string insertSql = """
-                    insert into drug_index(drug_id, spec, qty, rule_key, pre_tc, note, version)
-                    values (@drug_id, @spec, @qty, @rule_key, @pre_tc, @note, 0)
+                    insert into drug_index(drug_id, spec, qty, rule_key, pre_tc, pos, note, version)
+                    values (@drug_id, @spec, @qty, @rule_key, @pre_tc, @pos, @note, 0)
                     on conflict (drug_id, spec) do nothing
-                    returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                    returning drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 """;
 
                 await using var cmd = conn.CreateCommand(insertSql, _opt.CommandTimeoutSeconds);
@@ -185,6 +187,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 cmd.AddParam("qty", dto.Qty);
                 cmd.AddParam("rule_key", (object?)dto.RuleKey ?? DBNull.Value);
                 cmd.AddParam("pre_tc", (object?)dto.PreTc ?? DBNull.Value);
+                cmd.AddParam("pos", (object?)dto.Pos ?? DBNull.Value);
                 cmd.AddParam("note", (object?)dto.Note ?? DBNull.Value);
 
                 await using (var reader = await cmd.ExecuteReaderAsync(token))
@@ -206,12 +209,13 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                   qty = @qty,
                   rule_key = @rule_key,
                   pre_tc = @pre_tc,
+                  pos = @pos,
                   note = @note,
                   version = version + 1
                 where drug_id = @drug_id
                   and spec = @spec
                   and version = @expected_version
-                returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                returning drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
             """;
 
             await using var update = conn.CreateCommand(updateSql, _opt.CommandTimeoutSeconds);
@@ -220,6 +224,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             update.AddParam("qty", dto.Qty);
             update.AddParam("rule_key", (object?)dto.RuleKey ?? DBNull.Value);
             update.AddParam("pre_tc", (object?)dto.PreTc ?? DBNull.Value);
+            update.AddParam("pos", (object?)dto.Pos ?? DBNull.Value);
             update.AddParam("note", (object?)dto.Note ?? DBNull.Value);
             update.AddParam("expected_version", expectedVersion.Value);
 
@@ -395,6 +400,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             var dstQty = target.Qty;
             var dstRuleKey = (object?)target.RuleKey ?? DBNull.Value;
             var dstPreTc = (object?)target.PreTc ?? DBNull.Value;
+            var dstPos = (object?)target.Pos ?? DBNull.Value;
             var dstNote = (object?)target.Note ?? DBNull.Value;
             var reasonSafe = (reason ?? string.Empty).Trim();
             var operatorSafe = (operatorName ?? string.Empty).Trim();
@@ -439,7 +445,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 string.Equals(srcSpec, dstSpec, StringComparison.Ordinal);
 
             const string lockSourceSql = """
-                select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                select drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 from drug_index
                 where drug_id = @src_drug and spec = @src_spec
                 for update
@@ -528,13 +534,14 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     set qty = @dst_qty,
                         rule_key = @dst_rule_key,
                         pre_tc = @dst_pre_tc,
+                        pos = @dst_pos,
                         note = @dst_note,
                         updated_at = clock_timestamp(),
                         version = version + 1
                     where drug_id = @src_drug
                       and spec = @src_spec
                       and version = @src_version
-                    returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                    returning drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 """;
 
                 await using (var cmd = conn.CreateCommand(updateSameKeySql, _opt.CommandTimeoutSeconds, tx))
@@ -542,6 +549,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     cmd.AddParam("dst_qty", dstQty);
                     cmd.AddParam("dst_rule_key", dstRuleKey);
                     cmd.AddParam("dst_pre_tc", dstPreTc);
+                    cmd.AddParam("dst_pos", dstPos);
                     cmd.AddParam("dst_note", dstNote);
                     cmd.AddParam("src_drug", srcDrug);
                     cmd.AddParam("src_spec", srcSpec);
@@ -580,13 +588,14 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                         qty = @dst_qty,
                         rule_key = @dst_rule_key,
                         pre_tc = @dst_pre_tc,
+                        pos = @dst_pos,
                         note = @dst_note,
                         updated_at = clock_timestamp(),
                         version = version + 1
                     where drug_id = @src_drug
                       and spec = @src_spec
                       and version = @src_version
-                    returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                    returning drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 """;
 
                 await using (var moveCmd = conn.CreateCommand(movePkSql, _opt.CommandTimeoutSeconds, tx))
@@ -596,6 +605,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     moveCmd.AddParam("dst_qty", dstQty);
                     moveCmd.AddParam("dst_rule_key", dstRuleKey);
                     moveCmd.AddParam("dst_pre_tc", dstPreTc);
+                    moveCmd.AddParam("dst_pos", dstPos);
                     moveCmd.AddParam("dst_note", dstNote);
                     moveCmd.AddParam("src_drug", srcDrug);
                     moveCmd.AddParam("src_spec", srcSpec);
@@ -628,16 +638,17 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             else
             {
                 const string upsertTargetSql = """
-                    insert into drug_index(drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version)
-                    values(@dst_drug, @dst_spec, @dst_qty, @dst_rule_key, @dst_pre_tc, @dst_note, clock_timestamp(), clock_timestamp(), 0)
+                    insert into drug_index(drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version)
+                    values(@dst_drug, @dst_spec, @dst_qty, @dst_rule_key, @dst_pre_tc, @dst_pos, @dst_note, clock_timestamp(), clock_timestamp(), 0)
                     on conflict (drug_id, spec) do update
                     set qty = excluded.qty,
                         rule_key = excluded.rule_key,
                         pre_tc = excluded.pre_tc,
+                        pos = excluded.pos,
                         note = excluded.note,
                         updated_at = clock_timestamp(),
                         version = drug_index.version + 1
-                    returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                    returning drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
                 """;
 
                 await using (var cmd = conn.CreateCommand(upsertTargetSql, _opt.CommandTimeoutSeconds, tx))
@@ -647,6 +658,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     cmd.AddParam("dst_qty", dstQty);
                     cmd.AddParam("dst_rule_key", dstRuleKey);
                     cmd.AddParam("dst_pre_tc", dstPreTc);
+                    cmd.AddParam("dst_pos", dstPos);
                     cmd.AddParam("dst_note", dstNote);
                     await using var reader = await cmd.ExecuteReaderAsync(token);
                     if (!await reader.ReadAsync(token))
@@ -799,10 +811,11 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             Qty: reader.GetInt32(2),
             RuleKey: reader.IsDBNull(3) ? null : reader.GetString(3),
             PreTc: reader.IsDBNull(4) ? null : reader.GetString(4),
-            Note: reader.IsDBNull(5) ? null : reader.GetString(5),
-            CreatedAt: ReadDateTimeOffset(reader.GetValue(6)),
-            UpdatedAt: reader.IsDBNull(7) ? null : ReadDateTimeOffset(reader.GetValue(7)),
-            Version: reader.GetInt64(8)
+            Pos: reader.IsDBNull(5) ? null : reader.GetString(5),
+            Note: reader.IsDBNull(6) ? null : reader.GetString(6),
+            CreatedAt: ReadDateTimeOffset(reader.GetValue(7)),
+            UpdatedAt: reader.IsDBNull(8) ? null : ReadDateTimeOffset(reader.GetValue(8)),
+            Version: reader.GetInt64(9)
         );
 
     private static DateTimeOffset ReadDateTimeOffset(object value)
@@ -829,7 +842,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
         CancellationToken ct)
     {
         const string sql = """
-            select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+            select drug_id, spec, qty, rule_key, pre_tc, pos, note, created_at, updated_at, version
             from drug_index
             where drug_id = @drug_id and spec = @spec
             limit 1

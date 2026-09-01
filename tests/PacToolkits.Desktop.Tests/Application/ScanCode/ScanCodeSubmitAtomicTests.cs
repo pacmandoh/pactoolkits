@@ -152,6 +152,7 @@ public sealed class ScanCodeSubmitAtomicTests
                 null,
                 null,
                 null,
+                null,
                 DateTimeOffset.UnixEpoch,
                 null,
                 1));
