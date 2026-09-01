@@ -285,6 +285,7 @@ public sealed class DrugsEndpointsTests
                 Qty: 1,
                 RuleKey: null,
                 PreTc: null,
+                Pos: null,
                 Note: null,
                 CreatedAt: DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
                 UpdatedAt: null,

@@ -145,6 +145,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             Qty = dto.Qty;
             RuleKey = dto.RuleKey;
             PreTc = dto.PreTc;
+            Pos = dto.Pos;
             Note = dto.Note;
             CreatedAt = dto.CreatedAt;
             UpdatedAt = dto.UpdatedAt;
@@ -157,6 +158,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         public int Qty { get; private set; }
         public string? RuleKey { get; private set; }
         public string? PreTc { get; private set; }
+        public string? Pos { get; private set; }
 
         [ObservableProperty] private string? _note;
         [ObservableProperty] private string? _notePreview;
@@ -222,6 +224,13 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 changed = true;
             }
 
+            if (!string.Equals(Pos, dto.Pos, StringComparison.Ordinal))
+            {
+                Pos = dto.Pos;
+                OnPropertyChanged(nameof(Pos));
+                changed = true;
+            }
+
             if (!string.Equals(Note, dto.Note, StringComparison.Ordinal))
             {
                 Note = dto.Note;
@@ -254,6 +263,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             Qty: Qty,
             RuleKey: RuleKey,
             PreTc: PreTc,
+            Pos: Pos,
             Note: Note,
             CreatedAt: CreatedAt,
             UpdatedAt: UpdatedAt,
@@ -366,6 +376,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     [ObservableProperty] private int? _editQty;
     [ObservableProperty] private string? _editRuleKey;
     [ObservableProperty] private string? _editPreTc;
+    [ObservableProperty] private string? _editPos;
     [ObservableProperty] private string? _editNote;
 
     [ObservableProperty] private DateTimeOffset _createdAt;
@@ -652,6 +663,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     partial void OnEditQtyChanged(int? value) => MarkDirty();
     partial void OnEditRuleKeyChanged(string? value) => MarkDirty();
     partial void OnEditPreTcChanged(string? value) => MarkDirty();
+    partial void OnEditPosChanged(string? value) => MarkDirty();
 
     partial void OnEditNoteChanged(string? value)
     {
@@ -692,6 +704,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
            && row.Qty == (EditQty ?? 0)
            && Field(row.RuleKey) == Field(EditRuleKey)
            && Field(row.PreTc) == Field(EditPreTc)
+           && Field(row.Pos) == Field(EditPos)
            && Field(row.Note) == Field(EditNote);
 
     private void SyncEditorFrom(DrugRow row)
@@ -728,6 +741,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             EditQty = row.Qty;
             EditRuleKey = row.RuleKey;
             EditPreTc = row.PreTc;
+            EditPos = row.Pos;
             EditNote = row.Note;
             CreatedAt = row.CreatedAt;
             UpdatedAt = row.UpdatedAt;
@@ -760,6 +774,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         EditQty = null;
         EditRuleKey = null;
         EditPreTc = null;
+        EditPos = null;
         EditNote = null;
         CreatedAt = default;
         UpdatedAt = null;
@@ -809,6 +824,11 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 return true;
             }
 
+            if (!string.IsNullOrWhiteSpace(EditPos))
+            {
+                return true;
+            }
+
             if (!string.IsNullOrWhiteSpace(EditNote))
             {
                 return true;
@@ -822,6 +842,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                || _loadedSnapshot.Qty != (EditQty ?? 0)
                || Field(_loadedSnapshot.RuleKey) != Field(EditRuleKey)
                || Field(_loadedSnapshot.PreTc) != Field(EditPreTc)
+               || Field(_loadedSnapshot.Pos) != Field(EditPos)
                || Field(_loadedSnapshot.Note) != Field(EditNote);
     }
 
@@ -838,6 +859,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 EditQty = dto.Qty;
                 EditRuleKey = dto.RuleKey;
                 EditPreTc = dto.PreTc;
+                EditPos = dto.Pos;
                 EditNote = dto.Note;
                 CreatedAt = dto.CreatedAt;
                 UpdatedAt = dto.UpdatedAt;
@@ -875,6 +897,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         EditQty = snapshot.Qty;
         EditRuleKey = snapshot.RuleKey;
         EditPreTc = snapshot.PreTc;
+        EditPos = snapshot.Pos;
         EditNote = snapshot.Note;
         CreatedAt = snapshot.CreatedAt;
         UpdatedAt = snapshot.UpdatedAt;
@@ -1027,6 +1050,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                     Qty: EditQty!.Value,
                     RuleKey: NormalizeInput(EditRuleKey),
                     PreTc: NormalizeInput(EditPreTc),
+                    Pos: NormalizeInput(EditPos),
                     Note: note,
                     CreatedAt: CreatedAt == default ? DateTimeOffset.UtcNow : CreatedAt,
                     UpdatedAt: DateTimeOffset.UtcNow,
@@ -1215,6 +1239,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                     Qty: EditQty.Value,
                     RuleKey: NormalizeInput(EditRuleKey),
                     PreTc: NormalizeInput(EditPreTc),
+                    Pos: NormalizeInput(EditPos),
                     Note: NormalizeInput(EditNote),
                     CreatedAt: source.CreatedAt,
                     UpdatedAt: DateTimeOffset.UtcNow,

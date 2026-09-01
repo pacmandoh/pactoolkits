@@ -15,6 +15,7 @@ public sealed class DrugIndexServiceSaveTests
             Qty: 20,
             RuleKey: null,
             PreTc: null,
+            Pos: null,
             Note: null,
             CreatedAt: DateTimeOffset.UtcNow,
             UpdatedAt: null,
