@@ -22,5 +22,6 @@
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/Layout.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/Settings.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/ScanCode.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/BarcodeGen.axaml" />
   <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/Shared.axaml" />
 </Styles>

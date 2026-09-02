@@ -61,6 +61,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     /// <summary>非空时替换 <see cref="IInjectorService"/></summary>
     public IInjectorService? Injector { get; init; }
 
+    /// <summary>非空时替换 <see cref="ITraceBarcodeService"/></summary>
+    public ITraceBarcodeService? TraceBarcode { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("dev");
@@ -120,6 +123,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             {
                 services.Replace(ServiceDescriptor.Singleton<IInjectorService>(Injector));
             }
+
+            if (TraceBarcode is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton<ITraceBarcodeService>(TraceBarcode));
+            }
         });
     }
 
@@ -137,8 +145,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             ["Auth:Jwt:Audience"] = "pactoolkits-clients-test",
             ["Auth:Jwt:SigningKey"] = TestJwtSigningKey,
             ["Auth:Jwt:ExpiresMinutes"] = "30",
-            ["SchemaBounds:MinDbSchema"] = "1.2.26",
-            ["SchemaBounds:MaxDbSchema"] = "1.2.26",
+            ["SchemaBounds:MinDbSchema"] = "1.2.28",
+            ["SchemaBounds:MaxDbSchema"] = "1.2.28",
             ["Changes:ListenEnabled"] = "false",
             ["Postgres:Host"] = "127.0.0.1",
             ["Postgres:Port"] = "1",
@@ -204,7 +212,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     private sealed class AlwaysOkApiHealth : IApiHealth
     {
         public Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default)
-            => Task.FromResult(new ApiHealthSnapshot(Ok: true, Database: "ok", Schema: "ok", SchemaVersion: "1.2.26"));
+            => Task.FromResult(new ApiHealthSnapshot(Ok: true, Database: "ok", Schema: "ok", SchemaVersion: "1.2.28"));
     }
 
     /// <summary>只跑回调，给 MemoryCommandDedup 写路径用；不连 PostgreSQL</summary>

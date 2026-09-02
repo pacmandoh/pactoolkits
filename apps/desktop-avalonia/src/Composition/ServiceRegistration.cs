@@ -18,6 +18,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Versioning;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Agents;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Msfx;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
+using PacToolkits.Desktop.Avalonia.Services.Presentation.Barcode;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Tasks;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Unlock;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Update;
@@ -59,6 +60,7 @@ public static class ServiceRegistration
         services.AddSingleton<IUiBehaviorService, UiBehaviorService>();
         services.AddSingleton<ILoggingSettingsService, LoggingSettingsService>();
         services.AddSingleton<IClipboardService, ClipboardService>();
+        services.AddSingleton<IFolderPickerService, FolderPickerService>();
         services.AddSingleton<IAppLogger, AppLogger>();
         services.AddPacApiClient();
         services.AddSingleton<IReleaseVersionService, ReleaseVersionService>();
@@ -89,6 +91,9 @@ public static class ServiceRegistration
         services.AddSingleton<IAgentsBundleService, AgentsBundleService>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();
         services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
+        services.AddSingleton<IBarcodeGenSettingsStore, BarcodeGenSettingsStore>();
+        services.AddSingleton<IBarcodeGenSettingsService, BarcodeGenSettingsService>();
+        services.AddSingleton<ITraceBarcodeService, ApiTraceBarcode>();
         services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
         services.AddSingleton<SensitiveUnlockSession>();
         services.AddSingleton<IReleaseManifestProbeService>(sp =>
@@ -114,6 +119,7 @@ public static class ServiceRegistration
             manager.Register<DrugKeyFixPreviewView, DrugKeyFixPreview>();
             manager.Register<AppInfoView, AppInfo>();
             manager.Register<InfoDetailView, InfoDetail>();
+            manager.Register<BarcodePreviewDetailView, BarcodePreviewDetail>();
             manager.Register<MsfxStateDetailView, MsfxStateDetail>();
             manager.Register<MsfxTaskSplitView, MsfxTaskSplit>();
             return manager;
@@ -145,6 +151,7 @@ public static class ServiceRegistration
         services.AddSingleton<ISensitiveUnlockService, SensitiveUnlockService>();
         services.AddSingleton<UnlockActivity>();
         services.AddSingleton<IUpdateFlowService, UpdateFlowService>();
+        services.AddSingleton<ITraceCodeBarcodeService, TraceCodeBarcodeService>();
         return services;
     }
 
@@ -165,6 +172,7 @@ public static class ServiceRegistration
             .AddAppPage<InventoryOverview>()
             .AddAppPage<DrugIndex>()
             .AddAppPage<ScanCode>()
+            .AddAppPage<BarcodeGen>()
             .AddAppPage<MsfxLink>()
             .AddAppPage<Settings>();
     }

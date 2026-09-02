@@ -447,6 +447,9 @@
                 <DataTemplate x:DataType="pageVm:ScanCode">
                   <pages:ScanCodeHeader />
                 </DataTemplate>
+                <DataTemplate x:DataType="pageVm:BarcodeGen">
+                  <pages:BarcodeGenHeader />
+                </DataTemplate>
                 <DataTemplate x:DataType="pageVm:MsfxLink">
                   <pages:MsfxLinkHeader />
                 </DataTemplate>

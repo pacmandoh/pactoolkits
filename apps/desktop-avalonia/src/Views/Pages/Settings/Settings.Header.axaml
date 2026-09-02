@@ -7,6 +7,25 @@
   x:DataType="vm:Settings"
   Classes="PageHeaderContent">
   <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+    <StackPanel
+      Margin="4,0,0,0"
+      Orientation="Horizontal"
+      Spacing="4">
+      <Button
+        Classes="Icon ghost-states"
+        Command="{Binding UnlockCommand}"
+        IsVisible="{Binding ShowUnlock}"
+        ToolTip.Tip="解锁">
+        <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="LockKeyhole" />
+      </Button>
+      <Button
+        Classes="Icon ghost-states"
+        Command="{Binding LockCommand}"
+        IsVisible="{Binding ShowLock}"
+        ToolTip.Tip="锁定">
+        <icons:AppIcon Foreground="{DynamicResource ErrorColor}" Kind="LockKeyholeOpen" />
+      </Button>
+    </StackPanel>
     <Rectangle Grid.Column="1" Classes="HeaderDivider" />
     <TextBlock
       Grid.Column="2"

@@ -2,8 +2,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Security;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -30,10 +32,13 @@ public partial class Settings : AppPageBase, ISettingsPage
         }
 
         var target = ResolveCursorTarget(selectedDate);
-        var confirmed = await _dialog.ConfirmDestructive(
-            "确认前移拉取游标",
-            $"游标将前移至 {target.LocalDateTime:yyyy-MM-dd HH:mm:ss}，下次巡检从其前 10 分钟开始\n\n" +
-            "更早的上游数据将被跳过，已入库数据不会删除。是否继续？");
+        var confirmed = await AuthorizeCursorAdvanceAsync(
+            _unlockService,
+            () => _dialog.ConfirmDestructive(
+                "确认前移拉取游标",
+                $"游标将前移至 {target.LocalDateTime:yyyy-MM-dd HH:mm:ss}，下次巡检从其前 10 分钟开始\n\n" +
+                "更早的上游数据将被跳过，已入库数据不会删除。是否继续？"),
+            _pageWorkCts.Token);
         if (!confirmed)
         {
             return;
@@ -102,6 +107,20 @@ public partial class Settings : AppPageBase, ISettingsPage
 
         var endOfDay = date.AddDays(1).AddTicks(-1);
         return new DateTimeOffset(endOfDay, TimeZoneInfo.Local.GetUtcOffset(endOfDay));
+    }
+
+    internal static async Task<bool> AuthorizeCursorAdvanceAsync(
+        ISensitiveUnlockService unlock,
+        Func<Task<bool>> confirm,
+        CancellationToken ct)
+    {
+        var authorized = await unlock.RequireUnlockAsync(
+            UnlockScopes.SharedOps,
+            "码上放心 API - 拉取游标",
+            "敏感操作解锁",
+            UnlockScopes.SharedOpsHint,
+            ct).ConfigureAwait(true);
+        return authorized && await confirm().ConfigureAwait(true);
     }
 
     private async Task<bool> ApplyMsfxApiConfigAsync()

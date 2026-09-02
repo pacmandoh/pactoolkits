@@ -186,6 +186,7 @@ public sealed class AppConfigStore : IAppConfigStore
         var root = source ?? new AppConfigRoot();
         root.SchemaVersion = 2;
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
+        root.BarcodeGen = BarcodeGenSettingsService.Normalize(root.BarcodeGen);
         root.Agents ??= new AgentsOptions();
         root.PacApi ??= new PacApiOptions();
         root.MsfxApi ??= new MsfxApiOptions();

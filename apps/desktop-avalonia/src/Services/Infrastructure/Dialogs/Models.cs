@@ -29,6 +29,12 @@ public sealed record InfoDetailArgs(
     string SubHeader,
     IReadOnlyList<InfoDetailItem> Items);
 
+public sealed record BarcodePreviewDetailArgs(
+    string Header,
+    string SubHeader,
+    byte[] PngBytes,
+    IReadOnlyList<InfoDetailItem> Items);
+
 public sealed record AppInfoArgs(
     string Version,
     string Desktop,

@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMsfxInjectRepo>(sp => sp.GetRequiredService<MsfxSyncRepo>());
         services.AddSingleton<IMsfxQueryRepo>(sp => sp.GetRequiredService<MsfxSyncRepo>());
         services.AddSingleton<IInjectorRepo, InjectorRepo>();
+        services.AddSingleton<ITraceBarcodeRepo, TraceBarcodeRepo>();
 
         return services;
     }

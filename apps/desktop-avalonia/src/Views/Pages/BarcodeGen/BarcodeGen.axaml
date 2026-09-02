@@ -1,0 +1,433 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.BarcodeGen"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:Name="Root"
+  d:DesignHeight="800"
+  d:DesignWidth="1200"
+  x:DataType="vm:BarcodeGen"
+  Classes="BarcodeGenPage"
+  ClipToBounds="True"
+  Focusable="True"
+  mc:Ignorable="d">
+  <controls:PageDataShell
+    IsInteractionEnabled="{Binding CanPage}"
+    ShowUnavailable="{Binding ShowPageUnavailable}"
+    UnavailableHint="{Binding PageUnavailableHint}"
+    UnavailableIcon="{Binding PageUnavailableIcon}"
+    UnavailableTitle="{Binding PageUnavailableTitle}">
+    <Grid
+      MinHeight="0"
+      Classes="DashboardLayout"
+      RowDefinitions="Auto,*">
+      <ContentControl Grid.Row="0" Classes="FilterBarChrome">
+        <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*,Auto">
+          <Grid
+            Grid.Column="0"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*,Auto"
+            IsEnabled="{Binding IsDrugSpecFilterEnabled}">
+            <TextBlock
+              Grid.Column="0"
+              Classes="Caption Muted"
+              Text="药品" />
+            <AutoCompleteBox
+              x:Name="DrugBox"
+              Grid.Column="1"
+              HorizontalAlignment="Stretch"
+              IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+              ItemsSource="{Binding DrugOptions}"
+              KeyDown="DrugBox_OnKeyDown"
+              PlaceholderText="输入药品名并回车"
+              Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
+              <AutoCompleteBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:OptionItem">
+                  <TextBlock Text="{Binding Display}" />
+                </DataTemplate>
+              </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+            <Button
+              Grid.Column="2"
+              Classes="MicroClear DrugAutoCompleteClear"
+              Command="{Binding ClearDrugSpecFilterCommand}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                Kind="CircleX" />
+            </Button>
+          </Grid>
+
+          <Border Grid.Column="1" Classes="FilterBarDivider" />
+
+          <Grid
+            Grid.Column="2"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*"
+            IsEnabled="{Binding IsDrugSpecFilterEnabled}">
+            <TextBlock
+              Grid.Column="0"
+              Classes="Caption Muted"
+              Text="规格" />
+            <controls:FilterFieldInput Grid.Column="1">
+              <Grid>
+                <ComboBox
+                  x:Name="SpecBox"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  DisplayMemberBinding="{Binding Display}"
+                  ItemsSource="{Binding SpecOptions}"
+                  SelectedItem="{Binding SelectedSpec}" />
+                <TextBlock
+                  Classes="InputPlaceholder"
+                  IsVisible="{Binding !IsSpecSelected}"
+                  Text="请选择规格" />
+              </Grid>
+            </controls:FilterFieldInput>
+          </Grid>
+
+          <Border
+            Grid.Column="3"
+            Classes="FilterBarDivider"
+            IsVisible="{Binding IsPoolTab}" />
+
+          <Grid
+            Grid.Column="4"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,Auto"
+            IsVisible="{Binding IsPoolTab}">
+            <TextBlock
+              Grid.Column="0"
+              Classes="Caption Muted"
+              Text="数量" />
+            <NumericUpDown
+              Grid.Column="1"
+              Width="128"
+              MinWidth="128"
+              FormatString="0"
+              Increment="1"
+              Maximum="999"
+              Minimum="1"
+              Value="{Binding PoolPickCount, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid
+            Grid.Column="5"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto">
+            <CheckBox
+              Grid.Column="0"
+              Content="仅追溯码条码"
+              IsChecked="{Binding ManualCodeOnlyMode}"
+              IsVisible="{Binding IsManualTab}" />
+
+            <Button
+              Grid.Column="0"
+              Classes="Primary"
+              Command="{Binding AddPoolPickCommand}"
+              Content="添加到队列"
+              IsVisible="{Binding IsPoolTab}" />
+          </Grid>
+        </Grid>
+      </ContentControl>
+
+      <Grid
+        Grid.Row="1"
+        MinHeight="0"
+        Classes="DashboardContent">
+        <controls:ResizableCardPair
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          FirstMinSize="360"
+          SecondMinSize="320"
+          SplitterSize="{DynamicResource PagePanelSpacing}">
+          <controls:ResizableCardPair.FirstContent>
+            <Grid MinHeight="0" ClipToBounds="True">
+              <shad:Card
+                x:Name="PoolQueueCard"
+                MinHeight="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Classes="SectionCard StretchBody ScrollHostCard"
+                ClipToBounds="True"
+                IsVisible="{Binding IsPoolTab}"
+                ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <shad:Card.Header>
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        VerticalAlignment="Center"
+                        Kind="PackageSearch" />
+                      <TextBlock
+                        VerticalAlignment="Center"
+                        Classes="SectionTitle"
+                        Text="取码队列" />
+                    </StackPanel>
+                    <CheckBox
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Content="排除近期已生成码"
+                      IsChecked="{Binding ExcludeRecent}" />
+                  </Grid>
+                </shad:Card.Header>
+                <controls:EmptyStatePanel
+                  MinHeight="0"
+                  VerticalAlignment="Stretch"
+                  EmptyHint="在上方选择药品、规格与数量后添加到队列"
+                  EmptyText="取码队列为空"
+                  Icon="PackageSearch"
+                  IsEmpty="{Binding IsPoolPickEmpty}">
+                  <ItemsControl ItemsSource="{Binding PoolRows}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel
+                          ItemSpacing="{DynamicResource SpacingInlineMd}"
+                          ItemWidth="280"
+                          LineSpacing="{DynamicResource SpacingInlineMd}" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:PoolRow">
+                        <Border Classes="QueueTile">
+                          <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
+                            <TextBlock
+                              Classes="Caption"
+                              MaxLines="2"
+                              Text="{Binding DrugId}"
+                              TextTrimming="CharacterEllipsis"
+                              TextWrapping="Wrap" />
+                            <TextBlock
+                              Classes="Caption Muted"
+                              MaxLines="1"
+                              Text="{Binding Spec}"
+                              TextTrimming="CharacterEllipsis" />
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                              <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
+                                Text="数量" />
+                              <NumericUpDown
+                                Grid.Column="1"
+                                Classes="QueueQtyInput"
+                                FormatString="0"
+                                Increment="1"
+                                Maximum="999"
+                                Minimum="1"
+                                Value="{Binding Count, Mode=TwoWay}" />
+                              <Button
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                Classes="Icon ghost-states"
+                                Command="{Binding #Root.((vm:BarcodeGen)DataContext).RemovePoolRowCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="移除">
+                                <icons:AppIcon Kind="Trash2" />
+                              </Button>
+                            </Grid>
+                            <controls:StatusPill
+                              HorizontalAlignment="Left"
+                              Classes="ToneDone15"
+                              Icon="CircleCheck"
+                              IconSize="12"
+                              IsVisible="{Binding IsPickOk}"
+                              PillPadding="8,3"
+                              Text="{Binding StatusHint}"
+                              TextSize="11" />
+                            <controls:StatusPill
+                              HorizontalAlignment="Left"
+                              Classes="ToneWarning15"
+                              Icon="TriangleAlert"
+                              IconSize="12"
+                              IsVisible="{Binding IsPickGap}"
+                              PillPadding="8,3"
+                              Text="{Binding StatusHint}"
+                              TextSize="11" />
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </controls:EmptyStatePanel>
+                <shad:Card.Footer>
+                  <Grid Classes="SectionCardFoot" ColumnDefinitions="*,Auto">
+                    <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="Caption Muted"
+                      Text="{Binding PoolRows.Count, StringFormat=共 {0} 项}" />
+                    <Button
+                      Grid.Column="1"
+                      Classes="Outline"
+                      Command="{Binding ClearPoolRowsCommand}"
+                      Content="清空队列" />
+                  </Grid>
+                </shad:Card.Footer>
+              </shad:Card>
+
+              <shad:Card
+                x:Name="ManualCodesCard"
+                MinHeight="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Classes="SectionCard StretchBody ScrollHostCard"
+                ClipToBounds="True"
+                IsVisible="{Binding IsManualTab}"
+                ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <shad:Card.Header>
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      VerticalAlignment="Center"
+                      Kind="Keyboard" />
+                    <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="SectionTitle"
+                      Text="追溯码列表" />
+                  </StackPanel>
+                </shad:Card.Header>
+                <TextBox
+                  MinHeight="120"
+                  VerticalAlignment="Stretch"
+                  AcceptsReturn="True"
+                  FontFamily="{DynamicResource TraceCodeInputFontFamily}"
+                  PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568"
+                  Text="{Binding ManualTraceCodesText, Mode=TwoWay}"
+                  TextWrapping="Wrap" />
+                <shad:Card.Footer>
+                  <Grid Classes="SectionCardFoot" ColumnDefinitions="*,Auto">
+                    <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="Caption Muted"
+                      Text="{Binding ManualLineCount, StringFormat=共 {0} 行}" />
+                    <Button
+                      Grid.Column="1"
+                      Classes="Outline"
+                      Command="{Binding ClearManualCodesCommand}"
+                      Content="清空列表"
+                      IsEnabled="{Binding !IsManualCodesEmpty}" />
+                  </Grid>
+                </shad:Card.Footer>
+              </shad:Card>
+            </Grid>
+          </controls:ResizableCardPair.FirstContent>
+
+          <controls:ResizableCardPair.SecondContent>
+            <Grid MinHeight="0" ClipToBounds="True">
+              <shad:Card
+                MinHeight="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Classes="SectionCard StretchBody ScrollHostCard"
+                ClipToBounds="True"
+                ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <shad:Card.Header>
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        VerticalAlignment="Center"
+                        Kind="QrCode" />
+                      <TextBlock
+                        VerticalAlignment="Center"
+                        Classes="SectionTitle"
+                        Text="条码预览" />
+                    </StackPanel>
+                    <shad:Badge
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Content="{Binding PreviewCards.Count, StringFormat=共 {0} 张}"
+                      Variant="Secondary" />
+                  </Grid>
+                </shad:Card.Header>
+                <controls:EmptyStatePanel
+                  MinHeight="0"
+                  VerticalAlignment="Stretch"
+                  EmptyHint="选择药品或填写追溯码后点击生成预览"
+                  EmptyText="暂无预览"
+                  Icon="QrCode"
+                  IsEmpty="{Binding IsPreviewEmpty}">
+                  <ItemsControl ItemsSource="{Binding PreviewCards}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel
+                          ItemSpacing="{DynamicResource SpacingInlineMd}"
+                          ItemWidth="280"
+                          LineSpacing="{DynamicResource SpacingInlineMd}" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:PreviewCard">
+                        <Button
+                          Classes="PreviewTile"
+                          Command="{Binding #Root.((vm:BarcodeGen)DataContext).OpenPreviewDetailCommand}"
+                          CommandParameter="{Binding}">
+                          <Border Classes="PreviewTileChrome">
+                            <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
+                              <TextBlock
+                                Classes="Caption"
+                                MaxLines="1"
+                                Text="{Binding Title}"
+                                TextTrimming="CharacterEllipsis" />
+                              <Image
+                                MaxHeight="150"
+                                HorizontalAlignment="Center"
+                                Source="{Binding PreviewImage}"
+                                Stretch="Uniform" />
+                              <TextBlock
+                                Classes="Caption Muted"
+                                FontFamily="{DynamicResource TraceCodeInputFontFamily}"
+                                Text="{Binding TraceCode}"
+                                TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </Border>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </controls:EmptyStatePanel>
+                <shad:Card.Footer>
+                  <Grid Classes="SectionCardFoot" ColumnDefinitions="*,Auto">
+                    <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="Caption Muted"
+                      Text="{Binding GenerateSummary}"
+                      TextTrimming="CharacterEllipsis" />
+                    <StackPanel
+                      Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SpacingInlineSm}">
+                      <Button
+                        Classes="Primary"
+                        Command="{Binding GenerateCommand}"
+                        Content="生成预览"
+                        IsEnabled="{Binding !IsBarcodeOperating}" />
+                      <Button
+                        Classes="Outline"
+                        Command="{Binding ExportAllCommand}"
+                        Content="全部导出"
+                        IsEnabled="{Binding !IsBarcodeOperating}" />
+                      <Button
+                        Classes="Outline"
+                        Command="{Binding ClearPreviewCommand}"
+                        Content="清空预览"
+                        IsEnabled="{Binding !IsBarcodeOperating}" />
+                    </StackPanel>
+                  </Grid>
+                </shad:Card.Footer>
+              </shad:Card>
+            </Grid>
+          </controls:ResizableCardPair.SecondContent>
+        </controls:ResizableCardPair>
+      </Grid>
+    </Grid>
+  </controls:PageDataShell>
+</UserControl>

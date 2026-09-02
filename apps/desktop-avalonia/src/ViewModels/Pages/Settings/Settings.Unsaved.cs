@@ -23,7 +23,8 @@ public partial class Settings
         Logging = 5,
         MsfxApi = 6,
         Agents = 7,
-        ModuleSettings = 8
+        ModuleSettings = 8,
+        BarcodeGen = 9
     }
 
     private static readonly string[] TabTitles =
@@ -36,7 +37,8 @@ public partial class Settings
         "日志与诊断",
         "码上放心 API",
         "自动化集成",
-        "模块配置"
+        "模块配置",
+        "条码生成"
     ];
 
     private int _unsavedMask;
@@ -236,6 +238,7 @@ public partial class Settings
             Tab.Connection => await ApplyConnectionTabAsync(),
             Tab.ClientAliases => await ApplyClientAliasesAsync(),
             Tab.TraceCodeRule => await ApplyTraceCodeRuleAsync(),
+            Tab.BarcodeGen => await ApplyBarcodeGenAsync(),
             Tab.Updates => await ApplyUpdateOptionsAsync(),
             Tab.MsfxApi => await ApplyMsfxApiConfigAsync(),
             Tab.Agents => await ApplyAgentsSettingsAsync(showSuccessToast: false),
@@ -260,6 +263,9 @@ public partial class Settings
                 break;
             case Tab.TraceCodeRule:
                 SyncTraceCodeRule();
+                break;
+            case Tab.BarcodeGen:
+                SyncBarcodeGen();
                 break;
             case Tab.Updates:
                 SyncUpdateOptions();
@@ -317,6 +323,11 @@ public partial class Settings
             nextMask |= 1 << (int)Tab.TraceCodeRule;
         }
 
+        if (IsBarcodeGenDirty())
+        {
+            nextMask |= 1 << (int)Tab.BarcodeGen;
+        }
+
         if (IsUpdateDraftDirty())
         {
             nextMask |= 1 << (int)Tab.Updates;
@@ -367,6 +378,17 @@ public partial class Settings
         var rule = _traceCodeRule.Current;
         return TraceCodeRequiredLength != rule.RequiredLength
                || !string.Equals(TraceCodePattern, rule.Pattern, StringComparison.Ordinal);
+    }
+
+    private bool IsBarcodeGenDirty()
+    {
+        var saved = BarcodeGenSettingsService.Normalize(_barcodeGenSettings.Current);
+        var draft = BuildBarcodeGenDraft();
+        return saved.ExcludeRecentDays != draft.ExcludeRecentDays
+               || saved.Image.WidthPx != draft.Image.WidthPx
+               || saved.Image.QuietZoneModules != draft.Image.QuietZoneModules
+               || saved.Image.Unit != draft.Image.Unit
+               || saved.Export.FileNamePrefix != draft.Export.FileNamePrefix;
     }
 
     private bool IsUpdateDraftDirty()

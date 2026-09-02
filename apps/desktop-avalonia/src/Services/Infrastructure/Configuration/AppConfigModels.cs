@@ -13,6 +13,7 @@ public sealed class AppConfigRoot
     public int SchemaVersion { get; set; } = 2;
     public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
+    public BarcodeGenOptions BarcodeGen { get; set; } = new();
     public AgentsOptions Agents { get; set; } = new();
     public PacApiOptions PacApi { get; set; } = new();
     public MsfxApiOptions MsfxApi { get; set; } = new();
