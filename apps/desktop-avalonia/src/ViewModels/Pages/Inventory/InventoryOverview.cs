@@ -63,9 +63,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
     [ObservableProperty] private int _modeIndex;
     [ObservableProperty] private string? _keyword;
-    [ObservableProperty] private int _pageIndex = 1;
     [ObservableProperty] private int _pageSize = 50;
-    [ObservableProperty] private int _totalCount;
     [ObservableProperty] private bool _isDetailBusy;
     [ObservableProperty] private bool _isAggBusy;
     [ObservableProperty] private bool _isLowBusy;
@@ -100,6 +98,9 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     private readonly Dictionary<string, StockRowSelection> _selectedStockRowsByTrace = new(StringComparer.Ordinal);
     private IReadOnlyList<StockRowSelection> _selectedStockRowsSnapshot = Array.Empty<StockRowSelection>();
     private int _lastModeIndex;
+    private readonly bool[] _modeLoaded = new bool[4];
+    private readonly int[] _modePageIndex = [1, 1, 1, 1];
+    private readonly int[] _modeTotalCount = [0, 0, 0, 0];
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
     private bool _flushRefreshAfterStockEdit;
     private CancellationTokenSource? _silentReconcileCts;
@@ -265,23 +266,41 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public string MissingEmptyText => GetSectionEmptyTitle("暂无缺失药品");
     public string MissingEmptyHint => GetSectionEmptyHint("当前筛选条件下没有缺失药品");
 
-    public bool IsStockEmpty => ShowSectionEmpty(StockRows.Count == 0);
-    public bool IsAggEmpty => ShowSectionEmpty(DrugSpecRows.Count == 0);
-    public bool IsLowEmpty => ShowSectionEmpty(LowStockRows.Count == 0);
-    public bool IsMissingEmpty => ShowSectionEmpty(MissingStockRows.Count == 0);
+    public bool IsStockEmpty => ShowSectionEmpty(StockRows.Count == 0) && _modeLoaded[0];
+    public bool IsAggEmpty => ShowSectionEmpty(DrugSpecRows.Count == 0) && _modeLoaded[1];
+    public bool IsLowEmpty => ShowSectionEmpty(LowStockRows.Count == 0) && _modeLoaded[2];
+    public bool IsMissingEmpty => ShowSectionEmpty(MissingStockRows.Count == 0) && _modeLoaded[3];
     public bool IsDetailSectionPending =>
-        IsSectionPending || IsDetailBusy || (IsDetailMode && IsMountPending(IsDetailGridMounted));
-
+        IsSectionPending
+        || IsDetailBusy
+        || (IsDetailMode && !_modeLoaded[0])
+        || (IsDetailMode && StockRows.Count > 0 && !IsDetailGridMounted);
     public bool IsAggSectionPending =>
-        IsSectionPending || IsAggBusy || (IsAggMode && IsMountPending(IsAggGridMounted));
-
+        IsSectionPending
+        || IsAggBusy
+        || (IsAggMode && !_modeLoaded[1])
+        || (IsAggMode && DrugSpecRows.Count > 0 && !IsAggGridMounted);
     public bool IsLowSectionPending =>
-        IsSectionPending || IsLowBusy || (IsLowMode && IsMountPending(IsLowGridMounted));
-
+        IsSectionPending
+        || IsLowBusy
+        || (IsLowMode && !_modeLoaded[2])
+        || (IsLowMode && LowStockRows.Count > 0 && !IsLowGridMounted);
     public bool IsMissingSectionPending =>
-        IsSectionPending || IsMissingBusy || (IsMissingMode && IsMountPending(IsMissingGridMounted));
+        IsSectionPending
+        || IsMissingBusy
+        || (IsMissingMode && !_modeLoaded[3])
+        || (IsMissingMode && MissingStockRows.Count > 0 && !IsMissingGridMounted);
     public bool IsUiBusy => IsBusy || IsPanelBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
+
+    public int PageIndex
+    {
+        get => _modePageIndex[ModeIndex];
+        set => SetModePageIndex(ModeIndex, value);
+    }
+
+    public int TotalCount => _modeTotalCount[ModeIndex];
+
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
     public bool HasNextPage => IsPagedMode && PageIndex < TotalPages;
@@ -610,7 +629,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     }
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
-        => ReloadBodyAsync(ct);
+        => ReloadBodyAsync(ModeIndex, ct);
 
     public override Task OnPageDeactivatedAsync(CancellationToken ct = default)
     {
@@ -665,10 +684,11 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         var mode = ModeIndex;
         return RunLocalReloadAsync(
             setBusy: v => SetModeBusy(mode, v),
-            action: ct => ReloadBodyAsync(ct),
+            action: ct => ReloadBodyAsync(mode, ct),
             onFinished: () =>
             {
-                SetModeBusy(ModeIndex, false);
+                SetModeBusy(mode, false);
+                NotifySectionPendingChanged();
                 RefreshPageCommands();
             });
     }
@@ -685,40 +705,46 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
         BeginStockReload();
 
+        var mode = ModeIndex;
         return RunLocalReloadAsync(
             setBusy: _ => { },
-            action: ct => ReloadBodyAsync(ct),
-            onFinished: RefreshPageCommands);
+            action: ct => ReloadBodyAsync(mode, ct),
+            onFinished: () =>
+            {
+                NotifySectionPendingChanged();
+                RefreshPageCommands();
+            });
     }
 
-    private async Task ReloadBodyAsync(CancellationToken ct)
+    private async Task ReloadBodyAsync(int mode, CancellationToken ct)
     {
         var kw = NormalizeInput(Keyword);
+        var pageIndex = _modePageIndex[mode];
 
-        switch (ModeIndex)
+        switch (mode)
         {
             case 0:
-                await ReloadDetailModeAsync(kw, ct);
+                await ReloadDetailModeAsync(kw, pageIndex, ct);
                 return;
             case 1:
-                await ReloadAggModeAsync(kw, ct);
+                await ReloadAggModeAsync(kw, pageIndex, ct);
                 return;
             case 2:
-                await ReloadLowModeAsync(kw, ct);
+                await ReloadLowModeAsync(kw, pageIndex, ct);
                 return;
             default:
-                await ReloadMissingModeAsync(kw, ct);
+                await ReloadMissingModeAsync(kw, pageIndex, ct);
                 return;
         }
     }
 
-    private async Task ReloadDetailModeAsync(string? keyword, CancellationToken ct)
+    private async Task ReloadDetailModeAsync(string? keyword, int pageIndex, CancellationToken ct)
     {
         var page = await _inventory
-            .GetStockPageAsync(keyword, PageIndex, PageSize, ct)
+            .GetStockPageAsync(keyword, pageIndex, PageSize, ct)
             .ConfigureAwait(false);
 
-        var start = ((PageIndex - 1) * PageSize) + 1;
+        var start = ((pageIndex - 1) * PageSize) + 1;
         var items = BuildStockRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
@@ -735,64 +761,208 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
                 ApplyStockRowsInPlace(items);
             }
 
-            TotalCount = page.TotalCount;
-            OnPropertyChanged(nameof(IsStockEmpty));
+            SetModeTotalCount(0, page.TotalCount);
+            MarkModeLoaded(0);
         });
     }
 
-    private async Task ReloadAggModeAsync(string? keyword, CancellationToken ct)
+    private async Task ReloadAggModeAsync(string? keyword, int pageIndex, CancellationToken ct)
     {
         var page = await _inventory
-            .GetDrugSpecAggPageAsync(keyword, PageIndex, PageSize, ct)
+            .GetDrugSpecAggPageAsync(keyword, pageIndex, PageSize, ct)
             .ConfigureAwait(false);
 
-        var start = ((PageIndex - 1) * PageSize) + 1;
+        var start = ((pageIndex - 1) * PageSize) + 1;
         var items = BuildDrugSpecAggRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
         {
-            DrugSpecRows.ReplaceAll(items);
-            TotalCount = page.TotalCount;
-            OnPropertyChanged(nameof(IsAggEmpty));
+            ApplyDrugSpecRowsInPlace(DrugSpecRows, items);
+            SetModeTotalCount(1, page.TotalCount);
+            MarkModeLoaded(1);
         });
     }
 
     private async Task ReloadLowModeAsync(
         string? keyword,
+        int pageIndex,
         CancellationToken ct)
     {
         var page = await _inventory
-            .GetLowStockPageAsync(keyword, PageIndex, PageSize, ct)
+            .GetLowStockPageAsync(keyword, pageIndex, PageSize, ct)
             .ConfigureAwait(false);
 
-        var start = ((PageIndex - 1) * PageSize) + 1;
+        var start = ((pageIndex - 1) * PageSize) + 1;
         var items = BuildLowStockRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
         {
-            LowStockRows.ReplaceAll(items);
-            TotalCount = page.TotalCount;
-            OnPropertyChanged(nameof(IsLowEmpty));
+            ApplyLowStockRowsInPlace(LowStockRows, items);
+            SetModeTotalCount(2, page.TotalCount);
+            MarkModeLoaded(2);
         });
     }
 
     private async Task ReloadMissingModeAsync(
         string? keyword,
+        int pageIndex,
         CancellationToken ct)
     {
         var page = await _inventory
-            .GetMissingInventoryPageAsync(keyword, PageIndex, PageSize, ct)
+            .GetMissingInventoryPageAsync(keyword, pageIndex, PageSize, ct)
             .ConfigureAwait(false);
 
-        var start = ((PageIndex - 1) * PageSize) + 1;
+        var start = ((pageIndex - 1) * PageSize) + 1;
         var items = BuildMissingStockRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
         {
-            MissingStockRows.ReplaceAll(items);
-            TotalCount = page.TotalCount;
-            OnPropertyChanged(nameof(IsMissingEmpty));
+            ApplyMissingStockRowsInPlace(MissingStockRows, items);
+            SetModeTotalCount(3, page.TotalCount);
+            MarkModeLoaded(3);
         });
+    }
+
+    private void MarkModeLoaded(int modeIndex)
+    {
+        if ((uint)modeIndex >= (uint)_modeLoaded.Length)
+        {
+            return;
+        }
+
+        _modeLoaded[modeIndex] = true;
+        OnPropertyChanged(modeIndex switch
+        {
+            0 => nameof(IsStockEmpty),
+            1 => nameof(IsAggEmpty),
+            2 => nameof(IsLowEmpty),
+            _ => nameof(IsMissingEmpty),
+        });
+        NotifySectionPendingChanged();
+    }
+
+    private void SetModePageIndex(int modeIndex, int value)
+    {
+        if ((uint)modeIndex >= (uint)_modePageIndex.Length)
+        {
+            return;
+        }
+
+        var page = Math.Max(1, value);
+        if (_modePageIndex[modeIndex] == page)
+        {
+            return;
+        }
+
+        _modePageIndex[modeIndex] = page;
+        if (ModeIndex == modeIndex)
+        {
+            OnPropertyChanged(nameof(PageIndex));
+            RefreshPagingState();
+            RefreshPageCommands();
+        }
+    }
+
+    private void SetModeTotalCount(int modeIndex, int value)
+    {
+        if ((uint)modeIndex >= (uint)_modeTotalCount.Length)
+        {
+            return;
+        }
+
+        if (_modeTotalCount[modeIndex] == value)
+        {
+            return;
+        }
+
+        _modeTotalCount[modeIndex] = value;
+        if (ModeIndex == modeIndex)
+        {
+            OnPropertyChanged(nameof(TotalCount));
+            RefreshPagingState();
+        }
+    }
+
+    private void NotifyModePagingChanged()
+    {
+        OnPropertyChanged(nameof(PageIndex));
+        OnPropertyChanged(nameof(TotalCount));
+        RefreshPagingState();
+    }
+
+    private void InvalidateAllModesForFilterChange()
+    {
+        Array.Fill(_modeLoaded, false);
+        Array.Fill(_modePageIndex, 1);
+        Array.Fill(_modeTotalCount, 0);
+        ClearAllModeRows();
+        NotifyModePagingChanged();
+        OnPropertyChanged(nameof(IsStockEmpty));
+        OnPropertyChanged(nameof(IsAggEmpty));
+        OnPropertyChanged(nameof(IsLowEmpty));
+        OnPropertyChanged(nameof(IsMissingEmpty));
+        NotifySectionPendingChanged();
+    }
+
+    private void ClearAllModeRows()
+    {
+        ApplyStockRowsInPlace(Array.Empty<StockRowItem>());
+        ApplyDrugSpecRowsInPlace(DrugSpecRows, Array.Empty<DrugSpecAggRowItem>());
+        ApplyLowStockRowsInPlace(LowStockRows, Array.Empty<LowStockRowItem>());
+        ApplyMissingStockRowsInPlace(MissingStockRows, Array.Empty<MissingStockRowItem>());
+    }
+
+    private static void ApplyDrugSpecRowsInPlace(IList<DrugSpecAggRowItem> target, IReadOnlyList<DrugSpecAggRowItem> items)
+        => ApplyKeyedRowsInPlace(
+            target,
+            items,
+            static row => (row.DrugId, row.Spec));
+
+    private static void ApplyLowStockRowsInPlace(IList<LowStockRowItem> target, IReadOnlyList<LowStockRowItem> items)
+        => ApplyKeyedRowsInPlace(
+            target,
+            items,
+            static row => (row.DrugId, row.Spec));
+
+    private static void ApplyMissingStockRowsInPlace(IList<MissingStockRowItem> target, IReadOnlyList<MissingStockRowItem> items)
+        => ApplyKeyedRowsInPlace(
+            target,
+            items,
+            static row => (row.DrugId, row.Spec));
+
+    private static void ApplyKeyedRowsInPlace<T>(
+        IList<T> target,
+        IReadOnlyList<T> items,
+        Func<T, (string DrugId, string Spec)> key)
+    {
+        if (target.Count == items.Count)
+        {
+            var sameLayout = true;
+            for (var i = 0; i < items.Count; i++)
+            {
+                if (key(target[i]) != key(items[i]))
+                {
+                    sameLayout = false;
+                    break;
+                }
+            }
+
+            if (sameLayout)
+            {
+                for (var i = 0; i < items.Count; i++)
+                {
+                    if (!EqualityComparer<T>.Default.Equals(target[i], items[i]))
+                    {
+                        target.RemoveAt(i);
+                        target.Insert(i, items[i]);
+                    }
+                }
+
+                return;
+            }
+        }
+
+        target.ReplaceAll(items);
     }
 
     private static List<StockRowItem> BuildStockRowItems(
