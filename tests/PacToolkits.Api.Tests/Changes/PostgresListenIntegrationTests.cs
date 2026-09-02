@@ -124,6 +124,6 @@ public sealed class PostgresListenIntegrationTests
     private sealed class AlwaysOkApiHealth : IApiHealth
     {
         public Task<ApiHealthSnapshot> CheckAsync(CancellationToken ct = default)
-            => Task.FromResult(new ApiHealthSnapshot(Ok: true, Database: "ok", Schema: "ok", SchemaVersion: "1.2.26"));
+            => Task.FromResult(new ApiHealthSnapshot(Ok: true, Database: "ok", Schema: "ok", SchemaVersion: "1.2.28"));
     }
 }
