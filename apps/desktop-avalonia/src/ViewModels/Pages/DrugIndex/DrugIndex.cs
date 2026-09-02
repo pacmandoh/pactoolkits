@@ -349,7 +349,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     public bool HasActiveKeyword => !string.IsNullOrWhiteSpace(NormalizeInput(_query.Keyword));
 
-    public bool IsListSectionPending => IsSectionPending || IsListBusy || IsMountPending(IsDrugGridMounted);
+    public bool IsListSectionPending =>
+        IsSectionPending || IsListBusy || (Items.Count > 0 && !IsDrugGridMounted);
 
     partial void OnIsListBusyChanged(bool value)
         => OnPropertyChanged(nameof(IsListSectionPending));
@@ -474,6 +475,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         OnPropertyChanged(nameof(ItemsEmptyHint));
         OnPropertyChanged(nameof(ItemCountText));
         OnPropertyChanged(nameof(IsResultTruncated));
+        OnPropertyChanged(nameof(IsListSectionPending));
     }
 
     partial void OnSelectedChanging(DrugRow? value)

@@ -38,7 +38,7 @@
               shad:TextBoxAssist.Clearable="True"
               AcceptsReturn="False"
               Classes="SearchBox Clearable"
-              PlaceholderText="搜索：药品名 / 规格 / 简称 / 前缀 / 摆放位置 / 备注..."
+              PlaceholderText="搜索：药品 / 规格 / 位置 / 备注..."
               Text="{Binding Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
               TextWrapping="NoWrap">
               <TextBox.KeyBindings>
@@ -63,14 +63,10 @@
               EmptyText="{Binding ItemsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsItemsEmpty}">
-              <controls:DeferredGridSlot
-                x:Name="DrugGridSlot"
-                SlotMinHeight="{DynamicResource DgH10Rows}"
-                SlotName="DrugGrid">
+              <controls:DeferredGridSlot x:Name="DrugGridSlot" SlotName="DrugGrid">
                 <controls:DeferredGridSlot.GridTemplate>
                   <DataTemplate x:DataType="vm:DrugIndex">
                     <DataGrid
-                      MinHeight="{StaticResource DgH10Rows}"
                       behaviors:DataGridRowTone.Enabled="True"
                       behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearSearchCommand}"
                       behaviors:DataGridSortReset.FilterActive="{Binding HasActiveKeyword}"
