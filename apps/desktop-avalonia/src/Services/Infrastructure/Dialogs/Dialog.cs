@@ -35,6 +35,7 @@ public interface IDialogService
         Func<string, Task<string?>>? verify = null);
     Task ShowAppInfo(AppInfoArgs model);
     Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
+    Task ShowBarcodePreviewDetail(BarcodePreviewDetailArgs model);
     Task ShowMsfxStateDetail(MsfxStateDetailArgs model);
     Task<MsfxTaskSplitResult> ShowMsfxTaskSplit(MsfxTaskSplitArgs model);
 }
@@ -166,6 +167,26 @@ public sealed class DialogService(
             onSuccess: static _ => true,
             onCancel: static () => false,
             maxWidth: DetailMaxWidth).ConfigureAwait(true);
+    }
+
+    public async Task ShowBarcodePreviewDetail(BarcodePreviewDetailArgs model)
+    {
+        var vm = new BarcodePreviewDetail(dialogManager) { Detail = model };
+        try
+        {
+            await FormDialogSession.ShowAsync(
+                dialogManager,
+                vm,
+                prepare: static viewModel => viewModel.Initialize(),
+                onSuccess: static _ => true,
+                onCancel: static () => false,
+                maxWidth: DetailMaxWidth,
+                dismissible: true).ConfigureAwait(true);
+        }
+        finally
+        {
+            vm.ReleasePreview();
+        }
     }
 
     public async Task ShowMsfxStateDetail(MsfxStateDetailArgs model)

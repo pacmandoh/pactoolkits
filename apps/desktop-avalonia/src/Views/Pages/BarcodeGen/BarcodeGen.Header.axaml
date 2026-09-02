@@ -1,0 +1,41 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.BarcodeGenHeader"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:BarcodeGen"
+  Classes="PageHeaderContent">
+  <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+    <Rectangle Grid.Column="1" Classes="HeaderDivider" />
+    <StackPanel
+      Grid.Column="2"
+      Classes="HeaderTitleRail"
+      Orientation="Horizontal">
+      <TextBlock Classes="Small Muted" Text="{Binding DisplayName}" />
+      <icons:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
+      <TabControl
+        shad:TabControlBehaviors.UseSlidingPill="True"
+        Classes="ContentHeaderTabs"
+        SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="Database" />
+              <TextBlock Text="从库存取码" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="Keyboard" />
+              <TextBlock Text="手动生成" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+      </TabControl>
+    </StackPanel>
+  </Grid>
+</UserControl>

@@ -5,6 +5,7 @@ using System.Collections.Specialized;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
@@ -63,6 +64,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     private readonly IApiAvailabilityService _apiAvailability;
     private readonly IPacApiContractGate _pacApiContractGate;
     private readonly IChangeWatermarkService _changeWatermark;
+    private readonly ISensitiveUnlockService _unlockService;
     private PacApiOptions _pacApiBaseline = new();
     private readonly HashSet<ClientAliasRow> _trackedAliasRows = new();
     private CancellationTokenSource _pageWorkCts = new();
@@ -190,6 +192,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         IApiAvailabilityService apiAvailability,
         IPacApiContractGate pacApiContractGate,
         IChangeWatermarkService changeWatermark,
+        IBarcodeGenSettingsService barcodeGenSettings,
+        ITraceBarcodeService traceBarcode,
+        ISensitiveUnlockService unlockService,
         IAgentsRuntime agents,
         IAgentsConfigService agentsConfig,
         IModuleSettingsStore moduleSettings)
@@ -213,6 +218,12 @@ public partial class Settings : AppPageBase, ISettingsPage
         _apiAvailability = apiAvailability ?? throw new ArgumentNullException(nameof(apiAvailability));
         _pacApiContractGate = pacApiContractGate ?? throw new ArgumentNullException(nameof(pacApiContractGate));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
+        _barcodeGenSettings = barcodeGenSettings ?? throw new ArgumentNullException(nameof(barcodeGenSettings));
+        _traceBarcode = traceBarcode ?? throw new ArgumentNullException(nameof(traceBarcode));
+        _unlockService = unlockService ?? throw new ArgumentNullException(nameof(unlockService));
+        _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _unlockStatusTimer.Tick += OnUnlockStatusTimerTick;
+        _unlockService.StateChanged += OnUnlockChanged;
         _agents = agents;
         _agentsConfig = agentsConfig;
         _moduleSettings = moduleSettings ?? throw new ArgumentNullException(nameof(moduleSettings));
@@ -223,6 +234,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         IsClientAliasReadOnly = true;
 
         SyncTraceCodeRule();
+        SyncBarcodeGen();
         SyncPacApi();
         SyncPacApiInfo();
         SyncMsfxApi();
@@ -236,7 +248,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         _loggingSettings.Changed += OnLoggingSettingsChanged;
         _alias.Changed += OnClientAliasMapChanged;
         _traceCodeRule.Changed += OnTraceCodeRuleChanged;
+        _barcodeGenSettings.Changed += OnBarcodeGenSettingsChanged;
         _apiAvailability.Changed += OnPacApiAvailabilityChanged;
+        RefreshOpsUnlock();
 
     }
 
@@ -260,6 +274,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     public override Task OnPageActivatedAsync(CancellationToken ct = default)
     {
         SyncPageAvailability();
+        RefreshOpsUnlock();
         _pageWorkCancelled = false;
         ReloadAgentsRuntime();
         RefreshUnsaved();
@@ -620,11 +635,17 @@ public partial class Settings : AppPageBase, ISettingsPage
         {
             _logger.Warn("SettingsVM", "dispose.trace_rule_unsub_fail", "Failed to unsubscribe TraceCodeRule", ex);
         }
+        try { _barcodeGenSettings.Changed -= OnBarcodeGenSettingsChanged; }
+        catch (System.Exception ex)
+        {
+            _logger.Warn("SettingsVM", "dispose.barcode_gen_unsub_fail", "Failed to unsubscribe BarcodeGen settings", ex);
+        }
         try { _apiAvailability.Changed -= OnPacApiAvailabilityChanged; }
         catch (System.Exception ex)
         {
             _logger.Warn("SettingsVM", "dispose.pacapi_availability_unsub_fail", "Failed to unsubscribe PacApi availability", ex);
         }
+        DisposeOpsUnlock();
         ClientAliases.CollectionChanged -= OnClientAliasesChanged;
         DisposeAgents();
         _pageWorkCts.Dispose();

@@ -161,6 +161,7 @@ public partial class MainWindowViewModel
             _uiBehavior.Apply(cfg.UiBehavior ?? new UiBehaviorOptions());
             _updateSettings.Apply(cfg.Update ?? new UpdateOptions());
             _traceCodeRule.Apply(cfg.TraceCodeValidation ?? new TraceCodeValidationOptions());
+            _barcodeGenSettings.Apply(cfg.BarcodeGen ?? new BarcodeGenOptions());
         }
         catch (Exception ex)
         {

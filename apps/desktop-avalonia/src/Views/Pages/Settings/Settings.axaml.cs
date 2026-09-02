@@ -38,7 +38,8 @@ public partial class Settings : UserControl
         ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
         ("TabMsfxPage", "码上放心 API", "Webhook"),
         ("TabAgentsPage", "自动化集成", "AudioWaveform"),
-        ("TabModuleSettingsPage", "模块配置", "SlidersHorizontal")
+        ("TabModuleSettingsPage", "模块配置", "SlidersHorizontal"),
+        ("TabBarcodeGenPage", "条码生成", "QrCode")
     ];
 
     private SettingsViewModel? _vm;

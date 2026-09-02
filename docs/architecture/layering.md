@@ -57,7 +57,7 @@ flowchart TB
 
 ### `packages/application`
 
-- **Abstractions/**、**DTOs/**、**Services/**：按业务域建二级目录（Dashboard、Msfx、ScanCode、Agents 等）；PacAPI 的 HTTP DTO 放在 `DTOs/Api/`
+- **Abstractions/**、**DTOs/**、**Services/**：按业务域建二级目录（Dashboard、Msfx、ScanCode、TraceBarcode、BarcodeGen、Agents 等）；PacAPI 的 HTTP DTO 放在 `DTOs/Api/`
 - **Diagnostics/**、**Serialization/**、**Threading/**、**TextSearch/**：跨域能力，留在顶层
 - 库与 Agents 门禁：`IDbSchemaGate`（API/库 schema）、`IAgentsAdmitService`（模块 `contractVersion` 区间）、`IAgentsBundleService`（Agents 与 Desktop 版本配套）
 - 注册入口：`AddPacToolkitsApplication()`（`Services/ServiceCollectionExtensions.cs`）
@@ -68,7 +68,7 @@ flowchart TB
 ### `packages/infrastructure`
 
 - **Database/**：按 Connections、Configuration、Schema、ChangeFeed、Sql 等分子目录；含 `PgDb`、连接配置、DI 扩展
-- **Repositories/**：按业务域分子目录（Dashboard、Msfx、ScanCode 等）
+- **Repositories/**：按业务域分子目录（Dashboard、Msfx、ScanCode、TraceBarcode 等）
 - 注册入口：`AddPacToolkitsInfrastructure()`
 - public namespace 为 `.Infrastructure.Database`、`.Repositories`
 - 引用 Npgsql；SQL 集中在此层

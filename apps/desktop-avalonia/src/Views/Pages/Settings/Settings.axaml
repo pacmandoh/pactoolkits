@@ -460,6 +460,160 @@
         </ScrollViewer>
       </Grid>
 
+      <!--  条码生成  -->
+      <Grid
+        x:Name="TabBarcodeGenPage"
+        Classes="TabPage"
+        IsVisible="False">
+        <ScrollViewer>
+          <StackPanel>
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="条码生成" />
+            </Border>
+
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel Classes="H2Title">
+                  <controls:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
+                  <TextBlock Classes="Large H2Text" Text="输出选项" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="H2Actions">
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveBarcodeGenCommand}"
+                    Content="保存设置" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="排除近期（天）" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="从库存取码时跳过该天数内已有预览或导出审计记录的追溯码" />
+                </StackPanel>
+                <NumericUpDown
+                  Grid.Column="1"
+                  Maximum="365"
+                  Minimum="0"
+                  Value="{Binding BarcodeExcludeRecentDays}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="标签单位" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="显示在条码图片顶部，留空不显示" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  PlaceholderText="例如：XXXXX"
+                  Text="{Binding BarcodeLabelUnit}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="图片宽度（px）" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="生成条码 PNG 的画布宽度" />
+                </StackPanel>
+                <NumericUpDown
+                  Grid.Column="1"
+                  Maximum="2000"
+                  Minimum="200"
+                  Value="{Binding BarcodeWidthPx}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="两侧留白（module）" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="条码两侧留白，按 Code 128 module 计" />
+                </StackPanel>
+                <NumericUpDown
+                  Grid.Column="1"
+                  Maximum="30"
+                  Minimum="0"
+                  Value="{Binding BarcodeQuietZoneModules}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="导出文件名前缀" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="导出 PNG 文件名前缀，默认 PacToolkits" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  PlaceholderText="PacToolkits"
+                  Text="{Binding BarcodeFileNamePrefix}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <StackPanel Classes="H2Title">
+                <controls:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H2Hash"
+                  Kind="Hash" />
+                <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="Large H2Text"
+                  Text="审计记录" />
+                <controls:StatusPill
+                  Classes="ToneWarning15"
+                  Icon="History"
+                  Text="高级操作" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="清空审计记录" />
+                  <TextBlock
+                    Classes="Caption Muted FieldDesc"
+                    Text="删除全部条码预览与导出审计记录；清空后「排除近期」将重新计算"
+                    TextWrapping="Wrap" />
+                </StackPanel>
+                <Button
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="Destructive"
+                  Command="{Binding ClearBarcodeAuditLogCommand}"
+                  Content="清空记录"
+                  IsEnabled="{Binding CanPage}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+
       <!--  UI Behavior  -->
       <Grid
         x:Name="TabUiBehaviorPage"

@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientAliasService, ClientAliasService>();
         services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
         services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
+        services.AddSingleton<ITraceBarcodeService, TraceBarcodeService>();
         services.AddSingleton<SensitiveUnlockSession>();
         return services;
     }

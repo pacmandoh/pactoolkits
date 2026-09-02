@@ -83,6 +83,8 @@ public partial class App : global::Avalonia.Application
         {
             DataContext = Services.GetRequiredService<MainWindowViewModel>()
         };
+        Services.GetRequiredService<IFolderPickerService>()
+            .Bind(() => _mainWindow.StorageProvider);
         _unlockActivity = Services.GetRequiredService<UnlockActivity>();
         _unlockActivity.Attach(_mainWindow);
         _mainWindow.Closing += OnMainWindowClosing;

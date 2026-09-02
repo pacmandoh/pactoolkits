@@ -43,6 +43,7 @@ app.MapDashboard();
 app.MapCatalog();
 app.MapDrugs();
 app.MapTraceCodes();
+app.MapTraceBarcodes();
 app.MapInventory();
 app.MapMsfx();
 app.MapMsfxAutoRun();

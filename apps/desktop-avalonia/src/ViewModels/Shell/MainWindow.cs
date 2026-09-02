@@ -51,6 +51,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         new("手动录入", "Keyboard"),
         new("自动拉取", "Cloud")
     ];
+    private static readonly PageTab[] BarcodeGenTabItems =
+    [
+        new("从库存取码", "Database"),
+        new("手动生成", "Keyboard")
+    ];
     private static readonly PageTab[] MsfxTabItems =
     [
         new("运行中心", "Gauge"),
@@ -76,6 +81,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ILoggingSettingsService _loggingSettings;
     private readonly IUiBehaviorService _uiBehavior;
     private readonly ITraceCodeRuleService _traceCodeRule;
+    private readonly IBarcodeGenSettingsService _barcodeGenSettings;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IAppLogger _logger;
     private readonly PageNavigationService _nav;
@@ -418,6 +424,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private ITopBarActions? ActiveTopBar => ActivePage;
     private Dashboard? _dashboard;
     private ScanCode? _scanCode;
+    private BarcodeGen? _barcodeGen;
     private MsfxLink? _msfx;
 
     public System.Windows.Input.ICommand? TopRefresh => ActiveTopBar?.RefreshCommand;
@@ -500,6 +507,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ILoggingSettingsService loggingSettings,
         IUiBehaviorService uiBehavior,
         ITraceCodeRuleService traceCodeRule,
+        IBarcodeGenSettingsService barcodeGenSettings,
         ISensitiveUnlockService unlockService,
         IAppLogger logger,
         WorkspaceDirtyRefresh dirtyRefresh)
@@ -520,6 +528,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _loggingSettings = loggingSettings ?? throw new ArgumentNullException(nameof(loggingSettings));
         _uiBehavior = uiBehavior ?? throw new ArgumentNullException(nameof(uiBehavior));
         _traceCodeRule = traceCodeRule ?? throw new ArgumentNullException(nameof(traceCodeRule));
+        _barcodeGenSettings = barcodeGenSettings ?? throw new ArgumentNullException(nameof(barcodeGenSettings));
         _unlockService = unlockService ?? throw new ArgumentNullException(nameof(unlockService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _dirtyRefresh = dirtyRefresh ?? throw new ArgumentNullException(nameof(dirtyRefresh));
@@ -653,6 +662,26 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _scanCode = page as ScanCode;
 
         _scanCode?.PropertyChanged += OnScanCodePropertyChanged;
+    }
+
+    private void WireBarcodeGen(AppPageBase? page)
+    {
+        _barcodeGen?.PropertyChanged -= OnBarcodeGenPropertyChanged;
+        _barcodeGen = page as BarcodeGen;
+        _barcodeGen?.PropertyChanged += OnBarcodeGenPropertyChanged;
+    }
+
+    private void OnBarcodeGenPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(BarcodeGen.SelectedTabIndex))
+        {
+            if (ReferenceEquals(ActivePage, _barcodeGen))
+            {
+                TrackLocation(_barcodeGen);
+            }
+
+            RaiseBreadcrumbBindings();
+        }
     }
 
     private void WireMsfx(AppPageBase? page)
@@ -856,6 +885,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         WireTopBarCommands(value);
         WireDashboard(value);
         WireScanCode(value);
+        WireBarcodeGen(value);
         WireMsfx(value);
 
         RaiseBreadcrumbBindings();
@@ -984,6 +1014,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             Dashboard dashboard => new NavigationLocation(dashboard, dashboard.SelectedTabIndex),
             ScanCode scanCode => new NavigationLocation(scanCode, scanCode.SelectedTabIndex),
+            BarcodeGen barcodeGen => new NavigationLocation(barcodeGen, barcodeGen.SelectedTabIndex),
             MsfxLink msfx => new NavigationLocation(msfx, msfx.SelectedTabIndex),
             not null => new NavigationLocation(page, null),
             _ => null
@@ -995,6 +1026,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             Dashboard dashboard => dashboard.SelectedTabIndex,
             ScanCode scanCode => scanCode.SelectedTabIndex,
+            BarcodeGen barcodeGen => barcodeGen.SelectedTabIndex,
             MsfxLink msfx => msfx.SelectedTabIndex,
             _ => -1
         };
@@ -1003,6 +1035,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             Dashboard => DashboardTabItems,
             ScanCode => ScanCodeTabItems,
+            BarcodeGen => BarcodeGenTabItems,
             MsfxLink => MsfxTabItems,
             _ => null
         };
@@ -1049,6 +1082,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 break;
             case ScanCode scanCode:
                 scanCode.SelectedTabIndex = tabIndex;
+                break;
+            case BarcodeGen barcodeGen:
+                barcodeGen.SelectedTabIndex = tabIndex;
                 break;
             case MsfxLink msfx:
                 msfx.SelectedTabIndex = tabIndex;
@@ -1248,6 +1284,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         WireTopBarCommands(null);
         WireDashboard(null);
         WireScanCode(null);
+        WireBarcodeGen(null);
         WireMsfx(null);
 
         if (_configWatcher is not null)

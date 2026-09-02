@@ -13,6 +13,7 @@ public sealed class PageRegistrationTests
         typeof(InventoryOverview),
         typeof(DrugIndex),
         typeof(ScanCode),
+        typeof(BarcodeGen),
         typeof(MsfxLink),
         typeof(Settings),
     ];

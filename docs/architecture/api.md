@@ -28,6 +28,7 @@ POST /v1/trace-codes/*  Bearer write；check-existing / submit
 GET/POST /v1/inventory/*  Bearer read|write；库存分页，以及批量编辑与改派
 GET/POST /v1/msfx/*       Bearer read|write；看板、游标、映射、注入、AutoRun 入库与跑锁（码上放心 HTTP 由 Desktop 直连）
 POST /v1/injector/*       Bearer read|write；贴码事务与仓库任务
+POST /v1/trace-barcodes/* Bearer write；库存取码、预览与导出审计
 ```
 
 - **客户端**：`Auth:Clients` 按 id 配置；JWT `sub` / `client_id` 为稳定 client id（不是数组下标）。ClientId 以 ASCII 字母或数字起头，其后可为字母/数字/`._-`，不得含空白。Desktop 与 Agents 用不同 client：Desktop 存 `PacApi.ApiKey`；Agents 用独立换票客户端（惯例 id `agents`），Desktop 只存 `PacApi.AgentsApiKey`，勿把 Desktop Key 传给 Host
@@ -69,16 +70,25 @@ POST /v1/injector/*       Bearer read|write；贴码事务与仓库任务
 
 数据变更用 `pg_notify('pactoolkits_change', topic)`
 
-Desktop：变更水位用 `ApiChangeWatermark`（SSE 与 watermarks）。Dashboard、药品目录、药品索引、扫码、库存、MSFX 库侧同步分别走 `ApiDashboard`、`ApiLookupCatalog`、`ApiDrugIndex`、`ApiScanCode`、`ApiInventory`、`ApiSync`。AutoRun 入库与跑锁走 `ApiMsfxPull` / `ApiMsfxIngest` 等 HTTP 适配；码上放心 HTTP 由 Desktop `MsfxApiClient` 直连。Shell 可用性走 `IApiAvailabilityService`（探测 `/v1/system/info` 与 `/v1/system/status`）。Settings 站点业务项（MSFX 接入凭据、客户端别名、追溯码规则）与码上放心 HTTP 在 Desktop 本地配置；别名来源走 `GET /v1/catalog/client-ids`
+Desktop：变更水位用 `ApiChangeWatermark`（SSE 与 watermarks）。Dashboard、药品目录、药品索引、扫码、库存、条码生成、MSFX 库侧同步分别走 `ApiDashboard`、`ApiLookupCatalog`、`ApiDrugIndex`、`ApiScanCode`、`ApiInventory`、`ApiTraceBarcode`、`ApiSync`。AutoRun 入库与跑锁走 `ApiMsfxPull` / `ApiMsfxIngest` 等 HTTP 适配；码上放心 HTTP 由 Desktop `MsfxApiClient` 直连。Shell 可用性走 `IApiAvailabilityService`（探测 `/v1/system/info` 与 `/v1/system/status`）。Settings 站点业务项（MSFX 接入凭据、客户端别名、追溯码规则、条码生成选项）与码上放心 HTTP 在 Desktop 本地配置；别名来源走 `GET /v1/catalog/client-ids`
 
 Desktop 侧 `PacApiClient`（`Services/Infrastructure/Api/`）用 `IHttpClientFactory` 注册四类 HttpClient：换票（短超时、无 JWT）、普通 API（短超时、JWT、仅 GET 走 Resilience）、可用性探测（短超时、JWT、无 Resilience）、SSE（长连接与 JWT）。请求带 W3C `traceparent`（客户端 span 名 `pacapi.http`）。401 且 Bearer 对应当前缓存票时清票；GET/HEAD 换票后重放（并发换票进锁复用，不连续请求 `/token`）；写命令不重放。共享 HTTP DTO 在 `packages/application/DTOs/Api/`
 
+## 条码生成（TraceBarcode）
+
+- Desktop「条码生成」页经 `POST /v1/trace-barcodes/pick` 从 `trace_pool` 取码；图片参数与排除天数在 Desktop 本地 `BarcodeGenOptions` 持久化
+- `pick` 要求 `X-Command-Id`；相同命令回放已完成结果，不重复预留追溯码
+- `POST /v1/trace-barcodes/audit` 记录手动预览（`preview`）与导出（`export`）；开启「排除近期」时，成功 `preview` 与 `export` 均不参与后续取码候选
+- `POST /v1/trace-barcodes/audit-log/clear` 清空审计表（`write`）；不影响库存本身
+- 开启「排除近期」时，库存取码在同一事务内锁定 `trace_pool` 候选并写入 `preview` 预留；事务提交后其它客户端不会再次选中这些追溯码
+- 每次导出使用独立审计批次；同一写命令重试复用原 CommandId
+
 命名（同目录 `Services/Infrastructure/Api/`）：
 
-| 前缀      | 职责                                                                               | 例                                                  |
-| --------- | ---------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `PacApi*` | 连 `PacToolkits.Api` 宿主的传输与协议：客户端、选项、异常、JWT/trace、协议门禁、DI | `PacApiClient`、`PacApiOptions`、`PacApiException`  |
-| `Api*`    | 用 `PacApiClient` 实现 Application 抽象的域适配，以及 Shell 可用性探测             | `ApiDashboard`、`ApiSync`、`ApiAvailabilityService` |
+| 前缀      | 职责                                                                               | 例                                                                     |
+| --------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `PacApi*` | 连 `PacToolkits.Api` 宿主的传输与协议：客户端、选项、异常、JWT/trace、协议门禁、DI | `PacApiClient`、`PacApiOptions`、`PacApiException`                     |
+| `Api*`    | 用 `PacApiClient` 实现 Application 抽象的域适配，以及 Shell 可用性探测             | `ApiDashboard`、`ApiTraceBarcode`、`ApiSync`、`ApiAvailabilityService` |
 
 配置字段在 AppConfig 的 `PacApi`（设置页持久化）；DTO 放 `DTOs/Api/`（HTTP 契约，不绑 Desktop 类名前缀）
 
@@ -133,10 +143,10 @@ Pg NOTIFY
 
 ### Desktop 业务数据
 
-- 变更水位、Dashboard、药品目录、药品索引、扫码入库、库存、MSFX 库侧同步（`ApiSync`）与 AutoRun 入库走 PacAPI
+- 变更水位、Dashboard、药品目录、药品索引、扫码入库、库存、条码生成、MSFX 库侧同步（`ApiSync`）与 AutoRun 入库走 PacAPI
 - Dashboard snapshot 一次返回总览各板块与各 Tab 分页；query `refreshClientNames` 控制是否拉客户端名单，省略时为 `true`，Desktop 在名单已缓存且仅筛选变更时发 `false`
 - Shell 连接与刷新门禁跟 `IApiAvailabilityService` / `ConnectionView`
-- Settings 业务配置与码上放心 HTTP 在 Desktop 直连；不走 PacAPI 落库
+- Settings 业务配置（含条码生成选项）与码上放心 HTTP 在 Desktop 直连；不走 PacAPI 落库
 - 页面连接与可用性见 [desktop-state.md](./desktop-state.md)
 
 ### 配置入口

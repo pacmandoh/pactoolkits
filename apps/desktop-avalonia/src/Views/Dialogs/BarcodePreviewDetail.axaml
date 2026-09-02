@@ -1,0 +1,88 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.BarcodePreviewDetailView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:dialogModels="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs"
+  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  x:DataType="dialogs:BarcodePreviewDetail">
+  <StackPanel
+    MinWidth="520"
+    MaxWidth="840"
+    Margin="24"
+    Spacing="16">
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+      <Border
+        Width="40"
+        Height="40"
+        CornerRadius="20">
+        <icons:AppIcon
+          Width="{DynamicResource IconSizeDialog}"
+          Height="{DynamicResource IconSizeDialog}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Kind="QrCode" />
+      </Border>
+      <StackPanel
+        Grid.Column="1"
+        VerticalAlignment="Center"
+        Spacing="2">
+        <TextBlock Classes="h4" Text="{Binding Detail.Header}" />
+        <TextBlock
+          Classes="Caption Muted"
+          FontFamily="{DynamicResource TraceCodeInputFontFamily}"
+          Text="{Binding Detail.SubHeader}"
+          TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+
+    <ScrollViewer
+      MaxHeight="420"
+      HorizontalAlignment="Center"
+      HorizontalScrollBarVisibility="Disabled"
+      VerticalScrollBarVisibility="Auto">
+      <Border HorizontalAlignment="Center" Classes="PreviewTileChrome">
+        <Image
+          MaxWidth="480"
+          HorizontalAlignment="Center"
+          Source="{Binding PreviewImage}"
+          Stretch="Uniform" />
+      </Border>
+    </ScrollViewer>
+
+    <ScrollViewer
+      MaxHeight="220"
+      HorizontalScrollBarVisibility="Disabled"
+      VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Detail.Items}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel
+              ItemSpacing="{DynamicResource SpacingInlineMd}"
+              ItemWidth="280"
+              LineSpacing="{DynamicResource SpacingInlineMd}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="dialogModels:InfoDetailItem">
+            <Border Padding="10,8" CornerRadius="{DynamicResource LgCornerRadius}">
+              <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                <TextBlock Classes="Caption Muted" Text="{Binding Label}" />
+                <TextBlock
+                  Grid.Row="1"
+                  Text="{Binding Value}"
+                  TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <Button
+      Classes="Primary"
+      Command="{Binding CloseCommand}"
+      Content="关闭"
+      HotKey="Escape" />
+  </StackPanel>
+</UserControl>
