@@ -1444,7 +1444,15 @@ public sealed partial class InventoryOverview : AppPageBase
 
     partial void OnModeIndexChanged(int value)
     {
-        if (value != _lastModeIndex && IsStockEditEnabled)
+        if ((uint)value >= (uint)_modeLoaded.Length)
+        {
+            ModeIndex = Math.Clamp(value, 0, _modeLoaded.Length - 1);
+            return;
+        }
+
+        var previousMode = _lastModeIndex;
+
+        if (value != previousMode && IsStockEditEnabled)
         {
             DiscardStockEdits();
         }
@@ -1457,8 +1465,6 @@ public sealed partial class InventoryOverview : AppPageBase
             PreviewRows.Clear();
             NotifyPreviewStateChanged();
         }
-
-        _lastModeIndex = value;
 
         OnPropertyChanged(nameof(IsDetailMode));
         OnPropertyChanged(nameof(IsAggMode));
@@ -1474,19 +1480,13 @@ public sealed partial class InventoryOverview : AppPageBase
         OnPropertyChanged(nameof(EditStateText));
         OnPropertyChanged(nameof(ShowEditState));
 
-        if (PageIndex != 1)
-            PageIndex = 1;
+        _lastModeIndex = value;
 
-        RefreshPagingState();
+        NotifyModePagingChanged();
         RefreshOpsUnlock();
-        // 不通时勿先亮 Busy：Reload 会跳过/等待，onFinished 可能被后续重载顶掉，Busy 会卡住
-        ObserveDetached(ReloadAsync(), "reload.detached.fail");
-    }
-
-    partial void OnPageIndexChanged(int value)
-    {
-        RefreshPagingState();
-        RefreshPageCommands();
+        NotifySectionPendingChanged();
+        var reload = _modeLoaded[value] ? ReloadQuietAsync() : ReloadAsync();
+        ObserveDetached(reload, "reload.detached.fail");
     }
 
     partial void OnPageSizeChanged(int value)
@@ -1496,10 +1496,7 @@ public sealed partial class InventoryOverview : AppPageBase
             return;
         }
 
-        if (PageIndex != 1)
-        {
-            PageIndex = 1;
-        }
+        InvalidateAllModesForFilterChange();
 
         RefreshPagingState();
         RefreshPageCommands();
@@ -1531,7 +1528,7 @@ public sealed partial class InventoryOverview : AppPageBase
             {
                 _keywordSearchDebouncer.Cancel();
                 DiscardStockEdits();
-                PageIndex = 1;
+                InvalidateAllModesForFilterChange();
                 ObserveDetached(ReloadQuietAsync(), "reload.quiet.detached.fail");
                 return;
             }
@@ -1540,7 +1537,7 @@ public sealed partial class InventoryOverview : AppPageBase
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     DiscardStockEdits();
-                    PageIndex = 1;
+                    InvalidateAllModesForFilterChange();
                     await ReloadQuietAsync().ConfigureAwait(true);
                 }));
             return;
@@ -1552,7 +1549,7 @@ public sealed partial class InventoryOverview : AppPageBase
         {
             _keywordSearchDebouncer.Cancel();
             DiscardStockEdits();
-            PageIndex = 1;
+            InvalidateAllModesForFilterChange();
             ObserveDetached(ReloadAsync(), "reload.detached.fail");
             return;
         }
@@ -1561,14 +1558,9 @@ public sealed partial class InventoryOverview : AppPageBase
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 DiscardStockEdits();
-                PageIndex = 1;
+                InvalidateAllModesForFilterChange();
                 await ReloadAsync().ConfigureAwait(true);
             }));
-    }
-
-    partial void OnTotalCountChanged(int value)
-    {
-        RefreshPagingState();
     }
 
     [RelayCommand]
@@ -1584,7 +1576,7 @@ public sealed partial class InventoryOverview : AppPageBase
         if (UsesKeywordForBatchReassignOnly)
         {
             DiscardStockEdits();
-            PageIndex = 1;
+            InvalidateAllModesForFilterChange();
             await ReloadQuietAsync();
             if (_reassignPreviewLive)
             {
@@ -1596,7 +1588,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
         DiscardStockEdits();
 
-        PageIndex = 1;
+        InvalidateAllModesForFilterChange();
         await ReloadAsync();
     }
 
@@ -1956,7 +1948,7 @@ public sealed partial class InventoryOverview : AppPageBase
                     OnPropertyChanged(nameof(IsStockEmpty));
                 }
 
-                TotalCount = pageResult.TotalCount;
+                SetModeTotalCount(0, pageResult.TotalCount);
             }, DispatcherPriority.Background);
         }
         catch (OperationCanceledException)

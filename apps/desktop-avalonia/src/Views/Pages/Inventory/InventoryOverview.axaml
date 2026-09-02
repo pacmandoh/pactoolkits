@@ -354,7 +354,6 @@
                   <controls:DeferredGridSlot
                     x:Name="StockDetailGridSlot"
                     PagerPageIndex="{Binding PageIndex}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="StockDetailGrid">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:InventoryOverview">
@@ -421,7 +420,6 @@
                   <controls:DeferredGridSlot
                     x:Name="AggGridSlot"
                     PagerPageIndex="{Binding PageIndex}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="AggGrid">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:InventoryOverview">
@@ -490,7 +488,6 @@
                   <controls:DeferredGridSlot
                     x:Name="LowStockGridSlot"
                     PagerPageIndex="{Binding PageIndex}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="LowStockGrid">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:InventoryOverview">
@@ -545,7 +542,6 @@
                   <controls:DeferredGridSlot
                     x:Name="MissingGridSlot"
                     PagerPageIndex="{Binding PageIndex}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="MissingGrid">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:InventoryOverview">
