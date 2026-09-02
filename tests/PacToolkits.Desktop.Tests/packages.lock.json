@@ -553,6 +553,11 @@
         "resolved": "3.0.1",
         "contentHash": "s/s20YTVY9r9TPfTrN5g8zPF1YhwxyqO6PxUkrYTGI2B+OGPe9AdajWZrLhFqXIvqIW23fnUE4+ztrUWNU1+9g=="
       },
+      "Microsoft.NETCore.Platforms": {
+        "type": "Transitive",
+        "resolved": "1.1.0",
+        "contentHash": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A=="
+      },
       "Microsoft.Testing.Extensions.Telemetry": {
         "type": "Transitive",
         "resolved": "1.9.1",
@@ -601,6 +606,14 @@
         "type": "Transitive",
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
+      },
+      "NETStandard.Library": {
+        "type": "Transitive",
+        "resolved": "2.0.0",
+        "contentHash": "7jnbRU+L08FXKMxqUflxEXtVymWvNOrS8yHgu9s6EM8Anr6T/wIX4nZ08j/u3Asz+tCufp3YVwFSEvFTPYmBPA==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "1.1.0"
+        }
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
@@ -775,6 +788,21 @@
           "xunit.v3.runner.common": "[3.2.2]"
         }
       },
+      "ZXing.Net": {
+        "type": "Transitive",
+        "resolved": "0.16.10",
+        "contentHash": "9avtcn21T7Ndcl8PQ1LHR7/wEoCruX1QKKHvO6zBPTsDW9IdvR5vKOmd618AY+DtDWZz8NaFDTkpbZdgaF4l4w=="
+      },
+      "ZXing.Net.Bindings.SkiaSharp": {
+        "type": "Transitive",
+        "resolved": "0.16.10",
+        "contentHash": "jaPmfTsUdqrtkRHQgPRTtT62UFPIZU1yU8J1u0XpzmogoE/rdstWXS47lpnycqEUd+UvWlTLpft64ZLn4x0nCw==",
+        "dependencies": {
+          "NETStandard.Library": "2.0.0",
+          "SkiaSharp": "2.80.2",
+          "ZXing.Net": "0.16.6"
+        }
+      },
       "pactoolkits.agents.contracts": {
         "type": "Project"
       },
@@ -810,7 +838,9 @@
           "PacToolkits.Application": "[1.0.0, )",
           "PacToolkits.Logger": "[1.0.0, )",
           "ShadUI": "[0.2.4, )",
-          "Velopack": "[1.2.0, )"
+          "Velopack": "[1.2.0, )",
+          "ZXing.Net": "[0.16.10, )",
+          "ZXing.Net.Bindings.SkiaSharp": "[0.16.10, )"
         }
       },
       "pactoolkits.infrastructure": {

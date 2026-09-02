@@ -51,6 +51,8 @@
         <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.11" />
         <PackageReference Include="ShadUI" Version="0.2.4" />
+        <PackageReference Include="ZXing.Net" Version="0.16.10" />
+        <PackageReference Include="ZXing.Net.Bindings.SkiaSharp" Version="0.16.10" />
         <PackageReference Include="Velopack" Version="1.2.0" />
     </ItemGroup>
 
