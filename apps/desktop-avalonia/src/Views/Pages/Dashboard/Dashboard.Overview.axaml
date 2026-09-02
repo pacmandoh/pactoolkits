@@ -139,23 +139,24 @@
               EmptyText="{Binding TrendEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsTrendEmpty}">
-              <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
-                <Grid MinHeight="{StaticResource DgH10Rows}">
+              <shad:BusyArea IsBusy="{Binding IsTrendOverviewSectionPending}">
+                <Grid Height="{DynamicResource DashboardOverviewGridHeight}">
                   <controls:DeferredGridSlot
                     x:Name="TrendGridSlot"
                     IsVisible="{Binding !IsTrendChartVisible}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
+                    SlotMinHeight="{DynamicResource DashboardOverviewGridHeight}"
                     SlotName="TrendGridOverview">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:Dashboard">
                         <DataGrid
+                          Height="{DynamicResource DashboardOverviewGridHeight}"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Classes="SectionGrid IndexedGrid FixedColumns"
                           ItemsSource="{Binding DrugTrend}"
                           RowHeight="{StaticResource RowMinHeight}"
-                          SelectedItem="{Binding SelectedTrendItem}"
-                          SelectionMode="Single">
+                          SelectionMode="Single"
+                          VerticalScrollBarVisibility="Disabled">
                           <DataGrid.Columns>
                             <DataGridTemplateColumn Width="0.85*" Header="药品">
                               <DataGridTemplateColumn.CellTemplate>
@@ -195,7 +196,7 @@
                   </controls:DeferredGridSlot>
                   <controls:DeferredChartHost
                     x:Name="TrendChartHost"
-                    MinHeight="{StaticResource DgH10Rows}"
+                    Height="{DynamicResource DashboardOverviewGridHeight}"
                     HorizontalContentAlignment="Stretch"
                     VerticalContentAlignment="Stretch"
                     IsActive="{Binding IsTrendChartVisible}"
@@ -258,23 +259,24 @@
               EmptyText="{Binding RecentTxnsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsTxnOverviewEmpty}">
-              <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
-                <Grid MinHeight="{StaticResource DgH10Rows}">
+              <shad:BusyArea IsBusy="{Binding IsRecentTxnOverviewSectionPending}">
+                <Grid Height="{DynamicResource DashboardOverviewGridHeight}">
                   <controls:DeferredGridSlot
                     x:Name="RecentTxnGridSlot"
                     IsVisible="{Binding !IsTxnChartVisible}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
+                    SlotMinHeight="{DynamicResource DashboardOverviewGridHeight}"
                     SlotName="RecentTxnGridOverview">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:Dashboard">
                         <DataGrid
+                          Height="{DynamicResource DashboardOverviewGridHeight}"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Classes="SectionGrid IndexedGrid FixedColumns"
                           ItemsSource="{Binding RecentTxnsOverview}"
                           RowHeight="{StaticResource RowMinHeight}"
-                          SelectedItem="{Binding SelectedTxn}"
-                          SelectionMode="Single">
+                          SelectionMode="Single"
+                          VerticalScrollBarVisibility="Disabled">
                           <DataGrid.Columns>
                             <DataGridTemplateColumn Width="{StaticResource DgWStatus}" Header="状态">
                               <DataGridTemplateColumn.CellTemplate>
@@ -332,7 +334,7 @@
                   </controls:DeferredGridSlot>
                   <controls:DeferredChartHost
                     x:Name="TxnChartHost"
-                    MinHeight="{StaticResource DgH10Rows}"
+                    Height="{DynamicResource DashboardOverviewGridHeight}"
                     HorizontalContentAlignment="Stretch"
                     VerticalContentAlignment="Stretch"
                     IsActive="{Binding IsTxnChartVisible}"
@@ -386,7 +388,7 @@
               EmptyText="{Binding TopClientsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsClientPanelEmpty}">
-              <shad:BusyArea IsBusy="{Binding IsTxnSectionPending}">
+              <shad:BusyArea IsBusy="{Binding IsTopClientsOverviewSectionPending}">
                 <Grid MinHeight="{DynamicResource OverviewPendingMinHeight}">
                   <controls:DeferredGridSlot
                     x:Name="TopClientsGridSlot"
