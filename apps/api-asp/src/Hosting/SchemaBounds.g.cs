@@ -7,6 +7,6 @@ namespace PacToolkits.Api.Hosting;
 /// </summary>
 internal static class SchemaBoundsManifest
 {
-    public const string MinDbSchema = "1.2.27";
-    public const string MaxDbSchema = "1.2.27";
+    public const string MinDbSchema = "1.2.28";
+    public const string MaxDbSchema = "1.2.28";
 }
