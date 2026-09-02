@@ -49,6 +49,7 @@
             <Grid MinHeight="0">
               <controls:DeferredGridSlot
                 x:Name="TxnDetailGridSlot"
+                IsVisible="{Binding IsTxnPanelDetailMode}"
                 PagerPageIndex="{Binding TxnPageIndex}"
                 SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                 SlotName="TxnDetailGrid">
@@ -60,7 +61,6 @@
                       CanUserResizeColumns="True"
                       Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                       HorizontalScrollBarVisibility="Disabled"
-                      IsVisible="{Binding IsTxnPanelDetailMode}"
                       ItemsSource="{Binding RecentTxns}"
                       RowHeight="{StaticResource RowMinHeight}"
                       SelectedItem="{Binding SelectedTxn}"
@@ -109,6 +109,7 @@
 
               <controls:DeferredGridSlot
                 x:Name="TxnTrendGridSlot"
+                IsVisible="{Binding IsTxnPanelTrendMode}"
                 PagerPageIndex="{Binding TxnTrendPageIndex}"
                 SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                 SlotName="TxnTrendGrid">
@@ -120,7 +121,6 @@
                       CanUserResizeColumns="True"
                       Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                       HorizontalScrollBarVisibility="Disabled"
-                      IsVisible="{Binding IsTxnPanelTrendMode}"
                       ItemsSource="{Binding TxnTrendRows}"
                       RowHeight="{StaticResource RowMinHeight}"
                       SelectedItem="{Binding SelectedTrendItem}"

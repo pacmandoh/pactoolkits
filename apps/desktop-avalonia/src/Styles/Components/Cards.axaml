@@ -160,6 +160,7 @@
 
   <Style Selector="shad|Card.SectionCard.ScrollHostCard /template/ ScrollViewer#SectionBodyScroll">
     <Setter Property="IsVisible" Value="True" />
+    <Setter Property="MinHeight" Value="0" />
   </Style>
 
   <Style Selector="shad|Card.SectionCard Grid.SectionCardFoot">

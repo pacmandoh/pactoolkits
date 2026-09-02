@@ -17,7 +17,7 @@
   <x:Double x:Key="InventoryRowHeight">52</x:Double>
   <x:Double x:Key="ReassignPreviewRowHeight">36</x:Double>
   <x:Double x:Key="ReassignPreviewHeight">200</x:Double>
-  <x:Double x:Key="DgH10Rows">460</x:Double>
+  <x:Double x:Key="DashboardOverviewGridHeight">534</x:Double>
   <x:Double x:Key="PagerEdgeSpacing">4</x:Double>
   <FontFamily x:Key="TraceCodeInputFontFamily">Consolas,Menlo,monospace</FontFamily>
   <x:Double x:Key="OverviewPendingMinHeight">160</x:Double>

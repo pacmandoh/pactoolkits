@@ -46,9 +46,12 @@
                 Text="{Binding EmptyText, RelativeSource={RelativeSource TemplatedParent}}" />
 
               <TextBlock
+                HorizontalAlignment="Center"
                 Classes="Caption Muted"
                 IsVisible="{Binding HasHint, RelativeSource={RelativeSource TemplatedParent}}"
-                Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}" />
+                Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}"
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </Grid>
