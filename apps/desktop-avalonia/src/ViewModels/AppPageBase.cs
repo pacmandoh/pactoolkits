@@ -193,10 +193,6 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     protected bool ShowSectionEmpty(bool isContentEmpty)
         => isContentEmpty && !IsSectionPending;
 
-    /// <summary>首次进入且可以拉取数据时，网格挂载前保持区块 Busy</summary>
-    protected bool IsMountPending(bool mounted)
-        => !mounted && CanPage && !HasLoadedOnce;
-
     protected AppPageBase()
     {
         _refreshCommand = new AsyncRelayCommand(

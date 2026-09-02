@@ -7,18 +7,31 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class DashboardTabPendingTests
 {
     [Fact]
-    public async Task Tab_pending_waits_for_unmounted_grid_overview_does_not()
+    public async Task Pending_tracks_each_deferred_grid_without_cross_tab_blocking()
     {
         var page = new Dashboard(new FakeDashboardService());
         page.TestInjectServices(apiAvailability: AppPageBaseReloadPipelineTests.FakeApiAvailability.Ready());
 
         await page.TestRunReloadCoreAsync();
 
+        Assert.False(page.IsSectionPending);
+        Assert.False(page.IsTrendOverviewSectionPending);
+        Assert.True(page.IsRecentTxnOverviewSectionPending);
+        Assert.True(page.IsTopClientsOverviewSectionPending);
         Assert.False(page.IsTxnSectionPending);
         Assert.False(page.IsEntrySectionPending);
         Assert.True(page.IsTxnTabPending);
         Assert.True(page.IsEntryTabPending);
         Assert.True(page.IsAbnormalSectionPending);
+
+        page.IsTrendOverviewGridMounted = true;
+        Assert.False(page.IsTrendOverviewSectionPending);
+
+        page.IsRecentTxnOverviewGridMounted = true;
+        Assert.False(page.IsRecentTxnOverviewSectionPending);
+
+        page.IsTopClientsOverviewGridMounted = true;
+        Assert.False(page.IsTopClientsOverviewSectionPending);
 
         page.IsTxnDetailGridMounted = true;
         Assert.False(page.IsTxnTabPending);

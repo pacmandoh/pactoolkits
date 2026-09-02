@@ -30,9 +30,9 @@ public partial class DashboardOverview : UserControl
         _gridActivation = new DashboardGridActivation(OpenOverviewItemAsync);
         InitializeComponent();
         ConfigureChartHosts();
-        WireOverviewSlot(TrendGridSlot);
-        WireOverviewSlot(RecentTxnGridSlot);
-        WireOverviewSlot(TopClientsGridSlot);
+        WireOverviewSlot(TrendGridSlot, static vm => vm.IsTrendOverviewGridMounted = true);
+        WireOverviewSlot(RecentTxnGridSlot, static vm => vm.IsRecentTxnOverviewGridMounted = true);
+        WireOverviewSlot(TopClientsGridSlot, static vm => vm.IsTopClientsOverviewGridMounted = true);
         DataContextChanged += OnDataContextChanged;
         _gridMount.StartAfterFirstLayout();
     }
@@ -44,8 +44,18 @@ public partial class DashboardOverview : UserControl
         base.OnDetachedFromVisualTree(e);
     }
 
-    private void WireOverviewSlot(DeferredGridSlot slot)
-        => slot.GridMounted += (_, grid) => _gridActivation.Attach(grid);
+    private void WireOverviewSlot(DeferredGridSlot slot, Action<DashboardViewModel> markMounted)
+    {
+        slot.GridMounted += (_, grid) =>
+        {
+            if (DataContext is DashboardViewModel vm)
+            {
+                markMounted(vm);
+            }
+
+            _gridActivation.Attach(grid);
+        };
+    }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
@@ -68,6 +78,25 @@ public partial class DashboardOverview : UserControl
 
         _vm = vm;
         _vm?.PropertyChanged += OnViewModelPropertyChanged;
+        if (_vm is null)
+        {
+            return;
+        }
+
+        if (TrendGridSlot.IsMounted)
+        {
+            _vm.IsTrendOverviewGridMounted = true;
+        }
+
+        if (RecentTxnGridSlot.IsMounted)
+        {
+            _vm.IsRecentTxnOverviewGridMounted = true;
+        }
+
+        if (TopClientsGridSlot.IsMounted)
+        {
+            _vm.IsTopClientsOverviewGridMounted = true;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

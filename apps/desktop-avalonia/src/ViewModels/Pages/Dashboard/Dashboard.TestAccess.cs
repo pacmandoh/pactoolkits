@@ -104,6 +104,12 @@ public sealed partial class Dashboard
         }
     }
 
+    internal Task TestRefreshDrugCatalogAsync(CancellationToken ct = default)
+        => RefreshDrugCatalogAsync(ct);
+
+    internal Task TestReloadSpecsForDrugAsync(string drug)
+        => ReloadSpecsAsync(drug);
+
     private sealed class NoopLookup : ILookupCatalogService
     {
         public static readonly NoopLookup Instance = new();

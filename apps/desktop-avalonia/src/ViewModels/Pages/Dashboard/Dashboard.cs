@@ -194,13 +194,6 @@ public sealed partial class Dashboard : AppPageBase
                 {
                     SpecOptions.Add(AllSpec);
                 }
-
-                if (DrugCatalogRefresh.IsMissing(list, NormalizeInput(DrugText)))
-                {
-                    DrugText = null;
-                    IsDrugSuggestOpen = false;
-                    ResetSpecToAll();
-                }
             }
         }, DispatcherPriority.Background);
     }
@@ -260,7 +253,7 @@ public sealed partial class Dashboard : AppPageBase
 
                     SelectedSpec = string.IsNullOrWhiteSpace(prevRaw)
                         ? AllSpec
-                        : (SpecOptions.FirstOrDefault(x => x.Raw == prevRaw) ?? AllSpec);
+                        : ResolveSpecOption(prevRaw);
                 }
             }, DispatcherPriority.Background);
         }
@@ -296,6 +289,7 @@ public sealed partial class Dashboard : AppPageBase
     {
         OnPropertyChanged(nameof(TrendViewToggleText));
         OnPropertyChanged(nameof(TrendViewToggleIcon));
+        OnPropertyChanged(nameof(IsTrendOverviewSectionPending));
     }
 
     [ObservableProperty] private bool _isTxnChartVisible;
@@ -307,6 +301,7 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(TxnViewToggleText));
         OnPropertyChanged(nameof(TxnViewToggleIcon));
         OnPropertyChanged(nameof(IsTxnOverviewEmpty));
+        OnPropertyChanged(nameof(IsRecentTxnOverviewSectionPending));
     }
 
     [ObservableProperty] private bool _isClientChartVisible;
@@ -318,6 +313,7 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(ClientViewToggleText));
         OnPropertyChanged(nameof(ClientViewToggleIcon));
         OnPropertyChanged(nameof(IsClientPanelEmpty));
+        OnPropertyChanged(nameof(IsTopClientsOverviewSectionPending));
     }
 
     [ObservableProperty] private bool _isEntryChartVisible;
@@ -366,6 +362,27 @@ public sealed partial class Dashboard : AppPageBase
     [ObservableProperty] private bool _isTxnTrendGridMounted;
     [ObservableProperty] private bool _isEntryGridMounted;
     [ObservableProperty] private bool _isAbnormalGridMounted;
+    [ObservableProperty] private bool _isTrendOverviewGridMounted;
+    [ObservableProperty] private bool _isRecentTxnOverviewGridMounted;
+    [ObservableProperty] private bool _isTopClientsOverviewGridMounted;
+
+    public bool IsTrendOverviewSectionPending =>
+        IsSectionPending
+        || (!HasLoadedOnce && CanPage)
+        || IsTxnBusy
+        || (DrugTrend.Count > 0 && !IsTrendChartVisible && !IsTrendOverviewGridMounted);
+
+    public bool IsRecentTxnOverviewSectionPending =>
+        IsSectionPending
+        || (!HasLoadedOnce && CanPage)
+        || IsTxnBusy
+        || (RecentTxnsOverview.Count > 0 && !IsTxnChartVisible && !IsRecentTxnOverviewGridMounted);
+
+    public bool IsTopClientsOverviewSectionPending =>
+        IsSectionPending
+        || (!HasLoadedOnce && CanPage)
+        || IsTxnBusy
+        || (TopClients.Count > 0 && !IsClientChartVisible && !IsTopClientsOverviewGridMounted);
 
     public bool IsTxnSectionPending => IsSectionPending || IsTxnBusy;
     public bool IsEntrySectionPending => IsSectionPending || IsEntryBusy;
@@ -380,6 +397,9 @@ public sealed partial class Dashboard : AppPageBase
 
     partial void OnIsTxnBusyChanged(bool value)
     {
+        OnPropertyChanged(nameof(IsTrendOverviewSectionPending));
+        OnPropertyChanged(nameof(IsRecentTxnOverviewSectionPending));
+        OnPropertyChanged(nameof(IsTopClientsOverviewSectionPending));
         OnPropertyChanged(nameof(IsTxnSectionPending));
         OnPropertyChanged(nameof(IsTxnTabPending));
     }
@@ -395,6 +415,14 @@ public sealed partial class Dashboard : AppPageBase
     partial void OnIsTxnTrendGridMountedChanged(bool value) => OnPropertyChanged(nameof(IsTxnTabPending));
     partial void OnIsEntryGridMountedChanged(bool value) => OnPropertyChanged(nameof(IsEntryTabPending));
     partial void OnIsAbnormalGridMountedChanged(bool value) => OnPropertyChanged(nameof(IsAbnormalSectionPending));
+    partial void OnIsTrendOverviewGridMountedChanged(bool value)
+        => OnPropertyChanged(nameof(IsTrendOverviewSectionPending));
+
+    partial void OnIsRecentTxnOverviewGridMountedChanged(bool value)
+        => OnPropertyChanged(nameof(IsRecentTxnOverviewSectionPending));
+
+    partial void OnIsTopClientsOverviewGridMountedChanged(bool value)
+        => OnPropertyChanged(nameof(IsTopClientsOverviewSectionPending));
 
     [ObservableProperty] private int _txnPageIndex = 1;
     [ObservableProperty] private int _txnTotalCount;
@@ -513,6 +541,9 @@ public sealed partial class Dashboard : AppPageBase
 
     protected override void OnPageAvailabilityChanged()
     {
+        OnPropertyChanged(nameof(IsTrendOverviewSectionPending));
+        OnPropertyChanged(nameof(IsRecentTxnOverviewSectionPending));
+        OnPropertyChanged(nameof(IsTopClientsOverviewSectionPending));
         OnPropertyChanged(nameof(IsTxnSectionPending));
         OnPropertyChanged(nameof(IsEntrySectionPending));
         OnPropertyChanged(nameof(IsAbnormalSectionPending));
@@ -567,17 +598,17 @@ public sealed partial class Dashboard : AppPageBase
     public string AbnormalEmptyText => GetSectionEmptyTitle("暂无异常队列");
     public string AbnormalEmptyHint => GetSectionEmptyHint("当前筛选条件下没有回滚/异常事务");
 
-    public bool IsTrendEmpty => ShowSectionEmpty(DrugTrend.Count == 0);
+    public bool IsTrendEmpty => ShowSectionEmpty(DrugTrend.Count == 0) && HasLoadedOnce;
     public bool IsTxnTrendEmpty => ShowSectionEmpty(TxnTrendTotalCount == 0);
-    public bool IsTopClientsEmpty => ShowSectionEmpty(TopClients.Count == 0);
+    public bool IsTopClientsEmpty => ShowSectionEmpty(TopClients.Count == 0) && HasLoadedOnce;
     public bool IsClientPanelEmpty => ShowSectionEmpty(
-        IsClientChartVisible ? ChartClients.Count == 0 : TopClients.Count == 0);
+        IsClientChartVisible ? ChartClients.Count == 0 : TopClients.Count == 0) && HasLoadedOnce;
     public bool IsRecentTxnsEmpty => ShowSectionEmpty(TxnTotalCount == 0);
     public bool IsTxnOverviewEmpty => ShowSectionEmpty(
-        IsTxnChartVisible ? ChartTxns.Count == 0 : RecentTxnsOverview.Count == 0);
+        IsTxnChartVisible ? ChartTxns.Count == 0 : RecentTxnsOverview.Count == 0) && HasLoadedOnce;
     public bool IsEntryRecentEmpty => ShowSectionEmpty(EntryTotalCount == 0);
     public bool IsEntryPanelEmpty => ShowSectionEmpty(
-        IsEntryChartVisible ? EntryChartRows.Count == 0 : EntryRecentOverview.Count == 0);
+        IsEntryChartVisible ? EntryChartRows.Count == 0 : EntryRecentOverview.Count == 0) && HasLoadedOnce;
     public bool IsAbnormalEmpty => ShowSectionEmpty(AbnormalTotalCount == 0);
 
     private DispatcherTimer? _debounce;
@@ -1184,6 +1215,9 @@ public sealed partial class Dashboard : AppPageBase
                     ApplyAbnormalQueue(abnormalItems, loaded.Abnormal.TotalCount);
 
                     OnPropertyChanged(nameof(IsTrendEmpty));
+                    OnPropertyChanged(nameof(IsTrendOverviewSectionPending));
+                    OnPropertyChanged(nameof(IsRecentTxnOverviewSectionPending));
+                    OnPropertyChanged(nameof(IsTopClientsOverviewSectionPending));
                     OnPropertyChanged(nameof(IsTopClientsEmpty));
                     OnPropertyChanged(nameof(IsRecentTxnsEmpty));
                     OnPropertyChanged(nameof(IsTxnOverviewEmpty));
@@ -1619,6 +1653,14 @@ public sealed partial class Dashboard : AppPageBase
         {
             using var __ = SuppressReload();
             DrugText = drug;
+            if (string.IsNullOrWhiteSpace(drug))
+            {
+                return;
+            }
+
+            SelectedSpec = string.IsNullOrWhiteSpace(specText)
+                ? AllSpec
+                : ResolveSpecOption(specText);
         });
 
         if (string.IsNullOrWhiteSpace(drug))
@@ -1628,22 +1670,13 @@ public sealed partial class Dashboard : AppPageBase
         else
         {
             await ReloadSpecsAsync(drug);
-
-            if (!string.IsNullOrWhiteSpace(specText))
-            {
-                await RunOnUiAsync(() =>
-                {
-                    using var __ = SuppressReload();
-                    SelectedSpec = ResolveOrAddSpecOption(specText);
-                });
-            }
         }
 
         ClearBrowsingSelections();
         await ReloadNow();
     }
 
-    private OptionItem ResolveOrAddSpecOption(string specText)
+    private OptionItem ResolveSpecOption(string specText)
     {
         var match = SpecOptions.FirstOrDefault(x =>
             string.Equals(x.Raw, specText, StringComparison.OrdinalIgnoreCase));
