@@ -1496,7 +1496,7 @@ public sealed partial class InventoryOverview : AppPageBase
             return;
         }
 
-        InvalidateAllModesForFilterChange();
+        InvalidateModesForFilterChange();
 
         RefreshPagingState();
         RefreshPageCommands();
@@ -1527,18 +1527,14 @@ public sealed partial class InventoryOverview : AppPageBase
             if (string.IsNullOrWhiteSpace(value))
             {
                 _keywordSearchDebouncer.Cancel();
-                DiscardStockEdits();
-                InvalidateAllModesForFilterChange();
-                ObserveDetached(ReloadQuietAsync(), "reload.quiet.detached.fail");
+                ObserveDetached(ReloadForFilterAsync(quiet: true), "reload.quiet.detached.fail");
                 return;
             }
 
             _keywordSearchDebouncer.Schedule(async () =>
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    DiscardStockEdits();
-                    InvalidateAllModesForFilterChange();
-                    await ReloadQuietAsync().ConfigureAwait(true);
+                    await ReloadForFilterAsync(quiet: true).ConfigureAwait(true);
                 }));
             return;
         }
@@ -1548,18 +1544,14 @@ public sealed partial class InventoryOverview : AppPageBase
         if (string.IsNullOrWhiteSpace(value))
         {
             _keywordSearchDebouncer.Cancel();
-            DiscardStockEdits();
-            InvalidateAllModesForFilterChange();
-            ObserveDetached(ReloadAsync(), "reload.detached.fail");
+            ObserveDetached(ReloadForFilterAsync(), "reload.detached.fail");
             return;
         }
 
         _keywordSearchDebouncer.Schedule(async () =>
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                DiscardStockEdits();
-                InvalidateAllModesForFilterChange();
-                await ReloadAsync().ConfigureAwait(true);
+                await ReloadForFilterAsync().ConfigureAwait(true);
             }));
     }
 
@@ -1573,23 +1565,11 @@ public sealed partial class InventoryOverview : AppPageBase
 
         _keywordSearchDebouncer.Cancel();
 
-        if (UsesKeywordForBatchReassignOnly)
+        await ReloadForFilterAsync(quiet: UsesKeywordForBatchReassignOnly);
+        if (UsesKeywordForBatchReassignOnly && _reassignPreviewLive)
         {
-            DiscardStockEdits();
-            InvalidateAllModesForFilterChange();
-            await ReloadQuietAsync();
-            if (_reassignPreviewLive)
-            {
-                await PreviewReassignAsync(showBusy: false);
-            }
-
-            return;
+            await PreviewReassignAsync(showBusy: false);
         }
-
-        DiscardStockEdits();
-
-        InvalidateAllModesForFilterChange();
-        await ReloadAsync();
     }
 
     [RelayCommand]

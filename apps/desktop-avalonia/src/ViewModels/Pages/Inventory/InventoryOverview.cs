@@ -693,7 +693,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
             });
     }
 
-    // 静默重载不显示区块加载状态，避免筛选刷新中断批量改派操作
+    // 静默重载不显示区块 Busy，避免筛选刷新打断批量改派操作
     private Task ReloadQuietAsync(bool preserveEdit = false)
     {
         _flushRefreshAfterStockEdit = false;
@@ -890,12 +890,22 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         RefreshPagingState();
     }
 
-    private void InvalidateAllModesForFilterChange()
+    // keepMode 留下该 mode 已有的行，让静默刷新原地替换，避免筛选时闪一次空态
+    private void InvalidateModesForFilterChange(int? keepMode = null)
     {
-        Array.Fill(_modeLoaded, false);
-        Array.Fill(_modePageIndex, 1);
-        Array.Fill(_modeTotalCount, 0);
-        ClearAllModeRows();
+        for (var i = 0; i < _modeLoaded.Length; i++)
+        {
+            _modePageIndex[i] = 1;
+            if (i == keepMode)
+            {
+                continue;
+            }
+
+            _modeLoaded[i] = false;
+            _modeTotalCount[i] = 0;
+        }
+
+        ClearModeRowsExcept(keepMode);
         NotifyModePagingChanged();
         OnPropertyChanged(nameof(IsStockEmpty));
         OnPropertyChanged(nameof(IsAggEmpty));
@@ -904,12 +914,43 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         NotifySectionPendingChanged();
     }
 
-    private void ClearAllModeRows()
+    private void ClearModeRowsExcept(int? keepMode)
     {
-        ApplyStockRowsInPlace(Array.Empty<StockRowItem>());
-        ApplyDrugSpecRowsInPlace(DrugSpecRows, Array.Empty<DrugSpecAggRowItem>());
-        ApplyLowStockRowsInPlace(LowStockRows, Array.Empty<LowStockRowItem>());
-        ApplyMissingStockRowsInPlace(MissingStockRows, Array.Empty<MissingStockRowItem>());
+        if (keepMode != 0)
+        {
+            ApplyStockRowsInPlace(Array.Empty<StockRowItem>());
+        }
+
+        if (keepMode != 1)
+        {
+            ApplyDrugSpecRowsInPlace(DrugSpecRows, Array.Empty<DrugSpecAggRowItem>());
+        }
+
+        if (keepMode != 2)
+        {
+            ApplyLowStockRowsInPlace(LowStockRows, Array.Empty<LowStockRowItem>());
+        }
+
+        if (keepMode != 3)
+        {
+            ApplyMissingStockRowsInPlace(MissingStockRows, Array.Empty<MissingStockRowItem>());
+        }
+    }
+
+    // 当前 mode 已有数据就静默刷新，避免每次改关键字都闪一次区块 Busy
+    private Task ReloadForFilterAsync(bool quiet = false)
+    {
+        // 先回滚编辑再作废行，否则快照回填落在已清空的集合上
+        DiscardStockEdits();
+
+        if (quiet || _modeLoaded[ModeIndex])
+        {
+            InvalidateModesForFilterChange(_modeLoaded[ModeIndex] ? ModeIndex : null);
+            return ReloadQuietAsync();
+        }
+
+        InvalidateModesForFilterChange();
+        return ReloadAsync();
     }
 
     private static void ApplyDrugSpecRowsInPlace(IList<DrugSpecAggRowItem> target, IReadOnlyList<DrugSpecAggRowItem> items)
