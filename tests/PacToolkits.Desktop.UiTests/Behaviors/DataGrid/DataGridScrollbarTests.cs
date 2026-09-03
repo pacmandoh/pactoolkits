@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -6,6 +7,9 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using PacToolkits.Desktop.Avalonia.Controls;
+using ShadUI;
+using Window = Avalonia.Controls.Window;
 
 namespace PacToolkits.Desktop.UiTests;
 
@@ -83,7 +87,46 @@ public sealed class DataGridScrollbarTests
         window.MouseUp(dragPoint + new Vector(30, -20), MouseButton.Left);
     }
 
-    private static GridMount MountStyled(Control content)
+    [AvaloniaFact]
+    public void Busy_area_stretch_grid_gets_horizontal_bar_on_first_items()
+    {
+        var rows = new ObservableCollection<string>();
+        var grid = new DataGrid
+        {
+            ItemsSource = rows,
+            Columns =
+            {
+                new DataGridTextColumn { Header = "First", Width = new DataGridLength(280) },
+                new DataGridTextColumn { Header = "Second", Width = new DataGridLength(280) },
+                new DataGridTextColumn { Header = "Third", Width = new DataGridLength(280) },
+                new DataGridTextColumn { Header = "Fourth", Width = new DataGridLength(280) },
+            },
+        };
+        grid.Classes.Add("SectionGrid");
+        grid.Classes.Add("IndexedGrid");
+        grid.Classes.Add("StickyIndexDisplayIndex");
+        grid.Classes.Add("MsfxStickyColumns");
+
+        var empty = new EmptyStatePanel { IsEmpty = true, Content = grid };
+        var busy = new BusyArea { Content = empty };
+        var host = new Grid { MinHeight = 0 };
+        host.RowDefinitions.Add(new RowDefinition(GridLength.Star));
+        host.Children.Add(busy);
+
+        using var mount = MountStyled(host, width: 640, height: 360);
+        empty.IsEmpty = false;
+        rows.Add("row");
+        Dispatcher.UIThread.RunJobs();
+        mount.Window.UpdateLayout();
+        Dispatcher.UIThread.RunJobs();
+
+        var scrollBar = grid.GetVisualDescendants()
+            .OfType<ScrollBar>()
+            .Single(control => control.Name == "PART_HorizontalScrollbar");
+        Assert.True(scrollBar.IsVisible && scrollBar.Maximum > 0);
+    }
+
+    private static GridMount MountStyled(Control content, double width = 320, double height = 200)
     {
         var app = global::Avalonia.Application.Current
             ?? throw new InvalidOperationException("Headless Application was not created.");
@@ -103,8 +146,8 @@ public sealed class DataGridScrollbarTests
 
         var window = new Window
         {
-            Width = 320,
-            Height = 200,
+            Width = width,
+            Height = height,
             Content = content,
         };
         var mount = new GridMount(app, window, resources, shadTheme, pacStyles);
