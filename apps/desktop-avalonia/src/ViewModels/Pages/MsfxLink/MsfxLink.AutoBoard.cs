@@ -1623,47 +1623,51 @@ public sealed partial class MsfxLink : AppPageBase
             LogisticsStatus: string.IsNullOrWhiteSpace(x.LogisticsStatus) ? x.Status : x.LogisticsStatus,
             State: ParseUpoutState(x.Status));
 
-    private void ScheduleUpoutFilter()
+    private void ScheduleUpoutQuery()
     {
-        if (_allUpoutRows.Count == 0)
+        if (_suppressUpoutQuery)
         {
             return;
         }
 
-        var hasKeyword = !string.IsNullOrWhiteSpace(UpstreamKeyword);
-        if (!hasKeyword)
+        // 关键字整段拉取代价高，按输入防抖；清空关键字回到服务器分页，立即发
+        if (HasActiveUpstreamSearch)
         {
-            _upoutFilterDebouncer.Cancel();
-            ApplyUpoutFilter();
+            _upoutSearchDebouncer.Schedule(async () =>
+                await Dispatcher.UIThread.InvokeAsync(() => ObserveDetached(
+                    QueryUpoutAsync(resetPage: true),
+                    "msfx.upout.search.detached.fail")));
             return;
         }
 
-        _upoutFilterDebouncer.Schedule(async () =>
-            await Dispatcher.UIThread.InvokeAsync(ApplyUpoutFilter));
+        _upoutSearchDebouncer.Cancel();
+        ObserveDetached(QueryUpoutAsync(resetPage: true), "msfx.upout.query.detached.fail");
     }
 
-    private void ApplyUpoutFilter()
+    // _allUpoutRows 无关键字时是服务器返回的当前页，有关键字时是整段命中集
+    private void ApplyUpoutPage()
     {
-        if (_allUpoutRows.Count == 0)
-        {
-            return;
-        }
+        var hasKeyword = HasActiveUpstreamSearch;
+        var pageSize = GetPageSize();
+        var total = hasKeyword ? _allUpoutRows.Count : _upoutLastServerTotal;
+        var pageRows = hasKeyword
+            ? _allUpoutRows.Skip((UpoutPage - 1) * pageSize).Take(pageSize).ToList()
+            : _allUpoutRows;
 
-        var filtered = _allUpoutRows.Where(MatchUpoutFilter).ToList();
         UpoutRows.Clear();
-        foreach (var row in filtered)
+        foreach (var row in pageRows)
         {
             UpoutRows.Add(row);
         }
 
-        UpoutTotal = _upoutLastServerTotal;
-        UpoutStatus =
-            $"第 {UpoutPage} 页 / 本页 {_allUpoutRows.Count} 条 / 筛选后 {filtered.Count} 条 / 服务器总数 {_upoutLastServerTotal}";
+        UpoutTotal = total;
+        UpoutStatus = hasKeyword
+            ? $"第 {UpoutPage} 页 / 当前页 {pageRows.Count} 条 / 日期范围命中 {total} 条 / 服务器总数 {_upoutLastServerTotal}"
+            : $"第 {UpoutPage} 页 / 当前页 {pageRows.Count} 条 / 服务器总数 {_upoutLastServerTotal}";
     }
 
-    private bool MatchUpoutFilter(MsfxUpoutGridRow row)
+    private static bool MatchUpoutKeyword(MsfxUpoutGridRow row, string? keyword)
     {
-        var keyword = NormalizeText(UpstreamKeyword);
         return string.IsNullOrWhiteSpace(keyword)
                || TextSearchHelper.Matches(keyword, row.BillCode)
                || TextSearchHelper.Matches(keyword, row.DrugName)
@@ -2023,7 +2027,7 @@ public sealed partial class MsfxLink : AppPageBase
         UpoutRows.CollectionChanged -= OnUpoutRowsCollectionChanged;
         SubCodeRows.CollectionChanged -= OnSubCodeRowsCollectionChanged;
         _queueSearchDebouncer.Dispose();
-        _upoutFilterDebouncer.Dispose();
+        _upoutSearchDebouncer.Dispose();
         _upoutDateRangeController.Dispose();
         _autoRunLifetimeCts.Dispose();
         DisposeMappingWorkspace();

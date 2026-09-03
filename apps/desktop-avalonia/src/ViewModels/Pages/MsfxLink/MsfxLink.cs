@@ -345,9 +345,10 @@ public sealed partial class MsfxLink : AppPageBase, IMsfxRefreshPage
     private long? _mapCursorId;
     private string? _lastAutoLogSignature;
     private readonly SearchInputDebouncer _queueSearchDebouncer = new(350);
-    private readonly SearchInputDebouncer _upoutFilterDebouncer = new(300);
+    private readonly SearchInputDebouncer _upoutSearchDebouncer = new(300);
     private readonly RollingDateRangeController _upoutDateRangeController;
     private bool _suppressQueueSearchRefresh;
+    private bool _suppressUpoutQuery;
     private bool _syncingTaskQueuePageRows;
 
     public MsfxLink(
