@@ -22,4 +22,15 @@ public sealed class BusyHostPanelTests
         host.Measure(new Size(120, double.PositiveInfinity));
         Assert.Equal(100, host.DesiredSize.Height);
     }
+
+    [AvaloniaFact]
+    public void Finite_width_constraint_is_reported_instead_of_content_width()
+    {
+        var wide = new Border { Width = 800, Height = 40 };
+        var host = new BusyHostPanel();
+        host.Children.Add(wide);
+
+        host.Measure(new Size(240, 120));
+        Assert.Equal(240, host.DesiredSize.Width);
+    }
 }
