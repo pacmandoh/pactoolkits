@@ -25,6 +25,26 @@ public sealed class PacApiClientTests
     }
 
     [Fact]
+    public void Invalid_loaded_url_keeps_capture_and_reports_invalid_state()
+    {
+        using var client = new PacApiClient(
+            "http://api.example.com",
+            "desk-key",
+            new NullLogger(),
+            "X-Api-Key",
+            new ScriptedHandler(),
+            new ScriptedHandler(),
+            new ScriptedHandler());
+
+        Assert.False(client.IsConfigured);
+        Assert.Equal(PacApiOptionsState.Invalid, client.OptionsState);
+        var captured = client.CaptureOptions();
+        Assert.Equal("http://api.example.com", captured.BaseUrl);
+        Assert.Equal("desk-key", captured.ApiKey);
+        Assert.Contains("HTTPS", client.OptionsError, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task SendAsync_exchanges_token_then_sends_bearer()
     {
         var token = new ScriptedHandler();

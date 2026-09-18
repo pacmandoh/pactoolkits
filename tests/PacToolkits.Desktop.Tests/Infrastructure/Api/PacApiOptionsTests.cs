@@ -105,4 +105,16 @@ public sealed class PacApiOptionsTests
         };
         Assert.False(PacApiOptions.Validate(o).Succeeded);
     }
+
+    [Fact]
+    public void Classify_empty_invalid_and_ready()
+    {
+        Assert.Equal(PacApiOptionsState.Empty, PacApiOptions.Classify(new PacApiOptions()));
+        Assert.Equal(
+            PacApiOptionsState.Invalid,
+            PacApiOptions.Classify(new PacApiOptions { BaseUrl = "http://api.example.com", ApiKey = "k" }));
+        Assert.Equal(
+            PacApiOptionsState.Ready,
+            PacApiOptions.Classify(new PacApiOptions { BaseUrl = "http://127.0.0.1:5080", ApiKey = "k" }));
+    }
 }

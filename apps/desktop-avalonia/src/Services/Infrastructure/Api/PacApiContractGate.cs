@@ -12,7 +12,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 /// <summary>核对 Desktop 清单与 API 的 contractVersion 是否兼容</summary>
 public interface IPacApiContractGate
 {
-    /// <summary>未配置则跳过；已配置则拉 /v1/system/info 对照清单区间</summary>
+    /// <summary>非 Ready 则跳过；Ready 则拉 /v1/system/info 对照清单区间</summary>
     Task EnsureCompatibleAsync(CancellationToken ct = default);
 
     /// <summary>设置保存后作废上次协议检查结果</summary>

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 
-/// <summary>Desktop 访问 PacToolkits.Api 的地址与密钥；设置页写入 AppConfigStore，保存后立刻生效</summary>
+/// <summary>Desktop 访问 PacToolkits.Api 的地址与密钥；设置页写入 AppConfigStore，保存后立刻生效。空配置合法；非法持久化可加载</summary>
 public sealed class PacApiOptions
 {
     public string BaseUrl { get; set; } = string.Empty;
@@ -63,6 +63,30 @@ public sealed class PacApiOptions
         }
 
         return ValidateOptionsResult.Success;
+    }
+
+    /// <summary>空 / 非法 / 可用；非法含只填一侧</summary>
+    public static PacApiOptionsState Classify(PacApiOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (Validate(options).Failed)
+        {
+            return PacApiOptionsState.Invalid;
+        }
+
+        return options.IsConfigured ? PacApiOptionsState.Ready : PacApiOptionsState.Empty;
+    }
+
+    internal static string? DescribeInvalid(PacApiOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var validated = Validate(options);
+        if (!validated.Failed)
+        {
+            return null;
+        }
+
+        return string.Join("；", validated.Failures ?? ["配置无效"]);
     }
 
     private static bool AllowsCleartextHttp(Uri uri)
@@ -140,9 +164,10 @@ public sealed class PacApiOptions
     }
 }
 
-/// <summary>IValidateOptions 适配；空配置合法，故不用 ValidateOnStart</summary>
-internal sealed class PacApiOptionsValidator : IValidateOptions<PacApiOptions>
+/// <summary>持久化 PacAPI 选项分类：空、校验失败、可用</summary>
+public enum PacApiOptionsState
 {
-    public ValidateOptionsResult Validate(string? name, PacApiOptions options)
-        => PacApiOptions.Validate(options);
+    Empty,
+    Invalid,
+    Ready,
 }

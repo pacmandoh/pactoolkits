@@ -86,6 +86,31 @@ public sealed class PacApiFactoryIntegrationTests
         }
     }
 
+    [Fact]
+    public void Invalid_persisted_options_resolve_without_throwing_and_keep_capture_values()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IAppConfigStore>(new StubPacApiConfigStore(
+            new PacApiOptions
+            {
+                BaseUrl = "http://api.example.com",
+                ApiKey = "desk-key",
+                AgentsApiKey = "agents-key",
+            }));
+        services.AddSingleton<IAppLogger, NullLogger>();
+        services.AddPacApiClient();
+
+        using var sp = services.BuildServiceProvider();
+        var api = sp.GetRequiredService<PacApiClient>();
+
+        Assert.False(api.IsConfigured);
+        Assert.Equal(PacApiOptionsState.Invalid, api.OptionsState);
+        var captured = api.CaptureOptions();
+        Assert.Equal("http://api.example.com", captured.BaseUrl);
+        Assert.Equal("desk-key", captured.ApiKey);
+        Assert.Equal("agents-key", captured.AgentsApiKey);
+    }
+
     private sealed class FixedHandler(HttpStatusCode status, string body) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
@@ -134,13 +159,13 @@ public sealed class PacApiFactoryIntegrationTests
             => Task.FromResult(string.Empty);
     }
 
-    private sealed class StubPacApiConfigStore : IAppConfigStore
+    private sealed class StubPacApiConfigStore(PacApiOptions? pacApi = null) : IAppConfigStore
     {
         public string ConfigPath => string.Empty;
 
         public AppConfigRoot Load() => new()
         {
-            PacApi = new PacApiOptions
+            PacApi = pacApi ?? new PacApiOptions
             {
                 BaseUrl = "http://127.0.0.1:9",
                 ApiKey = "test-key",

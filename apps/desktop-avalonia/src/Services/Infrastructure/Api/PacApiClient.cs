@@ -142,31 +142,48 @@ public sealed class PacApiClient : IDisposable
         };
     }
 
-    public bool IsConfigured
+    /// <summary>Ready 才视为已配置；非法原值仍可 Capture</summary>
+    public bool IsConfigured => OptionsState == PacApiOptionsState.Ready;
+
+    public PacApiOptionsState OptionsState
     {
         get
         {
             lock (_configGate)
             {
-                return !string.IsNullOrWhiteSpace(_baseUrl) && !string.IsNullOrWhiteSpace(_apiKey);
+                return PacApiOptions.Classify(SnapshotOptions());
             }
         }
     }
 
-    /// <summary>当前生效的地址与密钥（含启动注入与设置页保存后的值）</summary>
+    public string? OptionsError
+    {
+        get
+        {
+            lock (_configGate)
+            {
+                return PacApiOptions.DescribeInvalid(SnapshotOptions());
+            }
+        }
+    }
+
+    /// <summary>当前地址与密钥；非法持久化原值一并带回</summary>
     public PacApiOptions CaptureOptions()
     {
         lock (_configGate)
         {
-            return new PacApiOptions
-            {
-                BaseUrl = _baseUrl,
-                ApiKey = _apiKey,
-                AgentsApiKey = _agentsApiKey,
-                HeaderName = _headerName,
-            };
+            return SnapshotOptions();
         }
     }
+
+    private PacApiOptions SnapshotOptions()
+        => new()
+        {
+            BaseUrl = _baseUrl,
+            ApiKey = _apiKey,
+            AgentsApiKey = _agentsApiKey,
+            HeaderName = _headerName,
+        };
 
     /// <summary>配置代数；设置保存后递增，供可用性探测作废「密钥失败退避」</summary>
     public int ConfigEpoch => Volatile.Read(ref _configEpoch);

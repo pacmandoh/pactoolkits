@@ -34,8 +34,12 @@ public interface IApiAvailabilityService : IDisposable
 {
     ApiAvailabilitySnapshot Current { get; }
 
-    /// <summary>本机是否已配置 BaseUrl+ApiKey；未配置时不探测、不谈 API 状态</summary>
+    /// <summary>Ready 才视为已配置；未就绪时不探测</summary>
     bool IsConfigured { get; }
+
+    PacApiOptionsState OptionsState { get; }
+
+    string? OptionsError { get; }
 
     /// <summary>最近一次 info 的 apiVersion；Ready 稳态只探 status 时沿用</summary>
     string? LastApiVersion { get; }
@@ -65,7 +69,7 @@ public interface IApiAvailabilityService : IDisposable
 /// <summary>
 /// 聚合 PacAPI 系统端点为 Shell 可用性快照
 ///
-/// 未配置时不发 HTTP、不更新探测态；协议区间与 PacApiContractGate 同口径
+/// 非 Ready 时不发 HTTP、不更新探测态；协议区间与 PacApiContractGate 同口径
 /// </summary>
 public sealed class ApiAvailabilityService : IApiAvailabilityService
 {
@@ -116,6 +120,10 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
     }
 
     public bool IsConfigured => _api.IsConfigured;
+
+    public PacApiOptionsState OptionsState => _api.OptionsState;
+
+    public string? OptionsError => _api.OptionsError;
 
     public string? LastApiVersion { get; private set; }
 
@@ -330,7 +338,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         CancellationToken ct)
     {
         var at = _time.GetUtcNow();
-        // 调用方已保证 IsConfigured；未配置不写成探测态
+        // 调用方已保证 Ready；非 Ready 不写成探测态
 
         try
         {
@@ -678,7 +686,7 @@ public sealed class ApiAvailabilityService : IApiAvailabilityService
         return status;
     }
 
-    /// <summary>未配置：回 idle，勿留下「服务不可用」假象；探测枚举对 UI 无意义</summary>
+    /// <summary>非 Ready：回 idle，勿留下「服务不可用」假象；探测枚举对 UI 无意义</summary>
     private void PublishIdle()
         => Publish(new ApiAvailabilitySnapshot(
             ApiAvailabilityState.Connecting,

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
-using Microsoft.Extensions.Options;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 using Polly;
 
@@ -16,13 +15,14 @@ internal static class PacApiRegistration
 {
     public static IServiceCollection AddPacApiClient(this IServiceCollection services)
     {
-        services.AddSingleton<IValidateOptions<PacApiOptions>, PacApiOptionsValidator>();
+        // 绑定只加载原值；校验在 Save/Apply 与 Classify
         services.AddOptions<PacApiOptions>()
             .Configure<IAppConfigStore>((opts, store) =>
             {
                 var saved = store.Load().PacApi ?? new PacApiOptions();
                 opts.BaseUrl = saved.BaseUrl ?? string.Empty;
                 opts.ApiKey = saved.ApiKey ?? string.Empty;
+                opts.AgentsApiKey = saved.AgentsApiKey ?? string.Empty;
                 opts.HeaderName = string.IsNullOrWhiteSpace(saved.HeaderName)
                     ? "X-Api-Key"
                     : saved.HeaderName;
