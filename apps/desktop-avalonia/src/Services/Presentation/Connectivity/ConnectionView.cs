@@ -3,14 +3,15 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 
 /// <summary>
-/// 用户可见连接：Unknown / NotConfigured / Up / Down / Blocked
+/// 用户可见连接：Unknown / NotConfigured / Invalid / Up / Down / Blocked
 ///
-/// 未配置与已配置断开分开；探测枚举只进日志
+/// 未配置与配置无效、已配置断开分开；探测枚举只进日志
 /// </summary>
 public enum ConnectionKind
 {
     Unknown,
     NotConfigured,
+    Invalid,
     Up,
     Down,
     Blocked,
@@ -19,12 +20,25 @@ public enum ConnectionKind
 /// <summary>本机配置与 PacAPI 探测快照映射为用户可见连接</summary>
 public sealed record ConnectionView(ConnectionKind Kind, string Title, string Message)
 {
-    /// <summary>未配置单独一种；已配置 Down/Blocked 用探测 Detail</summary>
-    public static ConnectionView From(ApiAvailabilitySnapshot snap, bool isConfigured = true)
+    /// <summary>Empty/Invalid 不看探测；Ready 才映射快照</summary>
+    public static ConnectionView From(
+        ApiAvailabilitySnapshot snap,
+        PacApiOptionsState optionsState = PacApiOptionsState.Ready,
+        string? optionsError = null)
     {
-        if (!isConfigured)
+        if (optionsState == PacApiOptionsState.Empty)
         {
             return NotConfiguredView;
+        }
+
+        if (optionsState == PacApiOptionsState.Invalid)
+        {
+            return new(
+                ConnectionKind.Invalid,
+                "PacAPI 配置无效",
+                string.IsNullOrWhiteSpace(optionsError)
+                    ? "请修正服务地址与密钥"
+                    : optionsError);
         }
 
         // 首检未完成：不进横幅
@@ -57,11 +71,15 @@ public sealed record ConnectionView(ConnectionKind Kind, string Title, string Me
         };
     }
 
-    public static bool IsReady(ApiAvailabilitySnapshot snap, bool isConfigured = true)
-        => From(snap, isConfigured).Kind == ConnectionKind.Up;
+    public static bool IsReady(
+        ApiAvailabilitySnapshot snap,
+        PacApiOptionsState optionsState = PacApiOptionsState.Ready)
+        => From(snap, optionsState).Kind == ConnectionKind.Up;
 
-    public static bool IsBlocked(ApiAvailabilitySnapshot snap, bool isConfigured = true)
-        => From(snap, isConfigured).Kind == ConnectionKind.Blocked;
+    public static bool IsBlocked(
+        ApiAvailabilitySnapshot snap,
+        PacApiOptionsState optionsState = PacApiOptionsState.Ready)
+        => From(snap, optionsState).Kind == ConnectionKind.Blocked;
 
     private static readonly ConnectionView NotConfiguredView = new(
         ConnectionKind.NotConfigured,

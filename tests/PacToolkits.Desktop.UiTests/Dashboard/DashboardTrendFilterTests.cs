@@ -136,6 +136,11 @@ public sealed class DashboardTrendFilterTests
             true);
 
         public bool IsConfigured => true;
+
+        public PacApiOptionsState OptionsState => PacApiOptionsState.Ready;
+
+        public string? OptionsError => null;
+
         public string? LastApiVersion => null;
         public string? LastContractVersion => null;
         public string? LastDatabase => null;

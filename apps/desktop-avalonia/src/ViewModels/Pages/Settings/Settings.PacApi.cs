@@ -25,9 +25,9 @@ public partial class Settings
 
     private void SyncPacApiInfo()
     {
-        var configured = _apiAvailability.IsConfigured;
+        var optionsState = _apiAvailability.OptionsState;
         var snap = _apiAvailability.Current;
-        if (!configured)
+        if (optionsState == PacApiOptionsState.Empty)
         {
             PacApiInfoLabel = "未配置";
             IsPacApiInfoUnknown = true;
@@ -41,6 +41,25 @@ public partial class Settings
             PacApiSchemaVersion = "--";
             PacApiCheckedAt = "--";
             PacApiDetail = "--";
+            return;
+        }
+
+        if (optionsState == PacApiOptionsState.Invalid)
+        {
+            PacApiInfoLabel = "配置无效";
+            IsPacApiInfoUnknown = false;
+            IsPacApiInfoReady = false;
+            IsPacApiInfoFail = true;
+            PacApiVersion = "--";
+            PacApiContract = "--";
+            PacApiContractRange = FormatContractRange();
+            PacApiDatabase = "--";
+            PacApiSchema = "--";
+            PacApiSchemaVersion = "--";
+            PacApiCheckedAt = "--";
+            PacApiDetail = string.IsNullOrWhiteSpace(_apiAvailability.OptionsError)
+                ? "--"
+                : _apiAvailability.OptionsError;
             return;
         }
 
@@ -258,7 +277,10 @@ public partial class Settings
 
         try
         {
-            var beforeKind = ConnectionView.From(_apiAvailability.Current, _apiAvailability.IsConfigured).Kind;
+            var beforeKind = ConnectionView.From(
+                _apiAvailability.Current,
+                _apiAvailability.OptionsState,
+                _apiAvailability.OptionsError).Kind;
 
             await _appConfigStore.UpdateAsync(cfg =>
             {
@@ -284,7 +306,7 @@ public partial class Settings
             }
 
             var snap = _apiAvailability.Current;
-            var ready = ConnectionView.IsReady(snap, isConfigured: true);
+            var ready = ConnectionView.IsReady(snap);
 
             await RunOnUiAsync(() =>
             {

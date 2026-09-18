@@ -21,7 +21,7 @@ public sealed partial class AgentsRuntime
 {
     private bool IsApiReady
         => _availability is not null
-           && ConnectionView.From(_availability.Current, _availability.IsConfigured).Kind == ConnectionKind.Up;
+           && ConnectionView.IsReady(_availability.Current, _availability.OptionsState);
 
     private void OnApiAvailabilityChanged()
         => QueueApiModuleLifecycle(connected: IsApiReady);

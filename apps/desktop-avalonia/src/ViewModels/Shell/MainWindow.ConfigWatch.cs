@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Configuration;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
@@ -28,8 +29,8 @@ public partial class MainWindowViewModel
             return;
         }
 
-        // 未配置：Confirm 引导设置；横幅另由 ConnectivityBanner 展示
-        if (!_apiAvailability.IsConfigured)
+        // Empty 才 Confirm 引导设置；Invalid 走横幅
+        if (_apiAvailability.OptionsState == PacApiOptionsState.Empty)
         {
             var openSettings = await _dialogs.Confirm(
                     "未配置 PacAPI 服务",

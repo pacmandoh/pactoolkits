@@ -55,6 +55,10 @@
                 IsVisible="{Binding IsApiStatusNotConfigured}"
                 Kind="Settings" />
               <icons:AppIcon
+                Foreground="{DynamicResource WarningColor}"
+                IsVisible="{Binding IsApiStatusInvalid}"
+                Kind="CircleAlert" />
+              <icons:AppIcon
                 Foreground="{DynamicResource ErrorColor}"
                 IsVisible="{Binding IsApiStatusDown}"
                 Kind="CircleAlert" />

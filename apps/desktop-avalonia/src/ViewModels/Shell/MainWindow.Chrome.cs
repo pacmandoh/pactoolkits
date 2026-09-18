@@ -10,6 +10,7 @@ using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Desktop.Avalonia.Contracts.Presentation;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Api;
 using PacToolkits.Desktop.Avalonia.Services.Presentation.Connectivity;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -43,7 +44,8 @@ public partial class MainWindowViewModel
     {
         get
         {
-            if (!_apiAvailability.IsConfigured)
+            var optionsState = _apiAvailability.OptionsState;
+            if (optionsState is PacApiOptionsState.Empty or PacApiOptionsState.Invalid)
             {
                 return RuntimeVisualState.Inactive;
             }
@@ -53,11 +55,10 @@ public partial class MainWindowViewModel
                 return RuntimeVisualState.Transitioning;
             }
 
-            return ConnectionView.From(_apiAvailability.Current, isConfigured: true).Kind switch
+            return ConnectionView.From(_apiAvailability.Current).Kind switch
             {
                 ConnectionKind.Up => RuntimeVisualState.Active,
                 ConnectionKind.Unknown => RuntimeVisualState.Transitioning,
-                ConnectionKind.NotConfigured => RuntimeVisualState.Inactive,
                 _ => RuntimeVisualState.Inactive,
             };
         }
@@ -72,10 +73,15 @@ public partial class MainWindowViewModel
                 return "检测中…";
             }
 
-            // 未配置文案
-            if (!_apiAvailability.IsConfigured)
+            var optionsState = _apiAvailability.OptionsState;
+            if (optionsState == PacApiOptionsState.Empty)
             {
                 return "PacAPI 服务未配置";
+            }
+
+            if (optionsState == PacApiOptionsState.Invalid)
+            {
+                return "PacAPI 配置无效";
             }
 
             var snap = _apiAvailability.Current;
@@ -84,11 +90,10 @@ public partial class MainWindowViewModel
                 return "PacAPI 服务检查中…";
             }
 
-            var view = ConnectionView.From(snap, isConfigured: true);
+            var view = ConnectionView.From(snap);
             return view.Kind switch
             {
                 ConnectionKind.Up => "PacAPI 服务已连接",
-                ConnectionKind.NotConfigured => "PacAPI 服务未配置",
                 ConnectionKind.Blocked => view.Title,
                 ConnectionKind.Down => string.IsNullOrEmpty(view.Title) ? "PacAPI 服务不可用" : view.Title,
                 _ => "PacAPI 服务检查中…",
@@ -98,16 +103,20 @@ public partial class MainWindowViewModel
 
     public bool IsApiStatusReady
         => !IsApiProbeRunning
-           && ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured);
+           && ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.OptionsState);
 
     public bool IsApiStatusNotConfigured
-        => !IsApiProbeRunning && !_apiAvailability.IsConfigured;
+        => !IsApiProbeRunning && _apiAvailability.OptionsState == PacApiOptionsState.Empty;
+
+    public bool IsApiStatusInvalid
+        => !IsApiProbeRunning && _apiAvailability.OptionsState == PacApiOptionsState.Invalid;
 
     public bool IsApiStatusDown
     {
         get
         {
-            if (IsApiProbeRunning || !_apiAvailability.IsConfigured)
+            if (IsApiProbeRunning
+                || _apiAvailability.OptionsState is not PacApiOptionsState.Ready)
             {
                 return false;
             }
@@ -117,7 +126,7 @@ public partial class MainWindowViewModel
                 return false;
             }
 
-            return ConnectionView.From(_apiAvailability.Current, isConfigured: true).Kind
+            return ConnectionView.From(_apiAvailability.Current).Kind
                 is ConnectionKind.Down or ConnectionKind.Blocked;
         }
     }
@@ -166,7 +175,7 @@ public partial class MainWindowViewModel
         };
 
     public bool ShowServiceBlockItem
-        => ConnectionView.IsBlocked(_apiAvailability.Current, _apiAvailability.IsConfigured);
+        => ConnectionView.IsBlocked(_apiAvailability.Current, _apiAvailability.OptionsState);
 
     public string ServiceBlockItemText
     {
@@ -174,7 +183,8 @@ public partial class MainWindowViewModel
         {
             var view = ConnectionView.From(
                 _apiAvailability.Current,
-                isConfigured: _apiAvailability.IsConfigured);
+                _apiAvailability.OptionsState,
+                _apiAvailability.OptionsError);
             return string.IsNullOrEmpty(view.Title) ? "PacAPI 服务不可用" : view.Title;
         }
     }
@@ -214,6 +224,7 @@ public partial class MainWindowViewModel
         OnPropertyChanged(nameof(ApiItemText));
         OnPropertyChanged(nameof(IsApiStatusReady));
         OnPropertyChanged(nameof(IsApiStatusNotConfigured));
+        OnPropertyChanged(nameof(IsApiStatusInvalid));
         OnPropertyChanged(nameof(IsApiStatusDown));
         OnPropertyChanged(nameof(ShowServiceBlockItem));
         OnPropertyChanged(nameof(ServiceBlockItemText));
@@ -256,9 +267,17 @@ public partial class MainWindowViewModel
 
         try
         {
-            if (!_apiAvailability.IsConfigured)
+            if (_apiAvailability.OptionsState == PacApiOptionsState.Empty)
             {
                 _toasts.Error("PacAPI 服务", "请前往设置配置地址与密钥并测试连接");
+                return;
+            }
+
+            if (_apiAvailability.OptionsState == PacApiOptionsState.Invalid)
+            {
+                _toasts.Error(
+                    "PacAPI 服务",
+                    _apiAvailability.OptionsError ?? "请修正服务地址与密钥");
                 return;
             }
 
@@ -283,13 +302,13 @@ public partial class MainWindowViewModel
         }
 
         var snap = _apiAvailability.Current;
-        if (ConnectionView.IsReady(snap, isConfigured: true))
+        if (ConnectionView.IsReady(snap))
         {
             _toasts.Success("PacAPI 服务", "PacAPI 服务可用");
             return;
         }
 
-        var view = ConnectionView.From(snap, isConfigured: true);
+        var view = ConnectionView.From(snap);
         var detail = !string.IsNullOrWhiteSpace(view.Message)
             ? view.Message
             : snap.Detail ?? "PacAPI 服务不可用";

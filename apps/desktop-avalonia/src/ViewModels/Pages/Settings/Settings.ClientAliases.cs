@@ -95,7 +95,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         await SetAliasRefreshingAsync(true);
         try
         {
-            var apiReady = ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured);
+            var apiReady = ConnectionView.IsReady(
+                _apiAvailability.Current,
+                _apiAvailability.OptionsState);
             IReadOnlyList<string> machines = Array.Empty<string>();
             if (apiReady)
             {

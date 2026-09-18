@@ -281,7 +281,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         SyncPacApiInfo();
         ReloadClientAliasesIfVisible("client_alias.reload.activate_fail");
         // 游标走 PacAPI；服务就绪才请求
-        if (ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured))
+        if (ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.OptionsState))
         {
             RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");
         }

@@ -316,10 +316,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private bool _sessionHadServiceDown;
     private DateTimeOffset _lastServiceOkToastAt = DateTimeOffset.MinValue;
 
-    private void RaiseConnectivityChanged(ApiAvailabilitySnapshot api, bool configured)
+    private void RaiseConnectivityChanged(
+        ApiAvailabilitySnapshot api,
+        PacApiOptionsState optionsState,
+        string? optionsError)
     {
-        var view = ConnectionView.From(api, configured);
-        var banner = ConnectivityBanner.Create(api, isConfigured: configured);
+        var view = ConnectionView.From(api, optionsState, optionsError);
+        var banner = ConnectivityBanner.Create(api, optionsState, optionsError);
 
         if (view.Kind != ConnectionKind.Up)
         {
@@ -355,10 +358,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void OnApiAvailabilityChanged()
     {
         var api = _apiAvailability.Current;
-        var configured = _apiAvailability.IsConfigured;
+        var optionsState = _apiAvailability.OptionsState;
+        var optionsError = _apiAvailability.OptionsError;
         PostOnUi(() =>
         {
-            var view = ConnectionView.From(api, configured);
+            var view = ConnectionView.From(api, optionsState, optionsError);
             var becameUp = view.Kind == ConnectionKind.Up && _lastConnection != ConnectionKind.Up;
             if (view.Kind is ConnectionKind.Down or ConnectionKind.Blocked)
             {
@@ -367,7 +371,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             _lastConnection = view.Kind;
 
-            RaiseConnectivityChanged(api, configured);
+            RaiseConnectivityChanged(api, optionsState, optionsError);
             if (becameUp)
             {
                 ScheduleAutoRefresh();
@@ -587,8 +591,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         ObserveDetached(CheckConfigOnStartupAsync(), "startup.config.detached.fail");
         StartConfigWatcher();
-        _lastConnection = ConnectionView.From(_apiAvailability.Current, _apiAvailability.IsConfigured).Kind;
-        RaiseConnectivityChanged(_apiAvailability.Current, _apiAvailability.IsConfigured);
+        _lastConnection = ConnectionView.From(
+            _apiAvailability.Current,
+            _apiAvailability.OptionsState,
+            _apiAvailability.OptionsError).Kind;
+        RaiseConnectivityChanged(
+            _apiAvailability.Current,
+            _apiAvailability.OptionsState,
+            _apiAvailability.OptionsError);
         ObserveDetached(InitializeAfterStartupChecksAsync(), "startup.init.detached.fail");
         _logger.Info("MainWindowVM", "main.init", "Main window initialized");
     }
@@ -597,7 +607,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            // 周期探测自己做首检；未配置时不发 HTTP
+            // 周期探测自己做首检；非 Ready 不发 HTTP
             _apiAvailability.Start();
 
             MarkDirtyByType<MsfxLink>();

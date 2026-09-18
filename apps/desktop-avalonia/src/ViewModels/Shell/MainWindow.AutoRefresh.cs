@@ -39,7 +39,7 @@ public partial class MainWindowViewModel
 
     // 业务刷新只跟连接 Up（Down / Blocked 都不刷）
     private bool CanWorkspaceRefresh()
-        => ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.IsConfigured);
+        => ConnectionView.IsReady(_apiAvailability.Current, _apiAvailability.OptionsState);
 
     private async Task RunWorkspaceRefreshAsync()
     {

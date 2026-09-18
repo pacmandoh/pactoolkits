@@ -33,11 +33,26 @@ public sealed class ConnectivityBannerTests
     {
         var banner = ConnectivityBanner.Create(
             Snap(ApiAvailabilityState.Unavailable, "ignored"),
-            isConfigured: false);
+            PacApiOptionsState.Empty);
 
         Assert.True(banner.IsVisible);
         Assert.Equal(ConnectivitySeverity.Warning, banner.Severity);
         Assert.True(banner.ShowOpenSettings);
+    }
+
+    [Fact]
+    public void Create_warns_with_settings_when_invalid()
+    {
+        var banner = ConnectivityBanner.Create(
+            Snap(ApiAvailabilityState.Ready),
+            PacApiOptionsState.Invalid,
+            "公网须 HTTPS");
+
+        Assert.True(banner.IsVisible);
+        Assert.Equal(ConnectivitySeverity.Warning, banner.Severity);
+        Assert.True(banner.ShowOpenSettings);
+        Assert.Equal("PacAPI 配置无效", banner.Title);
+        Assert.Equal("公网须 HTTPS", banner.Message);
     }
 
     [Fact]

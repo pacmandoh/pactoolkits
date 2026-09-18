@@ -6,14 +6,28 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class ConnectionViewTests
 {
     [Fact]
-    public void Unconfigured_is_not_configured()
+    public void Empty_is_not_configured()
     {
         var view = ConnectionView.From(
             Snap(ApiAvailabilityState.Unavailable),
-            isConfigured: false);
+            PacApiOptionsState.Empty);
 
         Assert.Equal(ConnectionKind.NotConfigured, view.Kind);
-        Assert.False(ConnectionView.IsReady(Snap(ApiAvailabilityState.Ready), isConfigured: false));
+        Assert.False(ConnectionView.IsReady(Snap(ApiAvailabilityState.Ready), PacApiOptionsState.Empty));
+    }
+
+    [Fact]
+    public void Invalid_is_invalid_with_error_message()
+    {
+        var view = ConnectionView.From(
+            Snap(ApiAvailabilityState.Ready),
+            PacApiOptionsState.Invalid,
+            "公网须 HTTPS");
+
+        Assert.Equal(ConnectionKind.Invalid, view.Kind);
+        Assert.Equal("PacAPI 配置无效", view.Title);
+        Assert.Equal("公网须 HTTPS", view.Message);
+        Assert.False(ConnectionView.IsReady(Snap(ApiAvailabilityState.Ready), PacApiOptionsState.Invalid));
     }
 
     [Fact]

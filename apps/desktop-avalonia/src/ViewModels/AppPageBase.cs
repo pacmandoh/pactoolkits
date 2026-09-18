@@ -112,7 +112,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public string PageUnavailableTitle => _pageDataAvailability switch
     {
-        PageDataAvailability.AccessBlocked => ConnectionView.From(CurrentApiSnap, IsApiConfigured).Title is { Length: > 0 } title
+        PageDataAvailability.AccessBlocked => ConnectionView.From(CurrentApiSnap, ApiOptionsState, ApiOptionsError).Title is { Length: > 0 } title
             ? title
             : "PacAPI 服务不可用",
         PageDataAvailability.LoadFailed => "加载失败",
@@ -146,7 +146,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     public bool IsSectionPending => SectionEmptyPolicy.IsPending(
         _hasLoadedOnce,
         _pageDataAvailability,
-        ConnectionView.From(CurrentApiSnap, IsApiConfigured).Kind);
+        ConnectionView.From(CurrentApiSnap, ApiOptionsState, ApiOptionsError).Kind);
 
     protected string GetSectionEmptyTitle(string? readyTitle)
         => SectionEmptyCopy.GetTitle(readyTitle);
@@ -175,17 +175,21 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     private bool IsPageConnected => IsApiReady;
 
-    private bool IsApiConfigured => GetApiAvailability()?.IsConfigured ?? true;
+    private PacApiOptionsState ApiOptionsState
+        => GetApiAvailability()?.OptionsState ?? PacApiOptionsState.Ready;
+
+    private string? ApiOptionsError
+        => GetApiAvailability()?.OptionsError;
 
     private bool IsPageBlocked(out string? reason)
     {
-        if (!ConnectionView.IsBlocked(CurrentApiSnap, IsApiConfigured))
+        if (!ConnectionView.IsBlocked(CurrentApiSnap, ApiOptionsState))
         {
             reason = null;
             return false;
         }
 
-        var view = ConnectionView.From(CurrentApiSnap, IsApiConfigured);
+        var view = ConnectionView.From(CurrentApiSnap, ApiOptionsState, ApiOptionsError);
         reason = string.IsNullOrWhiteSpace(view.Message) ? view.Title : view.Message;
         return true;
     }
@@ -629,7 +633,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        if (ConnectionView.From(CurrentApiSnap, IsApiConfigured).Kind == ConnectionKind.Unknown)
+        if (ConnectionView.From(CurrentApiSnap, ApiOptionsState, ApiOptionsError).Kind == ConnectionKind.Unknown)
         {
             ClearServiceRetryDeadline();
             CancelPendingReload();
@@ -853,7 +857,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             CheckedAt: DateTimeOffset.MinValue,
             FirstCheckCompleted: false);
 
-    protected bool IsApiReady => ConnectionView.IsReady(CurrentApiSnap, IsApiConfigured);
+    protected bool IsApiReady => ConnectionView.IsReady(CurrentApiSnap, ApiOptionsState);
 
     private IApiAvailabilityService? GetApiAvailability()
     {

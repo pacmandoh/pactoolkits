@@ -798,6 +798,11 @@ public sealed class AppPageBaseReloadPipelineTests
 
         public bool IsConfigured { get; set; } = true;
 
+        public PacApiOptionsState OptionsState
+            => IsConfigured ? PacApiOptionsState.Ready : PacApiOptionsState.Empty;
+
+        public string? OptionsError => null;
+
         public string? LastApiVersion { get; set; }
 
         public string? LastContractVersion { get; set; }

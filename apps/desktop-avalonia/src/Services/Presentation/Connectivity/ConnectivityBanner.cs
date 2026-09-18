@@ -11,7 +11,7 @@ public enum ConnectivitySeverity
 }
 
 /// <summary>
-/// 未配置：Warning，可进设置；已配置但不可用（Down/Blocked）：Error
+/// 未配置 / 配置无效：Warning，可进设置；已配置但不可用（Down/Blocked）：Error
 /// </summary>
 public sealed record ConnectivityBanner(
     bool IsVisible,
@@ -22,24 +22,19 @@ public sealed record ConnectivityBanner(
 {
     public static ConnectivityBanner Create(
         ApiAvailabilitySnapshot snap,
-        bool isConfigured = true)
+        PacApiOptionsState optionsState = PacApiOptionsState.Ready,
+        string? optionsError = null)
     {
-        var view = ConnectionView.From(snap, isConfigured);
+        var view = ConnectionView.From(snap, optionsState, optionsError);
         return view.Kind switch
         {
-            ConnectionKind.NotConfigured => new ConnectivityBanner(
+            ConnectionKind.NotConfigured or ConnectionKind.Invalid => new ConnectivityBanner(
                 IsVisible: true,
                 Title: view.Title,
                 Message: view.Message,
                 Severity: ConnectivitySeverity.Warning,
                 ShowOpenSettings: true),
-            ConnectionKind.Blocked => new ConnectivityBanner(
-                IsVisible: true,
-                Title: view.Title,
-                Message: view.Message,
-                Severity: ConnectivitySeverity.Error,
-                ShowOpenSettings: false),
-            ConnectionKind.Down => new ConnectivityBanner(
+            ConnectionKind.Blocked or ConnectionKind.Down => new ConnectivityBanner(
                 IsVisible: true,
                 Title: view.Title,
                 Message: view.Message,
