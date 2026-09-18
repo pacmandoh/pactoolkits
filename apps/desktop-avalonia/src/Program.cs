@@ -37,6 +37,11 @@ internal sealed class Program
             {
                 BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
             }
+            catch (Exception ex)
+            {
+                StartupCrash.Report(ex);
+                Environment.ExitCode = 1;
+            }
             finally
             {
                 Instance = null;

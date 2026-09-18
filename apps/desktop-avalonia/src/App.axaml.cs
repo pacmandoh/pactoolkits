@@ -63,11 +63,13 @@ public partial class App : global::Avalonia.Application
 
         Services = services.BuildServiceProvider();
 
+        _logger = Services.GetRequiredService<IAppLogger>();
+        RegisterGlobalExceptionHandlers();
+
         DataTemplates.Add(new ViewLocator(Services.GetRequiredService<AppViews>()));
 
         _uiBehavior = Services.GetRequiredService<IUiBehaviorService>();
         _agentsManager = Services.GetRequiredService<IAgentsManager>();
-        _logger = Services.GetRequiredService<IAppLogger>();
         var releaseVersion = Services.GetRequiredService<IReleaseVersionService>().Current;
         _logger.Info("App", "app.start", "Application startup", new
         {
@@ -77,7 +79,6 @@ public partial class App : global::Avalonia.Application
             releaseVersion.BuildChannel,
             releaseVersion.BuildDate
         });
-        RegisterGlobalExceptionHandlers();
 
         _mainWindow = new MainWindow
         {
