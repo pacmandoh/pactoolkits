@@ -32,7 +32,7 @@ Views/
 Styles/  Assets/  Resources/
 ```
 
-`App.axaml`、`Program.cs` 等入口可放在 `src/` 根下
+`App.axaml`、`Program.cs`、`StartupCrash` 等入口可放在 `src/` 根下。启动期不可恢复异常由 `StartupCrash` 处理，不依赖 DI
 
 ## namespace
 

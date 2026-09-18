@@ -33,11 +33,11 @@ flowchart TB
 
 | 层         | 所有者                                                             | 用户可见态                                                                   |
 | ---------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Shell 连接 | `MainWindowViewModel`、`IApiAvailabilityService`、`ConnectionView` | Unknown、NotConfigured、Up、Down、Blocked                                    |
+| Shell 连接 | `MainWindowViewModel`、`IApiAvailabilityService`、`ConnectionView` | Unknown、NotConfigured、Invalid、Up、Down、Blocked                           |
 | 页面可用性 | `AppPageBase`、`PageDataAvailability`                              | NotLoaded、AwaitingService、AccessBlocked、Loading、LoadFailed、Stale、Ready |
 | 区块空态   | 各页 ViewModel、`SectionEmptyCopy`                                 | 列表或图表无数据时的标题与说明                                               |
 
-探测枚举（`Connecting`、`Ready`、`Unavailable`、`ContractBlocked`、`ServerDatabaseBlocked`、`SchemaBlocked`）只写日志，且仅已配置 PacAPI 时才探测。未配置时 `ConnectionView` 为 `NotConfigured`。页面与 Busy 只认 `ConnectionView`
+探测枚举（`Connecting`、`Ready`、`Unavailable`、`ContractBlocked`、`ServerDatabaseBlocked`、`SchemaBlocked`）只写日志，且仅 `OptionsState == Ready` 时才探测。未配置时 `ConnectionView` 为 `NotConfigured`；配置无效为 `Invalid`。页面与 Busy 只认 `ConnectionView`
 
 ## 第 1 层：连接
 
@@ -47,7 +47,8 @@ flowchart TB
 
 | 条件                                                           | ConnectionView |
 | -------------------------------------------------------------- | -------------- |
-| 未配置 BaseUrl 与 ApiKey                                       | NotConfigured  |
+| 未配置 BaseUrl 与 ApiKey（`Empty`）                            | NotConfigured  |
+| 已填写但未通过校验（`Invalid`）                                | Invalid        |
 | 已配置，首检未完成                                             | Unknown        |
 | Ready                                                          | Up             |
 | Unavailable，进程或地址不通                                    | Down           |
@@ -56,7 +57,7 @@ flowchart TB
 
 「API 进程在、库不在」对业务页是 Down，与进程不可达使用相同的等待或陈旧数据状态。协议或 schema 元数据不兼容时为 Blocked
 
-探测策略（未配置时不进入）：
+探测策略（非 Ready 时不进入）：
 
 - Up：约 1s 只请求 `/v1/system/status`
 - Down 或 Blocked（非密钥、非限流）：约 2s 全量再探（info 与 status；非 Ready 时先检查协议）
@@ -64,7 +65,7 @@ flowchart TB
 - 换票 429：按 `Retry-After`（缺省约 60s）暂停探测；保存配置后解除
 - 可用性探测走独立 `pac-api-availability` HttpClient，不走业务 GET Resilience
 - `Start()` 自行启动轮询环；单次探测在 `_probeGate` 内串行
-- 未配置：保持空闲，约 2s 后重新检查配置
+- Empty / Invalid：保持空闲，约 2s 后重新检查配置
 
 ## 第 2 层：页面可用性
 
@@ -92,6 +93,7 @@ watermark 把对应页标脏；刷新成功后仅当期间未再 Mark 才清除�
 
 - Busy 只来自重载与局部 Busy 路径（含与重载互斥、不进入 `Loading` 的录入路径）
 - `IsSectionPending` 只在服务可用且首个数据结果尚未返回时为真，各数据区块再叠加自己的局部 Busy
+- 多模式页（如库存）的模式 BusyArea：仅 `CanPage` 时才因未首载或等网格挂载而 pending；未配置、配置无效或断开时不亮该 Busy
 - `IsSignalReload` 不亮 Busy，也不把页面标成 `Loading`
 - 进入等待 / Stale / AccessBlocked / LoadFailed 时不亮 Busy
 

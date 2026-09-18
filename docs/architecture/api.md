@@ -175,11 +175,12 @@ Desktop 访问 API 的地址与密钥在设置的「连接设置」写入 `AppCo
 
 规则：
 
-- `BaseUrl` 与 `ApiKey` 都空：合法，表示未配置；此时不探测 PacAPI，`ConnectionView` 为 `NotConfigured`，变更流不启动
-- 只配一侧：保存失败
+- `BaseUrl` 与 `ApiKey` 都空：合法，`OptionsState` 为 `Empty`，`ConnectionView` 为 `NotConfigured`，不探测
+- 只配一侧：保存失败；磁盘上该态为 `Invalid`
 - 两侧都有：须为绝对 URI；内网与本机可用 HTTP，公网须 HTTPS；`BaseUrl` 不得带 query、fragment、userinfo
+- 非法持久化可加载：`OptionsState` 为 `Invalid`，不探测，`ConnectionView` 为 `Invalid`
 - 保存后立刻生效、`Reset` 水位并立刻 `Probe`；换票 401/403 后可用性挂起自动探测，改密钥抬 `ConfigEpoch` 再探
 
-未配置是配置态，不是 API 探测态：`IApiAvailabilityService.IsConfigured` 为假时不发 HTTP，也不把「未配置」写成 `ApiAvailabilityState`
+`Empty` / `Invalid` 均使 `IsConfigured` 为假，但不是 API 探测态：不发 HTTP，也不写成 `ApiAvailabilityState`。仅 `Empty` 时启动引导配置
 
 App DI 在 `IReleaseVersionService` 之后注册 `IPacApiContractGate`。已配置时，业务请求进 Jwt Handler 前会先 GET `/v1/system/info`，用 Desktop 清单的 `minApiContract`、`maxApiContract` 对照 API 的 `contractVersion`；对不上就拦下业务请求。设置页改密钥后会 `Reset` 协议检查结果
