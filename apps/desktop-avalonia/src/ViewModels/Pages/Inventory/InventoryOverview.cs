@@ -266,30 +266,58 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public string MissingEmptyText => GetSectionEmptyTitle("暂无缺失药品");
     public string MissingEmptyHint => GetSectionEmptyHint("当前筛选条件下没有缺失药品");
 
-    public bool IsStockEmpty => ShowSectionEmpty(StockRows.Count == 0) && _modeLoaded[0];
-    public bool IsAggEmpty => ShowSectionEmpty(DrugSpecRows.Count == 0) && _modeLoaded[1];
-    public bool IsLowEmpty => ShowSectionEmpty(LowStockRows.Count == 0) && _modeLoaded[2];
-    public bool IsMissingEmpty => ShowSectionEmpty(MissingStockRows.Count == 0) && _modeLoaded[3];
+    public bool IsStockEmpty => ShowSectionEmpty(StockRows.Count == 0) && (_modeLoaded[0] || !CanPage);
+    public bool IsAggEmpty => ShowSectionEmpty(DrugSpecRows.Count == 0) && (_modeLoaded[1] || !CanPage);
+    public bool IsLowEmpty => ShowSectionEmpty(LowStockRows.Count == 0) && (_modeLoaded[2] || !CanPage);
+    public bool IsMissingEmpty => ShowSectionEmpty(MissingStockRows.Count == 0) && (_modeLoaded[3] || !CanPage);
+
+    // 未首载与等挂载只在 CanPage 时进入 BusyArea（未配置 / 无效 / 断开会跳过 Reload）
     public bool IsDetailSectionPending =>
-        IsSectionPending
-        || IsDetailBusy
-        || (IsDetailMode && !_modeLoaded[0])
-        || (IsDetailMode && StockRows.Count > 0 && !IsDetailGridMounted);
+        ModeSectionPending(
+            IsSectionPending,
+            IsDetailBusy,
+            IsDetailMode,
+            _modeLoaded[0],
+            CanPage,
+            IsDetailMode && StockRows.Count > 0 && !IsDetailGridMounted);
+
     public bool IsAggSectionPending =>
-        IsSectionPending
-        || IsAggBusy
-        || (IsAggMode && !_modeLoaded[1])
-        || (IsAggMode && DrugSpecRows.Count > 0 && !IsAggGridMounted);
+        ModeSectionPending(
+            IsSectionPending,
+            IsAggBusy,
+            IsAggMode,
+            _modeLoaded[1],
+            CanPage,
+            IsAggMode && DrugSpecRows.Count > 0 && !IsAggGridMounted);
+
     public bool IsLowSectionPending =>
-        IsSectionPending
-        || IsLowBusy
-        || (IsLowMode && !_modeLoaded[2])
-        || (IsLowMode && LowStockRows.Count > 0 && !IsLowGridMounted);
+        ModeSectionPending(
+            IsSectionPending,
+            IsLowBusy,
+            IsLowMode,
+            _modeLoaded[2],
+            CanPage,
+            IsLowMode && LowStockRows.Count > 0 && !IsLowGridMounted);
+
     public bool IsMissingSectionPending =>
-        IsSectionPending
-        || IsMissingBusy
-        || (IsMissingMode && !_modeLoaded[3])
-        || (IsMissingMode && MissingStockRows.Count > 0 && !IsMissingGridMounted);
+        ModeSectionPending(
+            IsSectionPending,
+            IsMissingBusy,
+            IsMissingMode,
+            _modeLoaded[3],
+            CanPage,
+            IsMissingMode && MissingStockRows.Count > 0 && !IsMissingGridMounted);
+
+    /// <summary>可拉数时才因页级 pending、未首载或等挂载转圈；modeBusy 在途仍算 pending</summary>
+    internal static bool ModeSectionPending(
+        bool pagePending,
+        bool modeBusy,
+        bool modeActive,
+        bool modeLoaded,
+        bool canPage,
+        bool mountPending)
+        => modeBusy
+           || (canPage && (pagePending || (modeActive && !modeLoaded) || mountPending));
     public bool IsUiBusy => IsBusy || IsPanelBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
 
