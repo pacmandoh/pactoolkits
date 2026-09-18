@@ -13,17 +13,17 @@
         "maxApiContract": "1.6.0",
         "minApiContract": "1.6.0",
         "packageId": "PacToolkits",
-        "version": "1.0.3-beta.2"
+        "version": "1.0.3-beta.3"
       }
     }
   },
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.3-beta.2"
+    "version": "1.0.3-beta.3"
   },
   "release": {
     "channel": "beta",
-    "date": "2026-09-01"
+    "date": "2026-09-18"
   },
   "schemaVersion": 2
 }
